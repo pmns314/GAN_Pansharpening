@@ -1,0 +1,7 @@
+pytorch_models/trained_models/*/*/checkpoints
+previous_training
+.idea
+results
+datasets
+data
+__pycache__
