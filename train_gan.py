@@ -95,6 +95,12 @@ if __name__ == '__main__':
         trained_epochs = trained_model['tot_epochs']
         best_vloss_g = trained_model['gen_best_loss']
         best_vloss_d = trained_model['disc_best_loss']
+        for g in model.gen_opt.param_groups:
+            g['lr'] = lr
+        for g in model.disc_opt.param_groups:
+            g['lr'] = lr
+
+
     else:
         trained_epochs = 0
         best_vloss_g = +np.inf

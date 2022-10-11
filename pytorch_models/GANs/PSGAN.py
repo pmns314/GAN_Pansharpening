@@ -381,7 +381,7 @@ class PSGAN(nn.Module):
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
 
                 gen = self.generator(t['ms'].to(device), t['pan'].to(device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().numpy()
+                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
                 gen = np.squeeze(gen) * 2048
                 gt = np.squeeze(t['gt']) * 2048
 
