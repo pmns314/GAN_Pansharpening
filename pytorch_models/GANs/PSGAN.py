@@ -198,8 +198,6 @@ class PSGAN(nn.Module):
         )
 
     def train_loop(self, dataloader, device='cpu'):
-        size = len(dataloader.dataset)
-        batch_size = dataloader.batch_size
         self.train(True)
 
         loss_g_batch = 0
@@ -212,11 +210,13 @@ class PSGAN(nn.Module):
             ms = ms.to(device)
 
             # Generate Data for Discriminators Training
-            generated_HRMS = self.generator(ms, pan)
+            with torch.no_grad():
+                generated_HRMS = self.generator(ms, pan)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
             self.generator.train(False)
+            self.discriminator.zero_grad()
 
             # Compute prediction and loss
             loss_d = self.loss_discriminator(ms, gt, generated_HRMS)
@@ -234,6 +234,7 @@ class PSGAN(nn.Module):
             # ------------------- Training Generator ----------------------------
             self.discriminator.train(False)
             self.generator.train(True)
+            self.generator.zero_grad()
 
             # Compute prediction and loss
             loss_g = self.loss_generator(ms, pan, gt)
@@ -379,7 +380,7 @@ class PSGAN(nn.Module):
             for t in tests:
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
 
-                gen = self.generator(t['ms'], t['pan'])
+                gen = self.generator(t['ms'].to(device), t['pan'].to(device))
                 gen = torch.permute(gen, (0, 2, 3, 1)).detach().numpy()
                 gen = np.squeeze(gen) * 2048
                 gt = np.squeeze(t['gt']) * 2048
@@ -400,29 +401,29 @@ class PSGAN(nn.Module):
         print(f"Training Completed at epoch {pretrained_epochs + epoch}. Saved in {output_path} folder")
 
 
-if __name__ == '__main__':
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
-
-    satellite = "W3"
-    output_path = 'pytorch/'
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
-    train_data = DatasetPytorch("../../datasets/" + satellite + "/train.h5")
-    train_dataloader = DataLoader(train_data, batch_size=64,
-                                  shuffle=True)
-    val_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/val.h5"), batch_size=64,
-                                shuffle=True)
-    test_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/test.h5"), batch_size=64,
-                                 shuffle=True)
-
-    model = PSGAN(train_data.channels)
-
-    from torchsummary import summary
-
-    g = model.generator
-
-    model.to(device)
-
-    model.my_training(output_path, 500)
-    model.test_loop(test_dataloader)
+# if __name__ == '__main__':
+#     device = "cuda" if torch.cuda.is_available() else "cpu"
+#     print(f"Using {device} device")
+#
+#     satellite = "W3"
+#     output_path = 'pytorch/'
+#     if os.path.exists(output_path):
+#         shutil.rmtree(output_path)
+#     train_data = DatasetPytorch("../../datasets/" + satellite + "/train.h5")
+#     train_dataloader = DataLoader(train_data, batch_size=64,
+#                                   shuffle=True)
+#     val_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/val.h5"), batch_size=64,
+#                                 shuffle=True)
+#     test_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/test.h5"), batch_size=64,
+#                                  shuffle=True)
+#
+#     model = PSGAN(train_data.channels)
+#
+#     from torchsummary import summary
+#
+#     g = model.generator
+#
+#     model.to(device)
+#
+#     model.my_training(output_path, 500)
+#     model.test_loop(test_dataloader)

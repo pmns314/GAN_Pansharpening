@@ -63,7 +63,8 @@ if __name__ == '__main__':
 
     train_dataset = f"train_1_32.h5"
     val_dataset = f"val_1_32.h5"
-    test_dataset = f"test_1_256.h5"
+    test_dataset1 = f"test_1_256.h5"
+    test_dataset2 = f"test_3_512.h5"
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -75,9 +76,9 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
                                 shuffle=True)
 
-    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
+    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset1}"), batch_size=64,
                                   shuffle=False)
-    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
+    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
     model = PSGAN(train_dataloader.dataset.channels)
