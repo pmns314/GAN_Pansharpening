@@ -2,6 +2,7 @@ import os
 import shutil
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
@@ -10,13 +11,19 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from dataset.DatasetPytorch import DatasetPytorch
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 
 EPS = 1e-12
 TO_SAVE = [1, 2, 3, 5, 8,
            10, 20, 30, 50, 80,
            100, 200, 300, 500, 800,
            1000, 2000, 3000, 5000, 8000, 10000]
-
+L = 11
+Qblocks_size = 32
+flag_cut_bounds = 1
+dim_cut = 21
+th_values = 0
+ratio = 4.0
 
 class PSGAN(nn.Module):
     def __init__(self, channels, name="PSGAN"):
@@ -141,7 +148,7 @@ class PSGAN(nn.Module):
             self.sigmoid = nn.Sigmoid()
 
         def forward(self, generated, target):
-            inputs = torch.cat([generated, target], 1)
+            inputs = torch.cat([generated, target], 1)  # N x 2*C x H x W
             out = self.backbone(inputs)
             out = self.out_conv(out)
             out = self.sigmoid(out)
@@ -161,9 +168,9 @@ class PSGAN(nn.Module):
         # gen_loss = gen_loss_GAN * self.alpha + gen_loss_L1 * self.beta
 
         # From Formula
-        gen_loss_GAN = torch.mean(torch.log(predict_fake + EPS))
-        gen_loss_L1 = torch.mean(torch.abs(gt - outputs))
-        gen_loss = - self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
+        gen_loss_GAN = torch.mean(-torch.log(predict_fake + EPS))  # Inganna il discriminatore
+        gen_loss_L1 = torch.mean(torch.abs(gt - outputs))  # Avvicina la risposta del generatore alla ground truth
+        gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
         return gen_loss
 
@@ -174,9 +181,9 @@ class PSGAN(nn.Module):
 
         # From Formula
         # mean[ 1 - log(fake) + log(real) ]
-        return torch.mean(
-            1 - torch.log(predict_fake + EPS) + torch.log(predict_real + EPS)
-        )
+        # return torch.mean(
+        #     1 - torch.log(predict_fake + EPS) + torch.log(predict_real + EPS)
+        # )
 
         # From Code
         # return tf.reduce_mean(
@@ -184,6 +191,11 @@ class PSGAN(nn.Module):
         #             tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)
         #     )
         # )
+        return torch.mean(
+            -(
+                    torch.log(predict_real + EPS) + torch.log(1 - predict_fake + EPS)
+            )
+        )
 
     def train_loop(self, dataloader, device='cpu'):
         size = len(dataloader.dataset)
@@ -296,9 +308,10 @@ class PSGAN(nn.Module):
                     best_vloss_d, best_vloss_g,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
+                    tests=None,
                     pretrained_epochs=0, device='cpu'):
         # TensorBoard
-        writer = SummaryWriter(output_path + "log/")
+        writer = SummaryWriter(output_path + "/log")
         # Early stopping
         patience = 30
         triggertimes = 0
@@ -361,6 +374,21 @@ class PSGAN(nn.Module):
 
             if curr_loss_d < best_vloss_d:
                 best_vloss_d = curr_loss_d
+
+            # Generation Indexes
+            for t in tests:
+                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
+
+                gen = self.generator(t['ms'], t['pan'])
+                gen = torch.permute(gen, (0, 2, 3, 1)).detach().numpy()
+                gen = np.squeeze(gen) * 2048
+                gt = np.squeeze(t['gt']) * 2048
+
+                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
+                                                            th_values)
+                df.loc[0] = [pretrained_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
+                df.to_csv(t['filename'], index=False, header=True if pretrained_epochs + epoch == 1 else False,
+                          mode='a', sep=";")
 
             # scheduler_d.step(best_vloss_d)
             # scheduler_g.step(best_vloss_g)

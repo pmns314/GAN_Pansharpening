@@ -74,8 +74,11 @@ if __name__ == '__main__':
                                   shuffle=True)
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
                                 shuffle=True)
-    test_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
-                                 shuffle=False)
+
+    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
+                                  shuffle=False)
+    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
+                                  shuffle=False)
     # Model Creation
     model = PSGAN(train_dataloader.dataset.channels)
     model.set_optimizers(lr)
@@ -98,10 +101,37 @@ if __name__ == '__main__':
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
 
+    if chk_path is None:
+        chk_path = f"{output_path}\\checkpoints"
+        if not os.path.exists(chk_path):
+            os.makedirs(chk_path)
+
+    # Setting up index evaluation
+    test_1 = {}
+    pan, ms, _, gt = next(enumerate(test_dataloader1))[1]
+    if len(pan.shape) == 3:
+        pan = torch.unsqueeze(pan, 0)
+    gt = torch.permute(gt, (0, 2, 3, 1))
+    test_1['pan'] = pan
+    test_1['ms'] = ms
+    test_1['gt'] = torch.squeeze(gt).detach().numpy()
+    test_1['filename'] = f"{output_path}/test_0.csv"
+
+    test_2 = {}
+    pan, ms, _, gt = next(enumerate(test_dataloader2))[1]
+    if len(pan.shape) == 3:
+        pan = torch.unsqueeze(pan, 0)
+    gt = torch.permute(gt, (0, 2, 3, 1))
+    test_2['pan'] = pan
+    test_2['ms'] = ms
+    test_2['gt'] = torch.squeeze(gt).detach().numpy()
+    test_2['filename'] = f"{output_path}/test_1.csv"
+
     # Model Training
     model.my_training(epochs, best_vloss_d, best_vloss_g,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
+                      [test_1, test_2],
                       pretrained_epochs=trained_epochs, device=device)
 
     # Commit and Push new model
