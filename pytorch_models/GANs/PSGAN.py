@@ -12,6 +12,10 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.DatasetPytorch import DatasetPytorch
 
 EPS = 1e-12
+TO_SAVE = [1, 2, 3, 5, 8,
+           10, 20, 30, 50, 80,
+           100, 200, 300, 500, 800,
+           1000, 2000, 3000, 5000, 8000, 10000]
 
 
 class PSGAN(nn.Module):
@@ -24,8 +28,8 @@ class PSGAN(nn.Module):
         self.generator = self.Generator(channels)
         self.discriminator = self.Discriminator(channels)
 
-        self.gen_opt = optim.Adam(self.generator.parameters(), lr=.001)
-        self.disc_opt = optim.Adam(self.discriminator.parameters(), lr=.001)
+        self.gen_opt = None
+        self.disc_opt = None
 
     @property
     def name(self):
@@ -142,6 +146,10 @@ class PSGAN(nn.Module):
             out = self.out_conv(out)
             out = self.sigmoid(out)
             return out
+
+    def set_optimizers(self, lr):
+        self.gen_opt = optim.Adam(self.generator.parameters(), lr=lr)
+        self.disc_opt = optim.Adam(self.discriminator.parameters(), lr=lr)
 
     def loss_generator(self, ms, pan, gt, *args):
 
@@ -284,7 +292,11 @@ class PSGAN(nn.Module):
               f"\t Avg disc loss: {disc_loss / len(dataloader):>8f} \n"
               f"\t Avg gen loss: {gen_loss / len(dataloader):>8f} \n")
 
-    def my_training(self, output_path, epochs=500, device='cpu'):
+    def my_training(self, epochs,
+                    best_vloss_d, best_vloss_g,
+                    output_path, chk_path,
+                    train_dataloader, val_dataloader,
+                    pretrained_epochs=0, device='cpu'):
         # TensorBoard
         writer = SummaryWriter(output_path + "log/")
         # Early stopping
@@ -292,32 +304,54 @@ class PSGAN(nn.Module):
         triggertimes = 0
 
         # Reduce Learning Rate on Plateaux
-        scheduler_d = ReduceLROnPlateau(self.disc_opt, 'min', patience=10, verbose=True)
-        scheduler_g = ReduceLROnPlateau(self.gen_opt, 'min', patience=10, verbose=True)
+        # scheduler_d = ReduceLROnPlateau(self.disc_opt, 'min', patience=10, verbose=True)
+        # scheduler_g = ReduceLROnPlateau(self.gen_opt, 'min', patience=10, verbose=True)
 
-        best_vloss_d = +np.inf
-        best_vloss_g = +np.inf
+        pretrained_epochs = pretrained_epochs + 1
+        epoch = 0
+
+        print(f"Training started for {output_path} at epoch {pretrained_epochs}")
         for epoch in range(epochs):
             disc_loss, gen_loss = self.train_loop(train_dataloader, device)
             if val_dataloader is not None:
                 curr_loss_d, curr_loss_g = self.validation_loop(val_dataloader, device)
-                print(f'Epoch {epoch + 1}\t'
+                print(f'Epoch {pretrained_epochs + epoch}\t'
                       f'\t Disc: train {disc_loss :.2f}\t valid {curr_loss_d:.2f}\n'
                       f'\t Gen: train {gen_loss :.2f}\t valid {curr_loss_g:.2f}\n')
-                writer.add_scalars("Disc_Loss", {"train": disc_loss, "validation": curr_loss_d}, epoch)
-                writer.add_scalars("Gen_Loss", {"train": gen_loss, "validation": curr_loss_g}, epoch)
+                writer.add_scalars("Disc_Loss", {"train": disc_loss, "validation": curr_loss_d},
+                                   pretrained_epochs + epoch)
+                writer.add_scalars("Gen_Loss", {"train": gen_loss, "validation": curr_loss_g},
+                                   pretrained_epochs + epoch)
             else:
-                print(f'Epoch {epoch + 1}\t'
+                print(f'Epoch {pretrained_epochs + epoch}\t'
                       f'\t Disc: {disc_loss :.2f}'
                       f'\t Gen: {gen_loss :.2f}')
                 curr_loss_d = disc_loss
                 curr_loss_g = gen_loss
-                writer.add_scalar("Disc_loss/Train", disc_loss, epoch)
-                writer.add_scalar("Gen_loss/Train", gen_loss, epoch)
+                writer.add_scalar("Disc_loss/Train", disc_loss, pretrained_epochs + epoch)
+                writer.add_scalar("Gen_loss/Train", gen_loss, pretrained_epochs + epoch)
+
+            # Save Checkpoints
+            if pretrained_epochs + epoch in TO_SAVE:
+                torch.save({'gen_state_dict': self.generator.state_dict(),
+                            'disc_state_dict': self.discriminator.state_dict(),
+                            'gen_optimizer_state_dict': self.gen_opt.state_dict(),
+                            'disc_optimizer_state_dict': self.disc_opt.state_dict(),
+                            'gen_best_loss': best_vloss_g,
+                            'disc_best_loss': best_vloss_d
+                            }, f"{chk_path}/checkpoint_{pretrained_epochs + epoch}.pth")
 
             if curr_loss_g < best_vloss_g:
                 best_vloss_g = curr_loss_g
-                torch.save(model.state_dict(), output_path + "model.pth")
+                torch.save({
+                    'best_epoch': pretrained_epochs + epoch,
+                    'gen_state_dict': self.generator.state_dict(),
+                    'disc_state_dict': self.discriminator.state_dict(),
+                    'gen_optimizer_state_dict': self.gen_opt.state_dict(),
+                    'disc_optimizer_state_dict': self.disc_opt.state_dict(),
+                    'gen_best_loss': best_vloss_g,
+                    'disc_best_loss': best_vloss_d
+                }, output_path + "/model.pth")
                 triggertimes = 0
             else:
                 triggertimes += 1
@@ -328,10 +362,14 @@ class PSGAN(nn.Module):
             if curr_loss_d < best_vloss_d:
                 best_vloss_d = curr_loss_d
 
-            scheduler_d.step(best_vloss_d)
-            scheduler_g.step(best_vloss_g)
+            # scheduler_d.step(best_vloss_d)
+            # scheduler_g.step(best_vloss_g)
 
+        m = torch.load(output_path + "/model.pth")
+        m['tot_epochs'] = pretrained_epochs + epoch
+        torch.save(m, output_path + "/model.pth")
         writer.flush()
+        print(f"Training Completed at epoch {pretrained_epochs + epoch}. Saved in {output_path} folder")
 
 
 if __name__ == '__main__':
@@ -339,7 +377,7 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     satellite = "W3"
-    output_path = './pytorch_models/trained_models/psgan/'
+    output_path = 'pytorch/'
     if os.path.exists(output_path):
         shutil.rmtree(output_path)
     train_data = DatasetPytorch("../../datasets/" + satellite + "/train.h5")

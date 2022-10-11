@@ -35,12 +35,12 @@ All rights reserved. This work should only be used for nonprofit purposes.
 """
 from HQNR import HQNR
 
-def indexes_evaluation_FS(I_F,I_MS_LR,I_PAN,L,th_values,I_MS,sensor,ratio,Qblocks_size):
-    
+
+def indexes_evaluation_FS(I_F, I_MS_LR, I_PAN, L, th_values, I_MS, sensor, ratio, Qblocks_size):
     if th_values == 1:
-        I_F[I_F > 2**L] = 2**L
+        I_F[I_F > 2 ** L] = 2 ** L
         I_F[I_F < 0] = 0
 
-    HQNR_index, D_lambda, D_S = HQNR(I_F,I_MS_LR,I_MS,I_PAN,Qblocks_size,sensor,ratio)
+    HQNR_index, D_lambda, D_S = HQNR(I_F, I_MS_LR, I_MS, I_PAN, Qblocks_size, sensor, ratio)
 
     return HQNR_index, D_lambda, D_S
