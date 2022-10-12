@@ -10,11 +10,6 @@ from torch.nn import LeakyReLU
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
 
-
-def _calc_stride(input_size, kernel, stride, output_size):
-    return (((output_size - 1) * stride) + kernel - input_size) / 2
-
-
 class PSGAN(GanInterface, ABC):
     def __init__(self, channels, device='cpu', name="PSGAN"):
         super().__init__(device, name)

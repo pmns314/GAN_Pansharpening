@@ -11,6 +11,7 @@ from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANs.FUPSGAN import FUPSGAN
 from pytorch_models.GANs.PSGAN import PSGAN
+from pytorch_models.GANs.STPSGAN import STPSGAN
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -88,7 +89,7 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = FUPSGAN(train_dataloader.dataset.channels, device)
+    model = STPSGAN(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)

@@ -8,21 +8,12 @@ import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
 from constants import EPS
-from pytorch_models.GANs.PSGAN import PSGAN, _calc_stride
-
-
-def _calc_stride2(hin, hout, stride, kernel):
-    print((-hout + (hin - 1) * stride + kernel) / 2)
-
-
-if __name__ == '__main__':
-    print(_calc_stride(8, 32, 2, 4))
+from pytorch_models.GANs.PSGAN import PSGAN
 
 
 class FUPSGAN(PSGAN):
     def __init__(self, channels, device='cpu', name="FUPSGAN"):
         super().__init__(channels, device=device, name=name)
-        self.generator = self.Generator(channels)
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
