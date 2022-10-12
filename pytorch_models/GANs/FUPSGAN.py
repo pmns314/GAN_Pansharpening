@@ -37,9 +37,8 @@ class FUPSGAN(PSGAN):
             self.ms_enc_1 = nn.Conv2d(in_channels=8, out_channels=32, kernel_size=(3, 3), padding='same',
                                       padding_mode=pad_mode, bias=True)
             # Bx32xH/4xW/4 ---> Bx32xHxW
-            self.ms_enc_2 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(4, 4),
-                                               stride=(4, 4), padding=(0, 0),
-                                               padding_mode=pad_mode, bias=True)
+            self.ms_enc_2 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(4, 4), bias=True,
+                                               stride=(4, 4), padding=(0, 0))
             # Bx32xHxW  ---> Bx64xH/2xW/2
             self.ms_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2),
                                       stride=(2, 2), padding=(0, 0),
@@ -68,9 +67,8 @@ class FUPSGAN(PSGAN):
                 nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), padding='same',
                           padding_mode=pad_mode, bias=True),
                 LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2),
-                                   stride=(2, 2), padding=(1, 1),
-                                   padding_mode=pad_mode, bias=True)
+                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), bias=True,
+                                   stride=(2, 2), padding=(1, 1))
             )
 
             # enc || dec
@@ -80,9 +78,9 @@ class FUPSGAN(PSGAN):
                 nn.Conv2d(in_channels=128 + 128, out_channels=128, kernel_size=(3, 3), padding=(1, 1),
                           padding_mode=pad_mode, bias=True),
                 LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2),
-                                   stride=(2, 2), padding=(0, 0),
-                                   padding_mode=pad_mode, bias=True)
+                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2), bias=True,
+                                   stride=(2, 2), padding=(0, 0))
+
             )
 
             # common || pan_enc_2 || ms_enc_2

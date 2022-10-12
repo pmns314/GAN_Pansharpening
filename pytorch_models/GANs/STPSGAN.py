@@ -52,9 +52,8 @@ class STPSGAN(PSGAN):
                 nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), padding='same',
                           padding_mode=pad_mode, bias=True),
                 nn.LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2),
-                                   stride=(2, 2), padding=(0, 0),
-                                   padding_mode=pad_mode, bias=True)
+                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), bias=True,
+                                   stride=(2, 2), padding=(0, 0))
             )
 
             # enc || dec
@@ -64,8 +63,7 @@ class STPSGAN(PSGAN):
                 nn.Conv2d(in_channels=128 + 128, out_channels=128, kernel_size=(3, 3), padding=(1, 1),
                           padding_mode=pad_mode, bias=True),
                 nn.LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2),
-                                   padding_mode=pad_mode, bias=True,
+                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2), bias=True,
                                    stride=(2, 2), padding=(0, 0))
             )
 

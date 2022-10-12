@@ -76,9 +76,8 @@ class PSGAN(GanInterface, ABC):
                           padding_mode=pad_mode, bias=True),
 
                 LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2),
-                                   stride=(2, 2), padding=(1, 1),
-                                   padding_mode=pad_mode, bias=True)
+                nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), bias=True,
+                                   stride=(2, 2), padding=(1, 1))
             )
 
             # enc || dec
@@ -88,9 +87,8 @@ class PSGAN(GanInterface, ABC):
                 nn.Conv2d(in_channels=128 + 128, out_channels=128, kernel_size=(3, 3), padding=(1, 1),
                           padding_mode=pad_mode, bias=True),
                 LeakyReLU(negative_slope=.2),
-                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2),
-                                   stride=(2, 2), padding=(0, 0),
-                                   padding_mode=pad_mode, bias=True)
+                nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2), bias=True,
+                                   stride=(2, 2), padding=(0, 0))
             )
             # common || pan_enc_2 || ms_enc_2
             # Bx192xHxW ---> BxCxHxW
