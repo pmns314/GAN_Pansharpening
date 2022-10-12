@@ -20,8 +20,8 @@ class PSGAN(GanInterface, ABC):
         self.generator = self.Generator(channels, pad_mode)
         self.discriminator = self.Discriminator(channels, pad_mode)
         self.best_losses = [np.inf, np.inf]
-        self.gen_opt = None
-        self.disc_opt = None
+        self.gen_opt = optim.Adam(self.generator.parameters())
+        self.disc_opt = optim.Adam(self.discriminator.parameters())
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
@@ -312,7 +312,7 @@ class PSGAN(GanInterface, ABC):
         }, f"{path}/model.pth")
 
     def load_model(self, path, lr=None):
-        trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
+        trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
@@ -329,3 +329,7 @@ class PSGAN(GanInterface, ABC):
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
         return self.generator(ms, pan)
+
+
+if __name__ == '__main__':
+    print("ff")
