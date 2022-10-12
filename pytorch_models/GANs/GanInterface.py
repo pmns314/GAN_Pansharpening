@@ -11,14 +11,19 @@ from constants import *
 
 
 class GanInterface(ABC, nn.Module):
-    def __init__(self, device):
+    def __init__(self, device, name):
         super().__init__()
+        self._model_name = name
         self.best_losses: list = NotImplemented  # Must be defined by subclasses
         self.pretrained_epochs = 0
         self.best_epoch = 0
         self.triggertimes = 0
         self.device = device
         self.to(device)
+
+    @property
+    def name(self):
+        return self._model_name
 
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
@@ -42,7 +47,7 @@ class GanInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def generate_output(self, ms, pan):
+    def generate_output(self, pan, **kwargs):
         pass
 
     # ------------------------- Concrete Methods ------------------------------
@@ -109,7 +114,9 @@ class GanInterface(ABC, nn.Module):
             for t in tests:
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
 
-                gen = self.generate_output(t['ms'].to(self.device), t['pan'].to(self.device))
+                gen = self.generate_output(pan=t['pan'].to(self.device),
+                                           ms=t['ms'].to(self.device),
+                                           ms_lr=t['ms_lr'].to(self.device), )
                 # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
                 gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
                 gen = np.squeeze(gen) * 2048
@@ -128,11 +135,13 @@ class GanInterface(ABC, nn.Module):
             # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
+        tot_epochs = self.pretrained_epochs + epoch
         self.load_model(output_path)
-        self.pretrained_epochs = self.pretrained_epochs + epoch
+        self.pretrained_epochs = tot_epochs
         self.save_model(output_path)
         writer.flush()
-        print(f"Training Completed at epoch {self.pretrained_epochs + epoch}. Saved in {output_path} folder")
+        print(f"Training Completed at epoch {tot_epochs}.\n"
+              f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
     def test_loop(self, dataloader):
         disc_loss_avg, gen_loss_avg = self.validation_step(dataloader)

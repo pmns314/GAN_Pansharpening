@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
+from pytorch_models.GANs.FUPSGAN import FUPSGAN
 from pytorch_models.GANs.PSGAN import PSGAN
 
 if __name__ == '__main__':
@@ -49,6 +50,11 @@ if __name__ == '__main__':
                         help='Path to the checkpoints',
                         type=str
                         )
+    parser.add_argument('-c', '--commit',
+                        default=True,
+                        help='Boolean indicating if commit is to git is needed',
+                        type=bool
+                        )
     args = parser.parse_args()
 
     repo = Repo(ROOT_DIR + "/.git")
@@ -60,6 +66,7 @@ if __name__ == '__main__':
     lr = args.learning_rate
     pretrained_model_path = args.resume
     chk_path = args.checkpoints
+    flag_commit = args.commit
 
     train_dataset = f"train_1_32.h5"
     val_dataset = f"val_1_32.h5"
@@ -81,7 +88,7 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PSGAN(train_dataloader.dataset.channels, device)
+    model = FUPSGAN(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
@@ -100,34 +107,39 @@ if __name__ == '__main__':
 
     # Setting up index evaluation
     test_1 = {}
-    pan, ms, _, gt = next(enumerate(test_dataloader1))[1]
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
     test_1['pan'] = pan
     test_1['ms'] = ms
+    test_1['ms_lr'] = ms_lr
     test_1['gt'] = torch.squeeze(gt).detach().numpy()
     test_1['filename'] = f"{output_path}/test_0.csv"
 
     test_2 = {}
-    pan, ms, _, gt = next(enumerate(test_dataloader2))[1]
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader2))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
     test_2['pan'] = pan
     test_2['ms'] = ms
+    test_2['ms_lr'] = ms_lr
     test_2['gt'] = torch.squeeze(gt).detach().numpy()
     test_2['filename'] = f"{output_path}/test_1.csv"
 
     # Model Training
+    epochs = 2
     model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
                       [test_1, test_2])
 
     # Commit and Push new model
-    origin = repo.remote(name='origin')
-    origin.pull()
-    repo.git.add(output_path)
-    repo.index.commit(f"model {file_name} - {model.name} trained")
-    origin.push()
+    flag_commit = False
+    if flag_commit:
+        origin = repo.remote(name='origin')
+        origin.pull()
+        repo.git.add(output_path)
+        repo.index.commit(f"model {file_name} - {model.name} trained")
+        origin.push()

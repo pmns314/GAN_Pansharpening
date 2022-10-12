@@ -11,10 +11,13 @@ from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
 
 
+def _calc_stride(input_size, kernel, stride, output_size):
+    return (((output_size - 1) * stride) + kernel - input_size) / 2
+
+
 class PSGAN(GanInterface, ABC):
     def __init__(self, channels, device='cpu', name="PSGAN"):
-        super().__init__(device)
-        self._model_name = name
+        super().__init__(device, name)
         self.channels = channels
         self.alpha = 1
         self.beta = 100
@@ -23,10 +26,6 @@ class PSGAN(GanInterface, ABC):
         self.best_losses = [np.inf, np.inf]
         self.gen_opt = None
         self.disc_opt = None
-
-    @property
-    def name(self):
-        return self._model_name
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
@@ -37,13 +36,13 @@ class PSGAN(GanInterface, ABC):
 
             self.pan_enc_1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
             self.pan_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
-            self.pan_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=(2, 2),
-                                       padding=(1, 1), bias=True)
+            self.pan_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
+                                       padding=(0, 0), bias=True)
 
             self.ms_enc_1 = nn.Conv2d(in_channels=8, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
             self.ms_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
-            self.ms_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=(2, 2),
-                                      padding=(1, 1), bias=True)
+            self.ms_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
+                                      padding=(0, 0), bias=True)
 
             self.enc = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
@@ -76,10 +75,10 @@ class PSGAN(GanInterface, ABC):
             # ?
             self.final_part = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=192, out_channels=128, kernel_size=(3, 3), padding='same',
+                nn.Conv2d(in_channels=192, out_channels=64, kernel_size=(3, 3), padding='same',
                           bias=True),
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=128, out_channels=channels, kernel_size=(3, 3), padding='same',
+                nn.Conv2d(in_channels=64, out_channels=channels, kernel_size=(3, 3), padding='same',
                           bias=True)
             )
 
@@ -141,8 +140,10 @@ class PSGAN(GanInterface, ABC):
             out = self.sigmoid(out)
             return out
 
-    def loss_generator(self, ms, pan, gt, *args):
-
+    def loss_generator(self, **kwargs):
+        ms = kwargs['ms']
+        pan = kwargs['pan']
+        gt = kwargs['gt']
         outputs = self.generator(ms, pan)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
@@ -197,10 +198,11 @@ class PSGAN(GanInterface, ABC):
             gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
+            ms_lr = ms_lr.to(self.device)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generator(ms, pan)
+                generated_HRMS = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
@@ -226,7 +228,7 @@ class PSGAN(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
-            loss_g = self.loss_generator(ms, pan, gt)
+            loss_g = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
 
             # Backpropagation
             self.gen_opt.zero_grad()
@@ -258,12 +260,12 @@ class PSGAN(GanInterface, ABC):
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
 
-                generated = self.generator(ms, pan)
+                generated = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
 
                 dloss = self.loss_discriminator(ms, gt, generated)
                 disc_loss += dloss.item()
 
-                gloss = self.loss_generator(ms, pan, gt)
+                gloss = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
                 gen_loss += gloss.item()
 
         return {"Gen loss": gen_loss / len(dataloader),
@@ -306,5 +308,6 @@ class PSGAN(GanInterface, ABC):
             for g in self.disc_opt.param_groups:
                 g['lr'] = lr
 
-    def generate_output(self, ms, pan):
+    def generate_output(self, pan, **kwargs):
+        ms = kwargs['ms']
         return self.generator(ms, pan)
