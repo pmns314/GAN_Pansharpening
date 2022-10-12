@@ -128,7 +128,7 @@ class GanInterface(ABC, nn.Module):
             # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
-        self.load(output_path + "/model.pth")
+        self.load_model(output_path + "/model.pth")
         self.pretrained_epochs = self.pretrained_epochs + epoch
         self.save_model(output_path + "/model.pth")
         writer.flush()
