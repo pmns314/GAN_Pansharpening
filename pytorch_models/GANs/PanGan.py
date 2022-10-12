@@ -12,11 +12,11 @@ def downsample(img, new_shape):
     return interpolate(img, new_shape, mode='bilinear', antialias=True)
 
 
-def high_pass(img):
+def high_pass(img, device='cpu'):
     blur_kerel = np.zeros(shape=(1, img.shape[1], 3, 3), dtype=np.float32)
     value = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
     blur_kerel[:, :, :, :] = value
-    img_hp = torch.nn.functional.conv2d(img, torch.from_numpy(blur_kerel), stride=(1, 1), padding='same')
+    img_hp = torch.nn.functional.conv2d(img, torch.from_numpy(blur_kerel).to(device), stride=(1, 1), padding='same')
     return img_hp
 
 
@@ -145,8 +145,8 @@ class PanGan(GanInterface, ABC):
 
         # Spatial Loss
         averaged = torch.mean(generated, 1, keepdim=True)
-        details_generated = high_pass(averaged)
-        details_original = high_pass(pan)
+        details_generated = high_pass(averaged, self.device)
+        details_original = high_pass(pan, self.device)
         L_spatial_base = self.mu * torch.mean(
             torch.square(torch.linalg.matrix_norm((details_generated - details_original), 'fro')))
         L_adv2 = torch.mean(torch.square(self.spatial_discriminator(averaged) - self.d))
@@ -294,7 +294,9 @@ class PanGan(GanInterface, ABC):
         self.optimizer_spectral_disc.load_state_dict(trained_model['spec_disc_optimizer_state_dict'])
         self.pretrained_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
-        self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
+        self.best_losses = [trained_model['gen_best_loss'],
+                            trained_model['spat_disc_best_loss'],
+                            trained_model['spec_disc_best_loss']]
         if lr is not None:
             for g in self.gen_opt.param_groups:
                 g['lr'] = lr
