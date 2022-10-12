@@ -13,21 +13,12 @@ from constants import *
 class GanInterface(ABC, nn.Module):
     def __init__(self, device):
         super().__init__()
-        # self.best_losses: list = NotImplemented  # Must be defined by subclasses
+        self.best_losses: list = NotImplemented  # Must be defined by subclasses
         self.pretrained_epochs = 0
         self.best_epoch = 0
         self.triggertimes = 0
         self.device = device
         self.to(device)
-
-    @property
-    @abstractmethod
-    def best_losses(self) -> list:
-        ...
-
-    @best_losses.setter
-    def best_losses(self, losses):
-        self.best_losses = losses
 
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
