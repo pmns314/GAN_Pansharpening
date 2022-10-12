@@ -34,9 +34,9 @@ for filename = filenames
 end
 
 %% Plot Single CSV
-clear, clc, close all
+%clear, clc, close all
 data_path = "C:\Users\pmans\Documents\Progetti_Local\Pycharm\Gan-Pansharpening\pytorch_models\trained_models\" + ...
-    "W3\PSGAN\Psgan\test_1.csv"
+    "W3\STPSGAN\Stpsgan\test_1.csv"
 
 cnt =1;
 
@@ -49,6 +49,7 @@ for i=2:5
     semilogx(indexes,line)
     title(var_names(i))
     grid
+    hold on
 end
 cnt = cnt +1;
 
