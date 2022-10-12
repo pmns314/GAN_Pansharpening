@@ -289,7 +289,7 @@ class PSGAN(GanInterface, ABC):
             'gen_best_loss': self.best_losses[0],
             'disc_best_loss': self.best_losses[1],
             'tot_epochs': self.pretrained_epochs
-        }, path + "/model.pth")
+        }, f"{path}/model.pth")
 
     def load_model(self, path, lr=None):
         trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
