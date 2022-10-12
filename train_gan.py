@@ -82,7 +82,7 @@ if __name__ == '__main__':
                                   shuffle=False)
     # Model Creation
     model = PSGAN(train_dataloader.dataset.channels, device)
-
+    model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
     if pretrained_model_path is not None:
