@@ -275,8 +275,8 @@ class PSGAN(GanInterface, ABC):
                     'disc_state_dict': self.discriminator.state_dict(),
                     'gen_optimizer_state_dict': self.gen_opt.state_dict(),
                     'disc_optimizer_state_dict': self.disc_opt.state_dict(),
-                    'gen_best_loss': self.best_vloss_g,
-                    'disc_best_loss': self.best_vloss_d
+                    'gen_best_loss': self.best_losses[0],
+                    'disc_best_loss': self.best_losses[1]
                     }, f"{path}/checkpoint_{curr_epoch}.pth")
 
     def save_model(self, path):
