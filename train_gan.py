@@ -130,14 +130,12 @@ if __name__ == '__main__':
     test_2['filename'] = f"{output_path}/test_1.csv"
 
     # Model Training
-    epochs = 2
     model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
                       [test_1, test_2])
 
     # Commit and Push new model
-    flag_commit = False
     if flag_commit:
         origin = repo.remote(name='origin')
         origin.pull()
