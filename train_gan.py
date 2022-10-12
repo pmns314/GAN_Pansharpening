@@ -94,7 +94,7 @@ if __name__ == '__main__':
     # Model Loading if resuming training
     output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
     if pretrained_model_path is not None:
-        model.load_model(f"{pretrained_model_path}/model.pth", lr)
+        model.load_model(f"{pretrained_model_path}", lr)
     else:
         model.set_optimizers_lr(lr)
         if os.path.exists(output_path):

@@ -277,6 +277,7 @@ class PSGAN(GanInterface, ABC):
                 gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
+                ms_lr = ms_lr.to(self.device)
 
                 generated = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
 
@@ -312,7 +313,7 @@ class PSGAN(GanInterface, ABC):
         }, f"{path}/model.pth")
 
     def load_model(self, path, lr=None):
-        trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
+        trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
