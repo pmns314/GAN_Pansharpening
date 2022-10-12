@@ -10,6 +10,7 @@ from torch.nn import LeakyReLU
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
 
+
 class PSGAN(GanInterface, ABC):
     def __init__(self, channels, device='cpu', name="PSGAN"):
         super().__init__(device, name)
@@ -29,23 +30,31 @@ class PSGAN(GanInterface, ABC):
             self._model_name = name
             self.channels = channels
 
+            # Bx1xHxW  ---> Bx32xHxW
             self.pan_enc_1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx32xHxW
             self.pan_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx64xH/2xW/2
             self.pan_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
                                        padding=(0, 0), bias=True)
 
+            # BxCxHxW  ---> Bx32xHxW
             self.ms_enc_1 = nn.Conv2d(in_channels=8, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx32xHxW
             self.ms_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx64xH/2xW/2
             self.ms_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
                                       padding=(0, 0), bias=True)
-
+            # Pan || Ms
+            # Bx128xH/2xW/2 ---> Bx128xH/2xW/2
             self.enc = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), padding='same', bias=True),
+                nn.Conv2d(in_channels=64 + 64, out_channels=128, kernel_size=(3, 3), padding='same', bias=True),
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), padding='same', bias=True)
             )
 
+            # Bx128xH/2xW/2 ---> Bx128xH/2xW/2
             self.dec = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(3, 3), stride=(2, 2), padding=(2, 2),
@@ -60,17 +69,20 @@ class PSGAN(GanInterface, ABC):
                                    padding=(1, 1), bias=True)
             )
 
+            # enc || dec
+            # Bx256xH/2xW/2 ---> Bx128xHxW
             self.common = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=256, out_channels=128, kernel_size=(3, 3), padding=(1, 1), bias=True),
+                nn.Conv2d(in_channels=128 + 128, out_channels=128, kernel_size=(3, 3), padding=(1, 1), bias=True),
                 LeakyReLU(negative_slope=.2),
                 nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2), stride=(2, 2),
                                    padding=(0, 0), bias=True)
             )
-            # ?
+            # common || pan_enc_2 || ms_enc_2
+            # Bx192xHxW ---> BxCxHxW
             self.final_part = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=192, out_channels=64, kernel_size=(3, 3), padding='same',
+                nn.Conv2d(in_channels=128 + 32 + 32, out_channels=64, kernel_size=(3, 3), padding='same',
                           bias=True),
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=64, out_channels=channels, kernel_size=(3, 3), padding='same',
@@ -129,7 +141,7 @@ class PSGAN(GanInterface, ABC):
             self.sigmoid = nn.Sigmoid()
 
         def forward(self, generated, target):
-            inputs = torch.cat([generated, target], 1)  # N x 2*C x H x W
+            inputs = torch.cat([generated, target], 1)  # B x 2*C x H x W
             out = self.backbone(inputs)
             out = self.out_conv(out)
             out = self.sigmoid(out)

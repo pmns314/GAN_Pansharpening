@@ -22,8 +22,11 @@ class FUPSGAN(PSGAN):
             self._model_name = name
             self.channels = channels
 
+            # Bx1xHxW  ---> Bx32xHxW
             self.pan_enc_1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx32xHxW
             self.pan_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same', bias=True)
+            # Bx32xHxW  ---> Bx64xH/2xW/2
             self.pan_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
                                        padding=(0, 0), bias=True)
 
@@ -32,9 +35,11 @@ class FUPSGAN(PSGAN):
             # Bx32xH/4xW/4 ---> Bx32xHxW
             self.ms_enc_2 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(4, 4), stride=(4, 4),
                                                padding=(0, 0), bias=True)
+            # Bx32xHxW  ---> Bx64xH/2xW/2
             self.ms_enc_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), stride=(2, 2),
                                       padding=(0, 0), bias=True)
-
+            # Pan || Ms_lr
+            # Bx128xH/2xW/2 ---> Bx128xH/2xW/2
             self.enc = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=64 + 64, out_channels=128, kernel_size=(3, 3), padding='same', bias=True),
@@ -42,6 +47,7 @@ class FUPSGAN(PSGAN):
                 nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), padding='same', bias=True)
             )
 
+            # Bx128xH/2xW/2 ---> Bx128xH/2xW/2
             self.dec = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(3, 3), stride=(2, 2), padding=(2, 2),
@@ -56,6 +62,8 @@ class FUPSGAN(PSGAN):
                                    padding=(1, 1), bias=True)
             )
 
+            # enc || dec
+            # Bx256xH/2xW/2 ---> Bx128xHxW
             self.common = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=128 + 128, out_channels=128, kernel_size=(3, 3), padding=(1, 1), bias=True),
@@ -63,10 +71,12 @@ class FUPSGAN(PSGAN):
                 nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=(2, 2), stride=(2, 2),
                                    padding=(0, 0), bias=True)
             )
-            # ?
+
+            # common || pan_enc_2 || ms_enc_2
+            # Bx192xHxW ---> BxCxHxW
             self.final_part = nn.Sequential(
                 LeakyReLU(negative_slope=.2),
-                nn.Conv2d(in_channels=32 + 128 + 32, out_channels=64, kernel_size=(3, 3), padding='same',
+                nn.Conv2d(in_channels=128 + 32 + 32, out_channels=64, kernel_size=(3, 3), padding='same',
                           bias=True),
                 LeakyReLU(negative_slope=.2),
                 nn.Conv2d(in_channels=64, out_channels=channels, kernel_size=(3, 3), padding='same',
