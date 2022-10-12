@@ -32,9 +32,9 @@ def train_model(model, epochs,
 
     print(f"Training started for {output_path} at epoch {pretrained_epochs}")
     for epoch in range(epochs):
-        train_loss = model.train_loop(train_dataloader, loss_fn, optimizer, device)
+        train_loss = model.train_step(train_dataloader, loss_fn, optimizer, device)
         if val_dataloader is not None:
-            curr_loss = model.validation_loop(val_dataloader, loss_fn, device)
+            curr_loss = model.validation_step(val_dataloader, loss_fn, device)
             print(f'Epoch {pretrained_epochs + epoch}\t'
                   f'\t train {train_loss :.2f}\t valid {curr_loss:.2f}')
             writer.add_scalars("Loss", {"train": train_loss, "validation": curr_loss}, pretrained_epochs + epoch)
@@ -46,7 +46,7 @@ def train_model(model, epochs,
 
         # Test loss
         if test_dataloader is not None:
-            test_loss = model.validation_loop(test_dataloader, loss_fn, device)
+            test_loss = model.validation_step(test_dataloader, loss_fn, device)
             writer.add_scalar("Loss/test", test_loss, pretrained_epochs + epoch)
 
         # Save Checkpoint

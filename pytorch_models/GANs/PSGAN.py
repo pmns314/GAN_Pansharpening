@@ -1,33 +1,19 @@
 import os
 import shutil
+from abc import ABC
 
 import numpy as np
 import pandas as pd
 import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
-from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from dataset.DatasetPytorch import DatasetPytorch
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from constants import EPS
+from pytorch_models.GANs.GanInterface import GanInterface
 
-EPS = 1e-12
-TO_SAVE = [1, 2, 3, 5, 8,
-           10, 20, 30, 50, 80,
-           100, 200, 300, 500, 800,
-           1000, 2000, 3000, 5000, 8000, 10000]
-L = 11
-Qblocks_size = 32
-flag_cut_bounds = 1
-dim_cut = 21
-th_values = 0
-ratio = 4.0
 
-class PSGAN(nn.Module):
-    def __init__(self, channels, name="PSGAN"):
-        super(PSGAN, self).__init__()
+class PSGAN(GanInterface, ABC):
+    def __init__(self, channels, device='cpu', name="PSGAN"):
+        super().__init__(device)
         self._model_name = name
         self.channels = channels
         self.alpha = 1
@@ -42,6 +28,7 @@ class PSGAN(nn.Module):
     def name(self):
         return self._model_name
 
+    # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
         def __init__(self, channels, name="Gen"):
             super().__init__()
@@ -154,10 +141,6 @@ class PSGAN(nn.Module):
             out = self.sigmoid(out)
             return out
 
-    def set_optimizers(self, lr):
-        self.gen_opt = optim.Adam(self.generator.parameters(), lr=lr)
-        self.disc_opt = optim.Adam(self.discriminator.parameters(), lr=lr)
-
     def loss_generator(self, ms, pan, gt, *args):
 
         outputs = self.generator(ms, pan)
@@ -197,7 +180,13 @@ class PSGAN(nn.Module):
             )
         )
 
-    def train_loop(self, dataloader, device='cpu'):
+    # -------------------------------- Utility Methods --------------------------------
+    def set_optimizers_lr(self, lr):
+        self.gen_opt = optim.Adam(self.generator.parameters(), lr=lr)
+        self.disc_opt = optim.Adam(self.discriminator.parameters(), lr=lr)
+
+    # -------------------------------- Interface Methods ------------------------------
+    def train_step(self, dataloader):
         self.train(True)
 
         loss_g_batch = 0
@@ -205,9 +194,9 @@ class PSGAN(nn.Module):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            gt = gt.to(device)
-            pan = pan.to(device)
-            ms = ms.to(device)
+            gt = gt.to(self.device)
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
@@ -249,9 +238,11 @@ class PSGAN(nn.Module):
 
             loss_g_batch += loss
 
-        return loss_d_batch / len(dataloader), loss_g_batch / len(dataloader)
+        return {"Gen loss": loss_g_batch / len(dataloader),
+                "Disc loss": loss_d_batch / len(dataloader)
+                }
 
-    def validation_loop(self, dataloader, device='cpu'):
+    def validation_step(self, dataloader):
         self.eval()
         self.discriminator.eval()
         self.generator.eval()
@@ -263,9 +254,9 @@ class PSGAN(nn.Module):
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = gt.to(device)
-                pan = pan.to(device)
-                ms = ms.to(device)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
 
                 generated = self.generator(ms, pan)
 
@@ -275,155 +266,45 @@ class PSGAN(nn.Module):
                 gloss = self.loss_generator(ms, pan, gt)
                 gen_loss += gloss.item()
 
-        return disc_loss / len(dataloader), gen_loss / len(dataloader)
+        return {"Gen loss": gen_loss / len(dataloader),
+                "Disc loss": disc_loss / len(dataloader)
+                }
 
-    def test_loop(self, dataloader, device='cpu'):
-        self.eval()
-        self.discriminator.eval()
-        self.generator.eval()
-
-        gen_loss = 0.0
-        disc_loss = 0.0
-        i = 0
-        with torch.no_grad():
-            for i, data in enumerate(dataloader):
-                pan, ms, ms_lr, gt = data
-
-                gt = gt.to(device)
-                pan = pan.to(device)
-                ms = ms.to(device)
-
-                generated = self(pan, ms)
-
-                dloss = self.loss_discriminator(ms, gt, generated)
-                disc_loss += dloss.item()
-
-                gloss = self.loss_generator(ms, pan, gt)
-                gen_loss += gloss.item()
-
-        print(f"Evaluation on Test Set: \n "
-              f"\t Avg disc loss: {disc_loss / len(dataloader):>8f} \n"
-              f"\t Avg gen loss: {gen_loss / len(dataloader):>8f} \n")
-
-    def my_training(self, epochs,
-                    best_vloss_d, best_vloss_g,
-                    output_path, chk_path,
-                    train_dataloader, val_dataloader,
-                    tests=None,
-                    pretrained_epochs=0, device='cpu'):
-        # TensorBoard
-        writer = SummaryWriter(output_path + "/log")
-        # Early stopping
-        patience = 30
-        triggertimes = 0
-
-        # Reduce Learning Rate on Plateaux
-        # scheduler_d = ReduceLROnPlateau(self.disc_opt, 'min', patience=10, verbose=True)
-        # scheduler_g = ReduceLROnPlateau(self.gen_opt, 'min', patience=10, verbose=True)
-
-        pretrained_epochs = pretrained_epochs + 1
-        epoch = 0
-
-        print(f"Training started for {output_path} at epoch {pretrained_epochs}")
-        for epoch in range(epochs):
-            disc_loss, gen_loss = self.train_loop(train_dataloader, device)
-            if val_dataloader is not None:
-                curr_loss_d, curr_loss_g = self.validation_loop(val_dataloader, device)
-                print(f'Epoch {pretrained_epochs + epoch}\t'
-                      f'\t Disc: train {disc_loss :.2f}\t valid {curr_loss_d:.2f}\n'
-                      f'\t Gen: train {gen_loss :.2f}\t valid {curr_loss_g:.2f}\n')
-                writer.add_scalars("Disc_Loss", {"train": disc_loss, "validation": curr_loss_d},
-                                   pretrained_epochs + epoch)
-                writer.add_scalars("Gen_Loss", {"train": gen_loss, "validation": curr_loss_g},
-                                   pretrained_epochs + epoch)
-            else:
-                print(f'Epoch {pretrained_epochs + epoch}\t'
-                      f'\t Disc: {disc_loss :.2f}'
-                      f'\t Gen: {gen_loss :.2f}')
-                curr_loss_d = disc_loss
-                curr_loss_g = gen_loss
-                writer.add_scalar("Disc_loss/Train", disc_loss, pretrained_epochs + epoch)
-                writer.add_scalar("Gen_loss/Train", gen_loss, pretrained_epochs + epoch)
-
-            # Save Checkpoints
-            if pretrained_epochs + epoch in TO_SAVE:
-                torch.save({'gen_state_dict': self.generator.state_dict(),
-                            'disc_state_dict': self.discriminator.state_dict(),
-                            'gen_optimizer_state_dict': self.gen_opt.state_dict(),
-                            'disc_optimizer_state_dict': self.disc_opt.state_dict(),
-                            'gen_best_loss': best_vloss_g,
-                            'disc_best_loss': best_vloss_d
-                            }, f"{chk_path}/checkpoint_{pretrained_epochs + epoch}.pth")
-
-            if curr_loss_g < best_vloss_g:
-                best_vloss_g = curr_loss_g
-                torch.save({
-                    'best_epoch': pretrained_epochs + epoch,
-                    'gen_state_dict': self.generator.state_dict(),
+    def save_checkpoint(self, path, curr_epoch):
+        torch.save({'gen_state_dict': self.generator.state_dict(),
                     'disc_state_dict': self.discriminator.state_dict(),
                     'gen_optimizer_state_dict': self.gen_opt.state_dict(),
                     'disc_optimizer_state_dict': self.disc_opt.state_dict(),
-                    'gen_best_loss': best_vloss_g,
-                    'disc_best_loss': best_vloss_d
-                }, output_path + "/model.pth")
-                triggertimes = 0
-            else:
-                triggertimes += 1
-                if triggertimes >= patience:
-                    print("Early Stopping!")
-                    break
+                    'gen_best_loss': self.best_vloss_g,
+                    'disc_best_loss': self.best_vloss_d
+                    }, f"{path}/checkpoint_{curr_epoch}.pth")
 
-            if curr_loss_d < best_vloss_d:
-                best_vloss_d = curr_loss_d
+    def save_model(self, path):
+        torch.save({
+            'best_epoch': self.best_epoch,
+            'gen_state_dict': self.generator.state_dict(),
+            'disc_state_dict': self.discriminator.state_dict(),
+            'gen_optimizer_state_dict': self.gen_opt.state_dict(),
+            'disc_optimizer_state_dict': self.disc_opt.state_dict(),
+            'gen_best_loss': self.best_losses[0],
+            'disc_best_loss': self.best_losses[1],
+            'tot_epochs': self.pretrained_epochs
+        }, path + "/model.pth")
 
-            # Generation Indexes
-            for t in tests:
-                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
+    def load_model(self, path, lr=None):
+        trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
+        self.generator.load_state_dict(trained_model['gen_state_dict'])
+        self.discriminator.load_state_dict(trained_model['disc_state_dict'])
+        self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
+        self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
+        self.pretrained_epochs = trained_model['tot_epochs']
+        self.best_epoch = trained_model['best_epoch']
+        self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
+        if lr is not None:
+            for g in self.gen_opt.param_groups:
+                g['lr'] = lr
+            for g in self.disc_opt.param_groups:
+                g['lr'] = lr
 
-                gen = self.generator(t['ms'].to(device), t['pan'].to(device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
-                gen = np.squeeze(gen) * 2048
-                gt = np.squeeze(t['gt']) * 2048
-
-                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
-                                                            th_values)
-                df.loc[0] = [pretrained_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
-                df.to_csv(t['filename'], index=False, header=True if pretrained_epochs + epoch == 1 else False,
-                          mode='a', sep=";")
-
-            # scheduler_d.step(best_vloss_d)
-            # scheduler_g.step(best_vloss_g)
-
-        m = torch.load(output_path + "/model.pth")
-        m['tot_epochs'] = pretrained_epochs + epoch
-        torch.save(m, output_path + "/model.pth")
-        writer.flush()
-        print(f"Training Completed at epoch {pretrained_epochs + epoch}. Saved in {output_path} folder")
-
-
-# if __name__ == '__main__':
-#     device = "cuda" if torch.cuda.is_available() else "cpu"
-#     print(f"Using {device} device")
-#
-#     satellite = "W3"
-#     output_path = 'pytorch/'
-#     if os.path.exists(output_path):
-#         shutil.rmtree(output_path)
-#     train_data = DatasetPytorch("../../datasets/" + satellite + "/train.h5")
-#     train_dataloader = DataLoader(train_data, batch_size=64,
-#                                   shuffle=True)
-#     val_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/val.h5"), batch_size=64,
-#                                 shuffle=True)
-#     test_dataloader = DataLoader(DatasetPytorch("../../datasets/" + satellite + "/test.h5"), batch_size=64,
-#                                  shuffle=True)
-#
-#     model = PSGAN(train_data.channels)
-#
-#     from torchsummary import summary
-#
-#     g = model.generator
-#
-#     model.to(device)
-#
-#     model.my_training(output_path, 500)
-#     model.test_loop(test_dataloader)
+    def generate_output(self, ms, pan):
+        return self.generator(ms, pan)

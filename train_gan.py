@@ -81,33 +81,18 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PSGAN(train_dataloader.dataset.channels)
-    model.set_optimizers(lr)
-    model.to(device)
+    model = PSGAN(train_dataloader.dataset.channels, device)
 
+    # Model Loading if resuming training
     output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
     if pretrained_model_path is not None:
-        trained_model = torch.load(f"{pretrained_model_path}/model.pth", map_location=torch.device(device))
-        model.generator.load_state_dict(trained_model['gen_state_dict'])
-        model.discriminator.load_state_dict(trained_model['disc_state_dict'])
-        model.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
-        model.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
-        trained_epochs = trained_model['tot_epochs']
-        best_vloss_g = trained_model['gen_best_loss']
-        best_vloss_d = trained_model['disc_best_loss']
-        for g in model.gen_opt.param_groups:
-            g['lr'] = lr
-        for g in model.disc_opt.param_groups:
-            g['lr'] = lr
-
-
+        model.load_model(f"{pretrained_model_path}/model.pth", lr)
     else:
-        trained_epochs = 0
-        best_vloss_g = +np.inf
-        best_vloss_d = +np.inf
+        model.set_optimizers_lr(lr)
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
 
+    # Checkpoint path definition
     if chk_path is None:
         chk_path = f"{output_path}\\checkpoints"
         if not os.path.exists(chk_path):
@@ -135,11 +120,10 @@ if __name__ == '__main__':
     test_2['filename'] = f"{output_path}/test_1.csv"
 
     # Model Training
-    model.my_training(epochs, best_vloss_d, best_vloss_g,
+    model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
-                      [test_1, test_2],
-                      pretrained_epochs=trained_epochs, device=device)
+                      [test_1, test_2])
 
     # Commit and Push new model
     origin = repo.remote(name='origin')
