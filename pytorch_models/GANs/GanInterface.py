@@ -25,6 +25,10 @@ class GanInterface(ABC, nn.Module):
     def best_losses(self) -> list:
         ...
 
+    @best_losses.setter
+    def best_losses(self, losses):
+        self.best_losses = losses
+
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
     def train_step(self, dataloader):

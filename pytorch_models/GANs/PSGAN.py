@@ -20,7 +20,7 @@ class PSGAN(GanInterface, ABC):
         self.beta = 100
         self.generator = self.Generator(channels)
         self.discriminator = self.Discriminator(channels)
-
+        self.best_losses = [np.inf, np.inf]
         self.gen_opt = None
         self.disc_opt = None
 
