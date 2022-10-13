@@ -9,10 +9,7 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANs.FUPSGAN import FUPSGAN
-from pytorch_models.GANs.PSGAN import PSGAN
-from pytorch_models.GANs.PanGan import PanGan
-from pytorch_models.GANs.STPSGAN import STPSGAN
+from pytorch_models.GANs import *
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -44,12 +41,13 @@ if __name__ == '__main__':
                         )
     parser.add_argument('-r', '--resume',
                         default=None,
-                        help='Provide path to the partially trained model. Defaults to None',
-                        type=str
+                        help='Boolean indicating if resuming the training or starting a new one deleting the one '
+                             'already existing, if any',
+                        type=bool
                         )
-    parser.add_argument('-ck', '--checkpoints',
-                        default=None,
-                        help='Path to the checkpoints',
+    parser.add_argument('-o', '--output_path',
+                        default="pytorch_models/trained_models",
+                        help='Path of the output folder',
                         type=str
                         )
     parser.add_argument('-c', '--commit',
@@ -66,8 +64,8 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     epochs = args.epochs
     lr = args.learning_rate
-    pretrained_model_path = args.resume
-    chk_path = args.checkpoints
+    resume_flag = args.resume
+    output_base_path = args.output_path
     flag_commit = args.commit
 
     train_dataset = f"train_1_32.h5"
@@ -93,19 +91,20 @@ if __name__ == '__main__':
     model = PanGan(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
-    output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
-    if pretrained_model_path is not None:
-        model.load_model(f"{pretrained_model_path}", lr)
+    output_path = os.path.join(output_base_path, model.name, file_name)
+    if resume_flag and os.path.exists(f"{output_path}/model.pth"):
+        model.load_model(f"{output_path}", lr)
     else:
-        model.set_optimizers_lr(lr)
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
+        os.makedirs(output_path)
+
+    model.set_optimizers_lr(lr)
 
     # Checkpoint path definition
-    if chk_path is None:
-        chk_path = f"{output_path}\\checkpoints"
-        if not os.path.exists(chk_path):
-            os.makedirs(chk_path)
+    chk_path = f"{output_path}\\checkpoints"
+    if not os.path.exists(chk_path):
+        os.makedirs(chk_path)
 
     # Setting up index evaluation
     test_1 = {}
@@ -136,10 +135,10 @@ if __name__ == '__main__':
                       train_dataloader, val_dataloader,
                       [test_1, test_2])
 
-    # Commit and Push new model
-    if flag_commit:
-        origin = repo.remote(name='origin')
-        origin.pull()
-        repo.git.add(output_path)
-        repo.index.commit(f"model {file_name} - {model.name} trained")
-        origin.push()
+    # # Commit and Push new model
+    # if flag_commit:
+    #     origin = repo.remote(name='origin')
+    #     origin.pull()
+    #     repo.git.add(output_path)
+    #     repo.index.commit(f"model {file_name} - {model.name} trained")
+    #     origin.push()

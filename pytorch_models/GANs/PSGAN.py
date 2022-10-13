@@ -201,8 +201,10 @@ class PSGAN(GanInterface, ABC):
 
     # -------------------------------- Utility Methods --------------------------------
     def set_optimizers_lr(self, lr):
-        self.gen_opt = optim.Adam(self.generator.parameters(), lr=lr)
-        self.disc_opt = optim.Adam(self.discriminator.parameters(), lr=lr)
+        for g in self.gen_opt.param_groups:
+            g['lr'] = lr
+        for g in self.disc_opt.param_groups:
+            g['lr'] = lr
 
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
@@ -312,7 +314,7 @@ class PSGAN(GanInterface, ABC):
             'tot_epochs': self.pretrained_epochs
         }, f"{path}/model.pth")
 
-    def load_model(self, path, lr=None):
+    def load_model(self, path):
         trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
@@ -321,11 +323,6 @@ class PSGAN(GanInterface, ABC):
         self.pretrained_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
-        if lr is not None:
-            for g in self.gen_opt.param_groups:
-                g['lr'] = lr
-            for g in self.disc_opt.param_groups:
-                g['lr'] = lr
 
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
