@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-import numpy as np
 import torch
 from git import Repo
 from torch.utils.data import DataLoader
@@ -10,6 +9,7 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANs import *
+from pytorch_models.GANs.PanColorGan import PanColorGan
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -68,8 +68,8 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"train_1_32.h5"
-    val_dataset = f"val_1_32.h5"
+    train_dataset = f"train_1_64.h5"
+    val_dataset = f"val_1_64.h5"
     test_dataset1 = f"test_1_256.h5"
     test_dataset2 = f"test_3_512.h5"
 
@@ -88,12 +88,12 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PanGan(train_dataloader.dataset.channels, device)
+    model = PanColorGan(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)
     if resume_flag and os.path.exists(f"{output_path}/model.pth"):
-        model.load_model(f"{output_path}", lr)
+        model.load_model(f"{output_path}")
     else:
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     model.set_optimizers_lr(lr)
 
     # Checkpoint path definition
-    chk_path = f"{output_path}\\checkpoints"
+    chk_path = f"{output_path}/checkpoints"
     if not os.path.exists(chk_path):
         os.makedirs(chk_path)
 

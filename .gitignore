@@ -1,5 +1,4 @@
-pytorch_models/trained_models/*/*/*/checkpoints
-pytorch_models/trained_models/*/*/test
+pytorch_models/trained_models
 previous_training
 .idea
 results
