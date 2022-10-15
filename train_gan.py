@@ -2,14 +2,14 @@ import argparse
 import os
 import shutil
 
-import numpy as np
 import torch
 from git import Repo
 from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANs.PSGAN import PSGAN
+from pytorch_models.GANs import *
+from pytorch_models.GANs.PanColorGan import PanColorGan
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -41,13 +41,19 @@ if __name__ == '__main__':
                         )
     parser.add_argument('-r', '--resume',
                         default=None,
-                        help='Provide path to the partially trained model. Defaults to None',
+                        help='Boolean indicating if resuming the training or starting a new one deleting the one '
+                             'already existing, if any',
+                        type=bool
+                        )
+    parser.add_argument('-o', '--output_path',
+                        default="pytorch_models/trained_models",
+                        help='Path of the output folder',
                         type=str
                         )
-    parser.add_argument('-ck', '--checkpoints',
-                        default=None,
-                        help='Path to the checkpoints',
-                        type=str
+    parser.add_argument('-c', '--commit',
+                        default=True,
+                        help='Boolean indicating if commit is to git is needed',
+                        type=bool
                         )
     args = parser.parse_args()
 
@@ -58,11 +64,12 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     epochs = args.epochs
     lr = args.learning_rate
-    pretrained_model_path = args.resume
-    chk_path = args.checkpoints
+    resume_flag = args.resume
+    output_base_path = args.output_path
+    flag_commit = args.commit
 
-    train_dataset = f"train_1_32.h5"
-    val_dataset = f"val_1_32.h5"
+    train_dataset = f"train_1_64.h5"
+    val_dataset = f"val_1_64.h5"
     test_dataset1 = f"test_1_256.h5"
     test_dataset2 = f"test_3_512.h5"
 
@@ -81,69 +88,57 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PSGAN(train_dataloader.dataset.channels)
-    model.set_optimizers(lr)
+    model = PanColorGan(train_dataloader.dataset.channels, device)
     model.to(device)
-
-    output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', satellite, model.name, file_name)
-    if pretrained_model_path is not None:
-        trained_model = torch.load(f"{pretrained_model_path}/model.pth", map_location=torch.device(device))
-        model.generator.load_state_dict(trained_model['gen_state_dict'])
-        model.discriminator.load_state_dict(trained_model['disc_state_dict'])
-        model.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
-        model.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
-        trained_epochs = trained_model['tot_epochs']
-        best_vloss_g = trained_model['gen_best_loss']
-        best_vloss_d = trained_model['disc_best_loss']
-        for g in model.gen_opt.param_groups:
-            g['lr'] = lr
-        for g in model.disc_opt.param_groups:
-            g['lr'] = lr
-
-
+    # Model Loading if resuming training
+    output_path = os.path.join(output_base_path, model.name, file_name)
+    if resume_flag and os.path.exists(f"{output_path}/model.pth"):
+        model.load_model(f"{output_path}")
     else:
-        trained_epochs = 0
-        best_vloss_g = +np.inf
-        best_vloss_d = +np.inf
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
+        os.makedirs(output_path)
 
-    if chk_path is None:
-        chk_path = f"{output_path}\\checkpoints"
-        if not os.path.exists(chk_path):
-            os.makedirs(chk_path)
+    model.set_optimizers_lr(lr)
+
+    # Checkpoint path definition
+    chk_path = f"{output_path}/checkpoints"
+    if not os.path.exists(chk_path):
+        os.makedirs(chk_path)
 
     # Setting up index evaluation
     test_1 = {}
-    pan, ms, _, gt = next(enumerate(test_dataloader1))[1]
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
     test_1['pan'] = pan
     test_1['ms'] = ms
+    test_1['ms_lr'] = ms_lr
     test_1['gt'] = torch.squeeze(gt).detach().numpy()
     test_1['filename'] = f"{output_path}/test_0.csv"
 
     test_2 = {}
-    pan, ms, _, gt = next(enumerate(test_dataloader2))[1]
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader2))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
     test_2['pan'] = pan
     test_2['ms'] = ms
+    test_2['ms_lr'] = ms_lr
     test_2['gt'] = torch.squeeze(gt).detach().numpy()
     test_2['filename'] = f"{output_path}/test_1.csv"
 
     # Model Training
-    model.my_training(epochs, best_vloss_d, best_vloss_g,
+    model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
-                      [test_1, test_2],
-                      pretrained_epochs=trained_epochs, device=device)
+                      [test_1, test_2])
 
-    # Commit and Push new model
-    origin = repo.remote(name='origin')
-    origin.pull()
-    repo.git.add(output_path)
-    repo.index.commit(f"model {file_name} - {model.name} trained")
-    origin.push()
+    # # Commit and Push new model
+    # if flag_commit:
+    #     origin = repo.remote(name='origin')
+    #     origin.pull()
+    #     repo.git.add(output_path)
+    #     repo.index.commit(f"model {file_name} - {model.name} trained")
+    #     origin.push()

@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 import constants
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.CNNs.APNN import APNN
+from pytorch_models.GANs.PSGAN import PSGAN
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -29,30 +30,30 @@ if __name__ == '__main__':
 
     satellite = "W3"
     dataset_path = args.dataset_path
-    result_folder = f"./results/{satellite}_full3"
+    result_folder = f"../results/{satellite}"
     model_name = args.name_model
-    model_name = f"W3_1_32_0001_mse"
-    model_path1 = f"../previous_training/APNN_W3/{model_name}/model.pth"
+    model_name = f"Psgan"
+    model_path1 = f"../pytorch_models/trained_models/{satellite}/PSGAN/{model_name}/model.pth"
 
-    index_test = 3
+    index_test = 2
     test_set_path = dataset_path + satellite + f"/test_{index_test}_512.h5"
     if os.path.exists(test_set_path):
         test_dataloader = DataLoader(DatasetPytorch(test_set_path),
                                      batch_size=64,
                                      shuffle=False)
 
-        model = APNN(test_dataloader.dataset.channels)
+        model = PSGAN(test_dataloader.dataset.channels)
 
         # Load Pre trained Model
         trained_model = torch.load(model_path1, map_location=torch.device('cpu'))
-        model.load_state_dict(trained_model['model_state_dict'])
+        model.generator.load_state_dict(trained_model['gen_state_dict'])
 
         # Generation Images
         pan, ms, _, gt = next(enumerate(test_dataloader))[1]
         if len(pan.shape) == 3:
             pan = torch.unsqueeze(pan, 0)
 
-        gen = model(ms, pan)
+        gen = model.generator(ms, pan)
         # From NxCxHxW to NxHxWxC
         gt = torch.permute(gt, (0, 2, 3, 1))
         gen = torch.permute(gen, (0, 2, 3, 1))
@@ -81,7 +82,6 @@ if __name__ == '__main__':
         #     ratio, L, float(Qblocks_size), flag_cut_bounds, dim_cut, th_values, nargout=5)
         # print(f"MATLAB:\n\tQ2n={Q:.5f}\t Q_avg={Q_avg:.5f}\t ERGAS={ERGAS:.5f}\t SAM={SAM:.5f}")
         ################################################################################
-
 
         print(f"Saving {model_name}_test_{index_test}.mat")
         scio.savemat(f"{result_folder}/{model_name}/{model_name}_test_{index_test}.mat", dict(gen_decomposed=gen, gt_decomposed=gt))

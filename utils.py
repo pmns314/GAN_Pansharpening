@@ -4,6 +4,15 @@ import numpy as np
 import torch
 
 
+def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
+    return (-output_size + (input_size - 1) * stride + kernel) / 2
+
+
+def calc_padding_conv2d(input_size, kernel, stride, output_size):
+    return (((output_size - 1) * stride) + kernel - input_size) / 2
+
+if __name__ == '__main__':
+    print(calc_padding_conv2d(15,4,1,1))
 def norm_min_max_channels(data, channels):
     for im in range(data.shape[0]):
         for i in range(channels):
