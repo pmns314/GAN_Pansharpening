@@ -14,6 +14,9 @@ class PanColorGan(GanInterface, ABC):
         self.generator = PanColorGan.Generator(channels)
         self.discriminator = PanColorGan.Discriminator(channels)
         self.mse = torch.nn.MSELoss(reduction='mean')
+        self.mae = torch.nn.L1Loss(reduction='mean')
+        self.lambda_factor = 1
+        self.weight_gan = 1
         self.gen_opt = torch.optim.Adam(self.generator.parameters())
         self.disc_opt = torch.optim.Adam(self.discriminator.parameters())
 
@@ -174,10 +177,19 @@ class PanColorGan(GanInterface, ABC):
         ones = torch.ones_like(pred_fake)
         zeros = torch.zeros_like(pred_fake)
 
-        # Label 1 for fake, Label 0 for True
-        loss_d_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
-        loss_d_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
+        # Label 1 for fake, Label 0 for real
 
+        # # L_RaGAN(x1, x2) = loss( D(x1) - mean( D(x2) )
+        # # Errore perchè classifica i fake come 0
+        # loss_d_fake = self.mse(pred_fake - torch.mean(pred_real), zeros)
+        # # Errore perchè classifica i real come 1
+        # loss_d_real = self.mse(pred_real - torch.mean(pred_fake), ones)
+
+        # Vanilla GAN
+        # Errore perchè classifica i fake come 0
+        loss_d_fake = self.mse(pred_fake, zeros)
+        # Errore perchè classifica i real come 1
+        loss_d_real = self.mse(pred_real, ones)
         return (loss_d_real + loss_d_fake) / 2
 
     def loss_generator(self, ms, pan, gt):
@@ -192,10 +204,19 @@ class PanColorGan(GanInterface, ABC):
         ones = torch.ones_like(pred_fake)
         zeros = torch.zeros_like(pred_fake)
 
-        loss_g_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
-        loss_g_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
+        # RAGAN
+        # loss_g_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
+        # loss_g_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
+        # loss_g_gan = (loss_g_real + loss_g_fake) / 2
 
-        return (loss_g_real + loss_g_fake) / 2
+        # VANILLA GAN
+        # Errore perchè i fake sono correttamente classificati come 1
+        loss_g_gan = self.mse(pred_fake, ones)
+
+        loss_g_l1 = self.mae(generated, gt) * self.lambda_factor
+        loss_g = (loss_g_gan * self.weight_gan) + loss_g_l1
+
+        return loss_g
 
     def train_step(self, dataloader):
         self.train(True)
