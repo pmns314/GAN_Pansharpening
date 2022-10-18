@@ -94,7 +94,7 @@ class PanGan(GanInterface, ABC):
             def __init__(self, in_channels, out_channels, batch_normalization=True):
                 super(PanGan.Discriminator.ConvBlock, self).__init__()
                 self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
-                                       stride=(2, 2), padding=(2, 2), bias=True)
+                                       stride=(2, 2), padding=(1, 1), bias=True)
                 self.lrelu = nn.LeakyReLU(negative_slope=.2)
                 self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=.9)
                 self.batch_normalization = batch_normalization

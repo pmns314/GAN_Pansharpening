@@ -11,8 +11,11 @@ def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
 def calc_padding_conv2d(input_size, kernel, stride, output_size):
     return (((output_size - 1) * stride) + kernel - input_size) / 2
 
+
 if __name__ == '__main__':
-    print(calc_padding_conv2d(15,4,1,1))
+    print(calc_padding_conv2d(64, 3, 2, 32))
+
+
 def norm_min_max_channels(data, channels):
     for im in range(data.shape[0]):
         for i in range(channels):
