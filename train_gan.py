@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANs import *
-from pytorch_models.GANs.PanColorGan import PanColorGan
+from pytorch_models.GANs.PanGan import PanGan
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -77,6 +77,12 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
+    # Force 8 Gb max GPU usage
+    if device == "cuda":
+        CUDA_VISIBLE_DEVICES = 2
+        total_memory = torch.cuda.get_device_properties(CUDA_VISIBLE_DEVICES).total_memory
+        torch.cuda.set_per_process_memory_fraction(total_memory/8192, CUDA_VISIBLE_DEVICES)
+
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
                                   shuffle=True)
@@ -88,7 +94,7 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PanColorGan(train_dataloader.dataset.channels, device)
+    model = PanGan(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)
