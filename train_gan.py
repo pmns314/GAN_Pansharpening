@@ -78,10 +78,10 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     # Force 8 Gb max GPU usage
-    if device == "cuda":
-        CUDA_VISIBLE_DEVICES = 2
-        total_memory = torch.cuda.get_device_properties(CUDA_VISIBLE_DEVICES).total_memory
-        torch.cuda.set_per_process_memory_fraction(total_memory/8192, CUDA_VISIBLE_DEVICES)
+    # if device == "cuda":
+    #     CUDA_VISIBLE_DEVICES = 2
+    #     total_memory = torch.cuda.get_device_properties(CUDA_VISIBLE_DEVICES).total_memory
+    #     torch.cuda.set_per_process_memory_fraction(total_memory/8192, CUDA_VISIBLE_DEVICES)
 
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
