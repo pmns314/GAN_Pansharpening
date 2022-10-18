@@ -127,35 +127,44 @@ class PanGan(GanInterface, ABC):
 
     def discriminator_spatial_loss(self, pan, generated):
         averaged = torch.mean(generated, 1, keepdim=True)
+
+        # Loss of discriminator classifying original PAN as 1 (original label is 0)
         spat_out1 = self.spatial_discriminator(pan)
-        spatial_neg_loss = self.mse(spat_out1, torch.ones_like(spat_out1) * self.b)
+        spatial_pos_loss = self.mse(spat_out1, torch.ones_like(spat_out1) * self.b)
+
+        # Loss of discriminator classifying mean of generated image as 0 (fake label is 1)
         spat_out2 = self.spatial_discriminator(averaged)
-        spatial_pos_loss = self.mse(spat_out2, torch.ones_like(spat_out2) * self.a)
+        spatial_neg_loss = self.mse(spat_out2, torch.ones_like(spat_out2) * self.a)
         return spatial_pos_loss + spatial_neg_loss
 
     def discriminator_spectral_loss(self, ms, generated):
-        spec_out1 = self.spectral_discriminator(ms)
-        spectrum_neg_loss = self.mse(spec_out1, torch.ones_like(spec_out1) * self.b)
 
+        # Loss of discriminator classifying original MS as 1 (original label is 0)
+        spec_out1 = self.spectral_discriminator(ms)
+        spectrum_pos_loss = self.mse(spec_out1, torch.ones_like(spec_out1) * self.b)
+
+        # Loss of discriminator classifying generated image as 0 (fake label is 1)
         spec_out2 = self.spectral_discriminator(generated)
-        spectrum_pos_loss = self.mse(spec_out2, torch.ones_like(spec_out2) * self.a)
+        spectrum_neg_loss = self.mse(spec_out2, torch.ones_like(spec_out2) * self.a)
         return spectrum_pos_loss + spectrum_neg_loss
 
-    def generator_loss(self, pan, ms_lr, generated):
+    def generator_loss(self, pan, ms, generated):
         # Spectral Loss
-        downsampled = downsample(generated, (ms_lr.shape[2:]))
-        L_spectral_base = self.mse(downsampled, ms_lr)
+        # downsampled = downsample(generated, (ms_lr.shape[2:]))
+        # L_spectral_base = self.mse(downsampled, ms_lr)
+        L_spectral_base = self.mse(generated, ms)
+
         spect_out = self.spectral_discriminator(generated)
-        L_adv1 = self.mse(spect_out, torch.ones_like(spect_out) * self.c)
+        L_adv1 = self.mse(spect_out, torch.ones_like(spect_out) * self.c) # spectrum loss ad
         L_spectral = L_spectral_base + self.alpha * L_adv1
 
         # Spatial Loss
         averaged = torch.mean(generated, 1, keepdim=True)
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
-        L_spatial_base = self.mu * self.mse(details_generated, details_original)
+        L_spatial_base = self.mu * self.mse(details_generated, details_original) # g spatial loss * mu
         spat_out = self.spatial_discriminator(averaged)
-        L_adv2 = self.mse(spat_out, torch.ones_like(spat_out) * self.d)
+        L_adv2 = self.mse(spat_out, torch.ones_like(spat_out) * self.d) # spatial_loss_ad
         L_spatial = L_spatial_base + self.beta * L_adv2
 
         return 5 * L_adv2 + L_adv1 + 5 * L_spatial_base + L_spectral_base
@@ -213,7 +222,7 @@ class PanGan(GanInterface, ABC):
 
             # Compute prediction and loss
             generated = self.generator(pan, ms)
-            loss_generator = self.generator_loss(pan, ms_lr, generated)
+            loss_generator = self.generator_loss(pan, ms, generated)
 
             # Backpropagation
             self.optimizer_gen.zero_grad()
@@ -256,7 +265,7 @@ class PanGan(GanInterface, ABC):
                 d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
                 loss_d_spec_batch += d_spec_loss.item()
 
-                gloss = self.generator_loss(pan, ms_lr, generated_HRMS)
+                gloss = self.generator_loss(pan, ms, generated_HRMS)
                 loss_g_batch += gloss.item()
 
         return {"Gen loss": loss_g_batch / len(dataloader),
