@@ -28,8 +28,8 @@ class PanGan(GanInterface, ABC):
         self.spatial_discriminator = PanGan.Discriminator(1)
         self.spectral_discriminator = PanGan.Discriminator(channels)
 
-        self.a = .2
-        self.b = .8
+        self.a = 0
+        self.b = 1
         self.c = 1
         self.d = 1
 
@@ -127,28 +127,28 @@ class PanGan(GanInterface, ABC):
 
     def discriminator_spatial_loss(self, pan, generated):
         averaged = torch.mean(generated, 1, keepdim=True)
-        spatial_neg_loss = self.mse(self.spatial_discriminator(pan) - self.b)
-        spatial_pos_loss = self.mse(self.spatial_discriminator(averaged) - self.a)
+        spatial_neg_loss = self.mse(self.spatial_discriminator(pan), torch.ones_like(pan) * self.b)
+        spatial_pos_loss = self.mse(self.spatial_discriminator(averaged), torch.ones_like(averaged) * self.a)
         return spatial_pos_loss + spatial_neg_loss
 
     def discriminator_spectral_loss(self, ms, generated):
-        spectrum_neg_loss = self.mse(self.spectral_discriminator(ms) - self.b)
-        spectrum_pos_loss = self.mse(self.spectral_discriminator(generated) - self.a)
+        spectrum_neg_loss = self.mse(self.spectral_discriminator(ms), torch.ones_like(ms) * self.b)
+        spectrum_pos_loss = self.mse(self.spectral_discriminator(generated), torch.ones_like(generated) * self.a)
         return spectrum_pos_loss + spectrum_neg_loss
 
     def generator_loss(self, pan, ms_lr, generated):
         # Spectral Loss
         downsampled = downsample(generated, (ms_lr.shape[2:]))
-        L_spectral_base = self.mse(downsampled - ms_lr)
-        L_adv1 = self.mse(self.spectral_discriminator(generated) - self.c)
+        L_spectral_base = self.mse(downsampled, ms_lr)
+        L_adv1 = self.mse(self.spectral_discriminator(generated), torch.ones_like(generated) * self.c)
         L_spectral = L_spectral_base + self.alpha * L_adv1
 
         # Spatial Loss
         averaged = torch.mean(generated, 1, keepdim=True)
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
-        L_spatial_base = self.mu * self.mse(details_generated - details_original)
-        L_adv2 = self.mse(self.spatial_discriminator(averaged) - self.d)
+        L_spatial_base = self.mu * self.mse(details_generated, details_original)
+        L_adv2 = self.mse(self.spatial_discriminator(averaged), torch.ones_like(averaged) * self.d)
         L_spatial = L_spatial_base + self.beta * L_adv2
 
         return 5 * L_adv2 + L_adv1 + 5 * L_spatial_base + L_spectral_base
