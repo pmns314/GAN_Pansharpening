@@ -55,33 +55,33 @@ class PanGan(GanInterface, ABC):
 
             # BxC+1xHxW ---> Bx64xHxW
             self.block_1 = nn.Sequential(
-                nn.Conv2d(in_channels=in_channels + 1, out_channels=64, kernel_size=(9, 9), padding="same", bias=True),
-                nn.ReLU(),
-                nn.BatchNorm2d(64, eps=1e-5, momentum=.9)
+                nn.Conv2d(in_channels=in_channels + 1, out_channels=64, kernel_size=(9, 9), padding="same",
+                          stride=(1, 1), bias=True),
+                nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
+                nn.ReLU()
             )
 
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
-                nn.Conv2d(in_channels=64 + in_channels + 1, out_channels=32, kernel_size=(9, 9), padding="same",
-                          bias=True),
-                nn.ReLU(),
-                nn.BatchNorm2d(32, eps=1e-5, momentum=.9)
+                nn.Conv2d(in_channels=64 + in_channels + 1, out_channels=32, kernel_size=(5, 5), padding="same",
+                          stride=(1, 1), bias=True),
+                nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
+                nn.ReLU()
             )
 
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
                 nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
-                          padding="same",
-                          bias=True),
-                nn.ReLU(),
-                nn.BatchNorm2d(in_channels, eps=1e-5, momentum=.9)
+                          padding="same", stride=(1, 1), bias=True),
+                nn.Tanh()
+
             )
 
         def forward(self, pan, ms):
-            input_block_1 = torch.cat([pan, ms], 1)
+            input_block_1 = torch.cat([ms, pan], 1)
             output_block_1 = self.block_1(input_block_1)
 
-            input_block_2 = torch.cat([ms, output_block_1, pan], 1)
+            input_block_2 = torch.cat([input_block_1, output_block_1], 1)
             output_block_2 = self.block_2(input_block_2)
 
             input_block_3 = torch.cat([input_block_1, output_block_1, output_block_2], 1)
@@ -115,14 +115,16 @@ class PanGan(GanInterface, ABC):
                 self.ConvBlock(64, 128),
                 self.ConvBlock(128, 256)
             )
-            self.last_conv2 = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(4, 4), stride=(1, 1),
-                                        padding=(1, 1), bias=True)
-            self.lrelu = nn.LeakyReLU(negative_slope=.2)
+            self.strides1_layer = nn.Sequential(
+                nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(4, 4), stride=(1, 1), padding=(0, 0),
+                          bias=True),
+                nn.BatchNorm2d(1, eps=1e-5, momentum=.9),
+                nn.LeakyReLU(negative_slope=.2)
+            )
 
         def forward(self, input_data):
             rs = self.strides2_stack(input_data)
-            rs = self.last_conv2(rs)
-            rs = self.lrelu(rs)
+            rs = self.strides1_layer(rs)
             return rs
 
     def discriminator_spatial_loss(self, pan, generated):
@@ -155,16 +157,16 @@ class PanGan(GanInterface, ABC):
         L_spectral_base = self.mse(generated, ms)
 
         spect_out = self.spectral_discriminator(generated)
-        L_adv1 = self.mse(spect_out, torch.ones_like(spect_out) * self.c) # spectrum loss ad
+        L_adv1 = self.mse(spect_out, torch.ones_like(spect_out) * self.c)  # spectrum loss ad
         L_spectral = L_spectral_base + self.alpha * L_adv1
 
         # Spatial Loss
         averaged = torch.mean(generated, 1, keepdim=True)
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
-        L_spatial_base = self.mu * self.mse(details_generated, details_original) # g spatial loss * mu
+        L_spatial_base = self.mu * self.mse(details_generated, details_original)  # g spatial loss * mu
         spat_out = self.spatial_discriminator(averaged)
-        L_adv2 = self.mse(spat_out, torch.ones_like(spat_out) * self.d) # spatial_loss_ad
+        L_adv2 = self.mse(spat_out, torch.ones_like(spat_out) * self.d)  # spatial_loss_ad
         L_spatial = L_spatial_base + self.beta * L_adv2
 
         return 5 * L_adv2 + L_adv1 + 5 * L_spatial_base + L_spectral_base
