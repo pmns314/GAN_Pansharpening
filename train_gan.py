@@ -55,6 +55,11 @@ if __name__ == '__main__':
                         help='Boolean indicating if commit is to git is needed',
                         type=bool
                         )
+    parser.add_argument('-f', '--force',
+                        default=True,
+                        help='Boolean indicating if forcing GPU Max Memory allowed',
+                        type=bool
+                        )
     args = parser.parse_args()
 
     repo = Repo(ROOT_DIR + "/.git")
@@ -68,8 +73,8 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"train_1_64.h5"
-    val_dataset = f"val_1_64.h5"
+    train_dataset = f"test_3_512.h5"
+    val_dataset = f"test_3_512.h5"
     test_dataset1 = f"test_1_256.h5"
     test_dataset2 = f"test_3_512.h5"
 
@@ -78,10 +83,9 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     # Force 8 Gb max GPU usage
-    # if device == "cuda":
-    #     CUDA_VISIBLE_DEVICES = 2
-    #     total_memory = torch.cuda.get_device_properties(CUDA_VISIBLE_DEVICES).total_memory
-    #     torch.cuda.set_per_process_memory_fraction(total_memory/8192, CUDA_VISIBLE_DEVICES)
+    if args.force and device == "cuda":
+        total_memory = torch.cuda.mem_get_info()[1]
+        torch.cuda.set_per_process_memory_fraction(8192/(total_memory//1024**2))
 
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,

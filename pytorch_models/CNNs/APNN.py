@@ -1,5 +1,6 @@
 import os
 import shutil
+from abc import ABC
 
 import numpy as np
 import torch
@@ -9,11 +10,12 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from dataset.DatasetPytorch import DatasetPytorch
 from constants import ROOT_DIR
+from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
-class APNN(nn.Module):
-    def __init__(self, channels, name="APNN"):
-        super(APNN, self).__init__()
+class APNN(CnnInterface, ABC):
+    def __init__(self, channels, device="cpu", name="APNN"):
+        super(APNN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
         self.conv1 = nn.Conv2d(in_channels=channels + 1, out_channels=64, kernel_size=(9, 9), padding='same',
@@ -36,32 +38,28 @@ class APNN(nn.Module):
         out = ms + out
         return out
 
-    def train_loop(self, dataloader, loss_fn, optimizer, device='cpu'):
-        size = len(dataloader.dataset)
-        batch_size = dataloader.batch_size
-
+    def train_step(self, dataloader):
         self.train(True)
-        loss = 0
+
         loss_batch = 0
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
             if len(pan.shape) == 3:
                 pan = torch.unsqueeze(pan, 0)
-            gt = gt.to(device)
-            pan = pan.to(device)
-            ms = ms.to(device)
+            gt = gt.to(self.device)
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
 
             # Compute prediction and loss
             pred = self(ms, pan)
-            loss = loss_fn(pred, gt)
+            loss = self.loss_fn(pred, gt)
             loss /= (32 * 32)
 
             # Backpropagation
-            optimizer.zero_grad()
+            self.opt.zero_grad()
             loss.backward()
-
-            optimizer.step()
+            self.opt.step()
 
             loss = loss.item()
             torch.cuda.empty_cache()
@@ -70,7 +68,7 @@ class APNN(nn.Module):
 
         return loss_batch / (len(dataloader))
 
-    def validation_loop(self, dataloader, loss_fn, device='cpu'):
+    def validation_step(self, dataloader):
         self.train(False)
         self.eval()
         running_vloss = 0.0
@@ -80,21 +78,22 @@ class APNN(nn.Module):
                 pan, ms, ms_lr, gt = data
                 if len(pan.shape) == 3:
                     pan = torch.unsqueeze(pan, 0)
-                gt = gt.to(device)
-                pan = pan.to(device)
-                ms = ms.to(device)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
 
                 voutputs = self(ms, pan)
-                vloss = loss_fn(voutputs, gt)
+                vloss = self.loss_fn(voutputs, gt)
                 running_vloss += vloss.item()
 
         avg_vloss = running_vloss / (i + 1)
 
         return avg_vloss
 
-    def test_loop(self, dataloader, loss_fn, device='cpu'):
-        test_loss = self.validation_loop(dataloader, loss_fn, device)
-        print(f"Evaluation on Test Set: \n  Avg loss: {test_loss:>8f} \n")
+    def generate_output(self, pan, **kwargs):
+        return self(kwargs['ms'], pan)
+
+
 
 
 if __name__ == '__main__':

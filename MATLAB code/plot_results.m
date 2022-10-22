@@ -36,8 +36,8 @@ end
 %% Plot Single CSV
 %clear, clc, close all
 data_path = "C:\Users\pmans\Documents\Progetti_Local\Pycharm\Gan-Pansharpening\pytorch_models\trained_models\" + ...
-    "W3\PSGAN\Psgan32\test_1.csv"
-data_path = "C:\Users\pmans\Downloads\test_1 (1).csv"
+    "W3\PSGAN\Psgan64\test_1.csv"
+%data_path = "C:\Users\pmans\Downloads\test_1 (4).csv"
 cnt =1;
 
 T = readtable(data_path)
