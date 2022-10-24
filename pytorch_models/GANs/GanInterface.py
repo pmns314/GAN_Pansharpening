@@ -131,19 +131,19 @@ class GanInterface(ABC, nn.Module):
                 df.to_csv(t['filename'], index=False, header=True if self.pretrained_epochs + epoch == 1 else False,
                           mode='a', sep=";")
 
-                fig = plt.figure()
-                fig.add_subplot(1, 2, 1)
-                # showing image
-                plt.imshow(gt[:, :, 3:0:-1]/2048)
-                plt.axis('off')
-                plt.title("GT")
-                # Adds a subplot at the 2nd position
-                fig.add_subplot(1, 2, 2)
-                # showing image
-                plt.imshow(gen[:, :, 3:0:-1]/2048)
-                plt.axis('off')
-                plt.title("Generated")
-                plt.show()
+                # fig = plt.figure()
+                # fig.add_subplot(1, 2, 1)
+                # # showing image
+                # plt.imshow(gt[:, :, 3:0:-1]/2048)
+                # plt.axis('off')
+                # plt.title("GT")
+                # # Adds a subplot at the 2nd position
+                # fig.add_subplot(1, 2, 2)
+                # # showing image
+                # plt.imshow(gen[:, :, 3:0:-1]/2048)
+                # plt.axis('off')
+                # plt.title("Generated")
+                # plt.show()
                 writer.add_image('gen_img', gen[:, :, 2:0:-1]/2048, self.pretrained_epochs + epoch, dataformats='HWC')
 
             if triggertimes >= patience:
