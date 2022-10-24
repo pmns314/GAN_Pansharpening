@@ -10,6 +10,8 @@ from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANs import *
 from pytorch_models.GANs.PanGan import PanGan
+from utils import recompose
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -73,9 +75,9 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"test_3_512.h5"
-    val_dataset = f"test_3_512.h5"
-    test_dataset1 = f"test_1_256.h5"
+    train_dataset = f"test_3_128.h5"
+    val_dataset = f"test_3_128.h5"
+    test_dataset1 = f"test_3_128.h5"
     test_dataset2 = f"test_3_512.h5"
 
     # Device Definition
@@ -125,7 +127,7 @@ if __name__ == '__main__':
     test_1['pan'] = pan
     test_1['ms'] = ms
     test_1['ms_lr'] = ms_lr
-    test_1['gt'] = torch.squeeze(gt).detach().numpy()
+    test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
     test_1['filename'] = f"{output_path}/test_0.csv"
 
     test_2 = {}

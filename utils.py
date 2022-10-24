@@ -1,4 +1,5 @@
 import copy
+from math import sqrt
 
 import numpy as np
 import torch
@@ -14,6 +15,27 @@ def calc_padding_conv2d(input_size, kernel, stride, output_size):
 
 if __name__ == '__main__':
     print(calc_padding_conv2d(64, 3, 2, 32))
+
+
+def recompose(img):
+    n_patch = img.shape[0]
+    dim_patch = img.shape[1]
+    original_height = int(sqrt(n_patch) * dim_patch)
+    num_patch_per_row = original_height // dim_patch
+    out = np.zeros((original_height, original_height, 8), dtype='float32')
+
+    start_row = stop_row = 0
+    start_col = stop_col = 0
+    for i in range(n_patch):
+        if i % num_patch_per_row == 0:
+            start_col = 0
+            start_row = stop_row
+            stop_row = stop_row + dim_patch
+        else:
+            start_col = stop_col
+        stop_col = start_col + dim_patch
+        out[start_row:stop_row, start_col:stop_col, :] = img[i, :, :, :]
+    return out
 
 
 def norm_min_max_channels(data, channels):

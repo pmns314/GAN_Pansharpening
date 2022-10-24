@@ -8,6 +8,7 @@ from torch.nn.functional import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def downsample(img, new_shape):
     return interpolate(img, new_shape, mode='bilinear', antialias=True)
 
@@ -59,7 +60,7 @@ class PanGan(GanInterface, ABC):
             # BxC+1xHxW ---> Bx64xHxW
             self.block_1 = nn.Sequential(
                 nn.Conv2d(in_channels=in_channels + 1, out_channels=64, kernel_size=(9, 9), padding="same",
-                          stride=(1, 1), bias=True),
+                          stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
@@ -67,7 +68,7 @@ class PanGan(GanInterface, ABC):
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
                 nn.Conv2d(in_channels=64 + in_channels + 1, out_channels=32, kernel_size=(5, 5), padding="same",
-                          stride=(1, 1), bias=True),
+                          stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
@@ -75,13 +76,12 @@ class PanGan(GanInterface, ABC):
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
                 nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
-                          padding="same", stride=(1, 1), bias=True),
+                          padding="same", stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.Tanh()
 
             )
 
         def forward(self, pan, ms):
-
             input_block_1 = torch.cat([ms, pan], 1)
             output_block_1 = self.block_1(input_block_1)
 
@@ -98,7 +98,7 @@ class PanGan(GanInterface, ABC):
             def __init__(self, in_channels, out_channels, batch_normalization=True):
                 super(PanGan.Discriminator.ConvBlock, self).__init__()
                 self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
-                                       stride=(2, 2), padding=(1, 1), bias=True)
+                                       stride=(2, 2), padding=(1, 1), bias=True, padding_mode="replicate")
                 self.lrelu = nn.LeakyReLU(negative_slope=.2)
                 self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=.9)
                 self.batch_normalization = batch_normalization
@@ -119,8 +119,8 @@ class PanGan(GanInterface, ABC):
                 self.ConvBlock(64, 128),
                 self.ConvBlock(128, 256)
             )
-            self.finale_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(16, 16), stride=(1, 1),
-                                         padding=(0, 0), bias=True)
+            self.finale_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(4, 4), stride=(1, 1),
+                                         padding=(0, 0), bias=True, padding_mode="replicate")
             self.bn = nn.BatchNorm2d(1, eps=1e-5, momentum=.9)
             self.lrelu = nn.LeakyReLU(negative_slope=.2)
 
@@ -161,18 +161,19 @@ class PanGan(GanInterface, ABC):
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
 
-        # Spatial Loss
-        L_spatial_base = self.mse(details_generated, details_original)  # g spatial loss
-        spatial_neg = self.spatial_discriminator(averaged)
-        L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-        L_spatial = self.mu * L_spatial_base + self.beta * L_adv2
+        # # Spatial Loss
+        # L_spatial_base = self.mse(details_generated, details_original)  # g spatial loss
+        # spatial_neg = self.spatial_discriminator(averaged)
+        # L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
+        # L_spatial = self.mu * L_spatial_base + self.beta * L_adv2
 
         # Spectral Loss
-        L_spectral_base = self.mse(generated, ms)      # g spectrum loss
+        L_spectral_base = self.mse(generated, ms)  # g spectrum loss
         spectrum_neg = self.spectral_discriminator(generated)
         L_adv1 = self.mse(spectrum_neg, torch.ones_like(spectrum_neg) * self.c)  # spectrum loss ad
         L_spectral = L_spectral_base + self.alpha * L_adv1
 
+        return L_adv1 + L_spectral_base
         return 5 * L_adv2 + L_adv1 + 5 * L_spatial_base + L_spectral_base
 
     # ------------------------- Concrete Interface Methods -----------------------------
@@ -186,10 +187,10 @@ class PanGan(GanInterface, ABC):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            gt = gt.to(self.device)
+            #gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            ms_lr = ms_lr.to(self.device)
+            #ms_lr = ms_lr.to(self.device)
 
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
@@ -206,8 +207,8 @@ class PanGan(GanInterface, ABC):
             self.spectral_discriminator.zero_grad()
 
             # Spatial Discriminator
-            # loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
             # self.optimizer_spatial_disc.zero_grad()
+            # loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
             # loss_spatial.backward()
             # self.optimizer_spatial_disc.step()
             # loss = loss_spatial.item()
@@ -215,8 +216,8 @@ class PanGan(GanInterface, ABC):
             # loss_d_spat_batch += loss
 
             # Spectral Discriminator
-            loss_spectral = self.discriminator_spectral_loss(ms, generated_HRMS)
             self.optimizer_spectral_disc.zero_grad()
+            loss_spectral = self.discriminator_spectral_loss(ms, generated_HRMS)
             loss_spectral.backward()
             self.optimizer_spectral_disc.step()
             loss = loss_spectral.item()
@@ -230,11 +231,11 @@ class PanGan(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
+            self.optimizer_gen.zero_grad()
             generated = self.generator(pan, ms)
             loss_generator = self.generator_loss(pan, ms, generated)
 
             # Backpropagation
-            self.optimizer_gen.zero_grad()
             loss_generator.backward()
             self.optimizer_gen.step()
 
@@ -269,8 +270,8 @@ class PanGan(GanInterface, ABC):
                     pan = torch.unsqueeze(pan, 0)
                 generated_HRMS = self.generate_output(pan, ms=ms)
 
-                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
-                loss_d_spat_batch += d_spat_loss.item()
+                # d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                # loss_d_spat_batch += d_spat_loss.item()
 
                 d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
                 loss_d_spec_batch += d_spec_loss.item()

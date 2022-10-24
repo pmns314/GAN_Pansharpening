@@ -8,6 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
+from utils import recompose
+import matplotlib.pyplot as plt
 
 
 class GanInterface(ABC, nn.Module):
@@ -118,7 +120,8 @@ class GanInterface(ABC, nn.Module):
                                            ms=t['ms'].to(self.device),
                                            ms_lr=t['ms_lr'].to(self.device), )
                 # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
+                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to(self.device).numpy()
+                gen = recompose(gen)
                 gen = np.squeeze(gen) * 2048
                 gt = np.squeeze(t['gt']) * 2048
 
@@ -127,6 +130,21 @@ class GanInterface(ABC, nn.Module):
                 df.loc[0] = [self.pretrained_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
                 df.to_csv(t['filename'], index=False, header=True if self.pretrained_epochs + epoch == 1 else False,
                           mode='a', sep=";")
+
+                fig = plt.figure()
+                fig.add_subplot(1, 2, 1)
+                # showing image
+                plt.imshow(gt[:, :, 3:0:-1]/2048)
+                plt.axis('off')
+                plt.title("GT")
+                # Adds a subplot at the 2nd position
+                fig.add_subplot(1, 2, 2)
+                # showing image
+                plt.imshow(gen[:, :, 3:0:-1]/2048)
+                plt.axis('off')
+                plt.title("Generated")
+                plt.show()
+                writer.add_image('gen_img', gen[:, :, 2:0:-1]/2048, self.pretrained_epochs + epoch, dataformats='HWC')
 
             if triggertimes >= patience:
                 print("Early Stopping!")
