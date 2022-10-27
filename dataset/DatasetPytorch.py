@@ -35,6 +35,9 @@ class DatasetPytorch(Dataset):
         ms = torch.from_numpy(ms)
         ms_lr = torch.from_numpy(ms_lr)
 
+        if len(pan.shape) != len(ms.shape):
+            pan = torch.unsqueeze(pan, 0)
+
         return pan, ms, ms_lr, gt
 
     def close(self):

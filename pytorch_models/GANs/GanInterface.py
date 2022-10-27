@@ -118,7 +118,7 @@ class GanInterface(ABC, nn.Module):
 
                 gen = self.generate_output(pan=t['pan'].to(self.device),
                                            ms=t['ms'].to(self.device),
-                                           ms_lr=t['ms_lr'].to(self.device), )
+                                           ms_lr=t['ms_lr'].to(self.device))
                 # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
                 gen = torch.permute(gen, (0, 2, 3, 1)).detach().to(self.device).numpy()
                 gen = recompose(gen)
@@ -144,7 +144,7 @@ class GanInterface(ABC, nn.Module):
                 # plt.axis('off')
                 # plt.title("Generated")
                 # plt.show()
-                writer.add_image('gen_img', gen[:, :, 2:0:-1]/2048, self.pretrained_epochs + epoch, dataformats='HWC')
+                # writer.add_image('gen_img', gen[:, :, 2:0:-1]/2048, self.pretrained_epochs + epoch, dataformats='HWC')
 
             if triggertimes >= patience:
                 print("Early Stopping!")

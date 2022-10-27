@@ -1,5 +1,4 @@
 import argparse
-import os
 import shutil
 
 import torch
@@ -8,10 +7,9 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANs import *
-from pytorch_models.GANs.PanGan import PanGan
+from pytorch_models.GANs.PSGAN import PSGAN
+from pytorch_models.GANs.Paolo import Paolo
 from utils import recompose
-import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -42,7 +40,7 @@ if __name__ == '__main__':
                         type=float
                         )
     parser.add_argument('-r', '--resume',
-                        default=None,
+                        default=False,
                         help='Boolean indicating if resuming the training or starting a new one deleting the one '
                              'already existing, if any',
                         type=bool
@@ -75,8 +73,8 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"test_3_128.h5"
-    val_dataset = f"test_3_128.h5"
+    train_dataset = f"test_3_512.h5"
+    val_dataset = f"test_3_512.h5"
     test_dataset1 = f"test_3_128.h5"
     test_dataset2 = f"test_3_512.h5"
 
@@ -87,7 +85,7 @@ if __name__ == '__main__':
     # Force 8 Gb max GPU usage
     if args.force and device == "cuda":
         total_memory = torch.cuda.mem_get_info()[1]
-        torch.cuda.set_per_process_memory_fraction(8192/(total_memory//1024**2))
+        torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
@@ -100,7 +98,7 @@ if __name__ == '__main__':
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PanGan(train_dataloader.dataset.channels, device)
+    model = Paolo(train_dataloader.dataset.channels, device)
     model.to(device)
     # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)

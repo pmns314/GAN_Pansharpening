@@ -1,8 +1,10 @@
 from abc import ABC
 
 import torch
+from numpy import log2
 from torch import nn, optim
 
+from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
 from torch.nn.functional import interpolate
 import numpy as np
@@ -43,6 +45,7 @@ class PanGan(GanInterface, ABC):
 
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
+        self.use_spatial = False
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
         self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
@@ -153,28 +156,31 @@ class PanGan(GanInterface, ABC):
         # Loss of discriminator classifying generated image as 0 (fake label is 1)
         spectrum_neg = self.spectral_discriminator(generated)
         spectrum_neg_loss = self.mse(spectrum_neg, torch.ones_like(spectrum_neg) * self.a)
+
         return spectrum_pos_loss + spectrum_neg_loss
 
     def generator_loss(self, pan, ms, generated):
 
         averaged = torch.mean(generated, 1, keepdim=True)
-        details_generated = high_pass(averaged, self.device)
-        details_original = high_pass(pan, self.device)
+        # details_generated = high_pass(averaged, self.device)
+        # details_original = high_pass(pan, self.device)
 
-        # # Spatial Loss
-        # L_spatial_base = self.mse(details_generated, details_original)  # g spatial loss
-        # spatial_neg = self.spatial_discriminator(averaged)
-        # L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-        # L_spatial = self.mu * L_spatial_base + self.beta * L_adv2
+        # Spatial Loss
+        L_spatial = 0
+        if self.use_spatial:
+            L_spatial_base = self.mse(pan, averaged)  # g spatial loss
+            spatial_neg = self.spatial_discriminator(averaged)
+            L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
+            L_spatial = 5 * L_spatial_base + 5 * L_adv2
 
         # Spectral Loss
         L_spectral_base = self.mse(generated, ms)  # g spectrum loss
         spectrum_neg = self.spectral_discriminator(generated)
         L_adv1 = self.mse(spectrum_neg, torch.ones_like(spectrum_neg) * self.c)  # spectrum loss ad
-        L_spectral = L_spectral_base + self.alpha * L_adv1
+        L_spectral = 1 * L_spectral_base + 1 * L_adv1
 
-        return L_adv1 + L_spectral_base
-        return 5 * L_adv2 + L_adv1 + 5 * L_spatial_base + L_spectral_base
+        # return L_adv1 + L_spectral_base
+        return L_spatial + L_spectral
 
     # ------------------------- Concrete Interface Methods -----------------------------
 
@@ -187,10 +193,10 @@ class PanGan(GanInterface, ABC):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            #gt = gt.to(self.device)
+            gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            #ms_lr = ms_lr.to(self.device)
+            # ms_lr = ms_lr.to(self.device)
 
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
@@ -206,14 +212,15 @@ class PanGan(GanInterface, ABC):
             self.spatial_discriminator.zero_grad()
             self.spectral_discriminator.zero_grad()
 
-            # Spatial Discriminator
-            # self.optimizer_spatial_disc.zero_grad()
-            # loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
-            # loss_spatial.backward()
-            # self.optimizer_spatial_disc.step()
-            # loss = loss_spatial.item()
-            # torch.cuda.empty_cache()
-            # loss_d_spat_batch += loss
+            if self.use_spatial:
+                # Spatial Discriminator
+                self.optimizer_spatial_disc.zero_grad()
+                loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
+                loss_spatial.backward()
+                self.optimizer_spatial_disc.step()
+                loss = loss_spatial.item()
+                torch.cuda.empty_cache()
+                loss_d_spat_batch += loss
 
             # Spectral Discriminator
             self.optimizer_spectral_disc.zero_grad()
@@ -224,25 +231,25 @@ class PanGan(GanInterface, ABC):
             torch.cuda.empty_cache()
             loss_d_spec_batch += loss
 
-            # ------------------- Training Generator ----------------------------
-            self.spatial_discriminator.train(False)
-            self.spectral_discriminator.train(False)
-            self.generator.train(True)
-            self.generator.zero_grad()
-
-            # Compute prediction and loss
-            self.optimizer_gen.zero_grad()
-            generated = self.generator(pan, ms)
-            loss_generator = self.generator_loss(pan, ms, generated)
-
-            # Backpropagation
-            loss_generator.backward()
-            self.optimizer_gen.step()
-
-            loss = loss_generator.item()
-            torch.cuda.empty_cache()
-
-            loss_g_batch += loss
+            # # ------------------- Training Generator ----------------------------
+            # self.spatial_discriminator.train(False)
+            # self.spectral_discriminator.train(False)
+            # self.generator.train(True)
+            # self.generator.zero_grad()
+            #
+            # # Compute prediction and loss
+            # self.optimizer_gen.zero_grad()
+            # generated = self.generator(pan, ms)
+            # loss_generator = self.generator_loss(pan, ms, generated)
+            #
+            # # Backpropagation
+            # loss_generator.backward()
+            # self.optimizer_gen.step()
+            #
+            # loss = loss_generator.item()
+            # torch.cuda.empty_cache()
+            #
+            # loss_g_batch += loss
 
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Spat Disc loss": loss_d_spat_batch / len(dataloader),

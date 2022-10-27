@@ -121,7 +121,7 @@ class PanColorGan(GanInterface, ABC):
             )
             self.out_model = nn.Tanh()
 
-        def forward(self, ms, pan):
+        def forward(self, pan, ms):
             m1 = self.model1(pan)
             c1 = self.color1(ms)
             mc1 = torch.cat([m1, c1], 1)
@@ -337,7 +337,7 @@ class PanColorGan(GanInterface, ABC):
 
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
-        return self.generator(ms, pan)
+        return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):
         for g in self.gen_opt.param_groups:

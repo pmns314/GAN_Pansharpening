@@ -29,18 +29,19 @@ All rights reserved. This work should only be used for nonprofit purposes.
 import numpy as np
 import math
 
-def ERGAS(I1,I2,ratio):
 
+def ERGAS(I1, I2, ratio):
     I1 = I1.astype('float64')
     I2 = I2.astype('float64')
 
-    Err = I1-I2
+    Err = I1 - I2
 
-    ERGAS_index=0
-    
+    ERGAS_index = 0
+
     for iLR in range(I1.shape[2]):
-        ERGAS_index = ERGAS_index + np.mean(Err[:,:,iLR]**2, axis=(0, 1))/(np.mean(I1[:,:,iLR], axis=(0, 1)))**2    
-    
-    ERGAS_index = (100/ratio) * math.sqrt((1/I1.shape[2]) * ERGAS_index)       
-            
+        ERGAS_index = ERGAS_index + np.mean(Err[:, :, iLR] ** 2, axis=(0, 1)) / (
+            np.mean(I1[:, :, iLR], axis=(0, 1))) ** 2
+
+    ERGAS_index = (100 / ratio) * math.sqrt((1 / I1.shape[2]) * ERGAS_index)
+
     return np.squeeze(ERGAS_index)

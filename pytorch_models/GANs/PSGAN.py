@@ -1,12 +1,10 @@
-import os
-import shutil
 from abc import ABC
 
 import numpy as np
-import pandas as pd
 import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
+
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
 
@@ -17,7 +15,7 @@ class PSGAN(GanInterface, ABC):
         self.channels = channels
         self.alpha = 1
         self.beta = 100
-        self.generator = self.Generator(channels, pad_mode)
+        self.generator = self.Generator(channels)
         self.discriminator = self.Discriminator(channels, pad_mode)
         self.best_losses = [np.inf, np.inf]
         self.gen_opt = optim.Adam(self.generator.parameters())
@@ -25,7 +23,7 @@ class PSGAN(GanInterface, ABC):
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
-        def __init__(self, channels, pad_mode, name="Gen"):
+        def __init__(self, channels, pad_mode="replicate", name="Gen"):
             super().__init__()
             self._model_name = name
             self.channels = channels
@@ -104,7 +102,7 @@ class PSGAN(GanInterface, ABC):
             self.relu = nn.ReLU(inplace=True)
             self.lrelu = LeakyReLU(negative_slope=.2)
 
-        def forward(self, ms, pan):
+        def forward(self, pan, ms):
             pan1 = self.lrelu(self.pan_enc_1(pan))
             pan2 = self.pan_enc_2(pan1)
             pan3 = self.lrelu(pan2)
@@ -127,7 +125,7 @@ class PSGAN(GanInterface, ABC):
             return out
 
     class Discriminator(nn.Module):
-        def __init__(self, channels, pad_mode, name="Disc"):
+        def __init__(self, channels, pad_mode="replicate", name="Disc"):
             super().__init__()
             self._model_name = name
             self.channels = channels
@@ -219,6 +217,8 @@ class PSGAN(GanInterface, ABC):
             pan = pan.to(self.device)
             ms = ms.to(self.device)
             ms_lr = ms_lr.to(self.device)
+            if len(pan.shape) != len(ms.shape):
+                pan = torch.unsqueeze(pan, 0)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
@@ -280,6 +280,8 @@ class PSGAN(GanInterface, ABC):
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
                 ms_lr = ms_lr.to(self.device)
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
 
                 generated = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
 
@@ -326,7 +328,7 @@ class PSGAN(GanInterface, ABC):
 
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
-        return self.generator(ms, pan)
+        return self.generator(pan, ms)
 
 
 if __name__ == '__main__':
