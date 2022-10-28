@@ -16,7 +16,7 @@ class PSGAN(GanInterface, ABC):
         self.channels = channels
         self.alpha = 1
         self.beta = 100
-        self.generator = PanGan.Generator(channels)
+        self.generator = self.Generator(channels)
         self.discriminator = self.Discriminator(channels, pad_mode)
         self.best_losses = [np.inf, np.inf]
         self.gen_opt = optim.Adam(self.generator.parameters())
