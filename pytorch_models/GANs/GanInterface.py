@@ -17,8 +17,8 @@ class GanInterface(ABC, nn.Module):
         super().__init__()
         self._model_name = name
         self.best_losses: list = NotImplemented  # Must be defined by subclasses
-        self.pretrained_epochs = 0
         self.best_epoch = 0
+        self.tot_epochs = 0
         self.triggertimes = 0
         self.device = device
         self.to(device)
@@ -52,6 +52,10 @@ class GanInterface(ABC, nn.Module):
     def generate_output(self, pan, **kwargs):
         pass
 
+    @abstractmethod
+    def set_optimizers_lr(self, lr):
+        pass
+
     # ------------------------- Concrete Methods ------------------------------
     def train_model(self, epochs,
                     output_path, chk_path,
@@ -68,13 +72,11 @@ class GanInterface(ABC, nn.Module):
         # scheduler_d = ReduceLROnPlateau(self.disc_opt, 'min', patience=10, verbose=True)
         # scheduler_g = ReduceLROnPlateau(self.gen_opt, 'min', patience=10, verbose=True)
 
-        self.pretrained_epochs = self.pretrained_epochs + 1
-        epoch = 0
-
         # Training
-        print(f"Training started for {output_path} at epoch {self.pretrained_epochs}")
+        print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
         for epoch in range(epochs):
-            print(f'\nEpoch {self.pretrained_epochs + epoch}')
+            self.tot_epochs += 1
+            print(f'\nEpoch {self.tot_epochs}')
 
             # Compute Losses on Train Set
             train_losses = self.train_step(train_dataloader)
@@ -84,26 +86,22 @@ class GanInterface(ABC, nn.Module):
                 for k in train_losses.keys():
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
-                                       self.pretrained_epochs + epoch)
+                                       self.tot_epochs)
                 losses = list(val_losses.values())
             else:
                 # Otherwise keeps track only of train losses
                 for item in train_losses.items():
                     key, value = item
                     print(f'\t {key}: {value :.3f}', end="\t")
-                    writer.add_scalar(f"{key}/Train", value, self.pretrained_epochs + epoch)
+                    writer.add_scalar(f"{key}/Train", value, self.tot_epochs)
                 losses = list(train_losses.values())
 
-            # Save Checkpoints
-            if self.pretrained_epochs + epoch in TO_SAVE:
-                self.save_checkpoint(chk_path, self.pretrained_epochs + epoch)
-
-            # Updates best losses
+            # Updates the best losses
             # Saves the model if the loss of the generator ( position 0 ) improved
             if losses[0] < self.best_losses[0]:
                 self.best_losses[0] = losses[0]
-                self.best_epoch = self.pretrained_epochs + epoch
-                self.save_model(output_path)
+                self.best_epoch = self.tot_epochs
+                self.save_model(f"{output_path}/model.pth")
                 self.triggertimes = 0
             else:
                 self.triggertimes += 1
@@ -112,23 +110,27 @@ class GanInterface(ABC, nn.Module):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
+            # Save Checkpoints
+            if self.tot_epochsh in TO_SAVE:
+                self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
+
             # Generation Indexes
-            for t in tests:
+            for idx_test in range(len(tests)):
+                t = tests[idx_test]
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
 
                 gen = self.generate_output(pan=t['pan'].to(self.device),
                                            ms=t['ms'].to(self.device),
                                            ms_lr=t['ms_lr'].to(self.device))
-                # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
                 gen = torch.permute(gen, (0, 2, 3, 1)).detach().to(self.device).numpy()
                 gen = recompose(gen)
-                gen = np.squeeze(gen) * 2048
+                gen = np.squeeze(gen) * 2048.0
                 gt = np.squeeze(t['gt']) * 2048
 
                 Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                             th_values)
-                df.loc[0] = [self.pretrained_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
-                df.to_csv(t['filename'], index=False, header=True if self.pretrained_epochs + epoch == 1 else False,
+                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                           mode='a', sep=";")
 
                 # fig = plt.figure()
@@ -140,11 +142,13 @@ class GanInterface(ABC, nn.Module):
                 # # Adds a subplot at the 2nd position
                 # fig.add_subplot(1, 2, 2)
                 # # showing image
-                # plt.imshow(gen[:, :, 3:0:-1]/2048)
+                # plt.imshow(gen[:, :, 3:0:-1] / 2048.0)
                 # plt.axis('off')
                 # plt.title("Generated")
                 # plt.show()
-                # writer.add_image('gen_img', gen[:, :, 2:0:-1]/2048, self.pretrained_epochs + epoch, dataformats='HWC')
+                if self.tot_epochs in TO_SAVE:
+                    writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
+                                     dataformats='HWC')
 
             if triggertimes >= patience:
                 print("Early Stopping!")
@@ -153,16 +157,13 @@ class GanInterface(ABC, nn.Module):
             # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
-        tot_epochs = self.pretrained_epochs + epoch
-        self.load_model(output_path)
-        self.pretrained_epochs = tot_epochs
-        self.save_model(output_path)
         writer.flush()
-        print(f"Training Completed at epoch {tot_epochs}.\n"
+        print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
     def test_loop(self, dataloader):
-        disc_loss_avg, gen_loss_avg = self.validation_step(dataloader)
-        print(f"Evaluation on Test Set: \n "
-              f"\t Avg disc loss: {disc_loss_avg:>8f} \n"
-              f"\t Avg gen loss: {gen_loss_avg:>8f} \n")
+        results: dict = self.validation_step(dataloader)
+        print(f"Evaluation on Test Set: \n ")
+        for k in results.keys():
+            print(f"\t {k}: {results[k]:>8f} \n")
+

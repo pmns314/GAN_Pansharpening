@@ -7,6 +7,7 @@ from torch.nn import LeakyReLU
 
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
+from pytorch_models.GANs.PanGan import PanGan
 
 
 class PSGAN(GanInterface, ABC):
@@ -15,7 +16,7 @@ class PSGAN(GanInterface, ABC):
         self.channels = channels
         self.alpha = 1
         self.beta = 100
-        self.generator = self.Generator(channels)
+        self.generator = PanGan.Generator(channels)
         self.discriminator = self.Discriminator(channels, pad_mode)
         self.best_losses = [np.inf, np.inf]
         self.gen_opt = optim.Adam(self.generator.parameters())
@@ -197,13 +198,6 @@ class PSGAN(GanInterface, ABC):
             )
         )
 
-    # -------------------------------- Utility Methods --------------------------------
-    def set_optimizers_lr(self, lr):
-        for g in self.gen_opt.param_groups:
-            g['lr'] = lr
-        for g in self.disc_opt.param_groups:
-            g['lr'] = lr
-
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
         self.train(True)
@@ -295,40 +289,37 @@ class PSGAN(GanInterface, ABC):
                 "Disc loss": disc_loss / len(dataloader)
                 }
 
-    def save_checkpoint(self, path, curr_epoch):
-        torch.save({'gen_state_dict': self.generator.state_dict(),
-                    'disc_state_dict': self.discriminator.state_dict(),
-                    'gen_optimizer_state_dict': self.gen_opt.state_dict(),
-                    'disc_optimizer_state_dict': self.disc_opt.state_dict(),
-                    'gen_best_loss': self.best_losses[0],
-                    'disc_best_loss': self.best_losses[1]
-                    }, f"{path}/checkpoint_{curr_epoch}.pth")
-
     def save_model(self, path):
         torch.save({
-            'best_epoch': self.best_epoch,
             'gen_state_dict': self.generator.state_dict(),
             'disc_state_dict': self.discriminator.state_dict(),
             'gen_optimizer_state_dict': self.gen_opt.state_dict(),
             'disc_optimizer_state_dict': self.disc_opt.state_dict(),
             'gen_best_loss': self.best_losses[0],
             'disc_best_loss': self.best_losses[1],
-            'tot_epochs': self.pretrained_epochs
-        }, f"{path}/model.pth")
+            'best_epoch': self.best_epoch,
+            'tot_epochs': self.tot_epochs
+        }, f"{path}")
 
     def load_model(self, path):
-        trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
+        trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
-        self.pretrained_epochs = trained_model['tot_epochs']
-        self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
+        self.best_epoch = trained_model['best_epoch']
+        self.tot_epochs = trained_model['tot_epochs']
 
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
         return self.generator(pan, ms)
+
+    def set_optimizers_lr(self, lr):
+        for g in self.gen_opt.param_groups:
+            g['lr'] = lr
+        for g in self.disc_opt.param_groups:
+            g['lr'] = lr
 
 
 if __name__ == '__main__':

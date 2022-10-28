@@ -7,9 +7,25 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANs.PSGAN import PSGAN
-from pytorch_models.GANs.Paolo import Paolo
+from pytorch_models.GANs import *
 from utils import recompose
+
+
+def create_model(name: str, channels, device):
+    name = name.strip().upper()
+    if name == "PSGAN":
+        return PSGAN(channels, device)
+    elif name == "FUPSGAN":
+        return FUPSGAN(channels, device)
+    elif name == "STPSGAN":
+        return STPSGAN(channels, device)
+    elif name == "PANGAN":
+        return PanGan(channels, device)
+    elif name == "PANCOLORGAN":
+        return PanColorGan(channels, device)
+    else:
+        raise KeyError("Model not Defined")
+
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -17,6 +33,11 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--name_model',
                         default='test',
                         help='Provide name of the model. Defaults to test',
+                        type=str
+                        )
+    parser.add_argument('-t', '--type_model',
+                        default='PSGAN',
+                        help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
@@ -65,6 +86,7 @@ if __name__ == '__main__':
     repo = Repo(ROOT_DIR + "/.git")
 
     file_name = args.name_model
+    type_model = args.type_model
     satellite = args.satellite
     dataset_path = args.dataset_path
     epochs = args.epochs
@@ -73,8 +95,8 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"test_3_512.h5"
-    val_dataset = f"test_3_512.h5"
+    train_dataset = f"test_3_128.h5"
+    val_dataset = f"test_3_128.h5"
     test_dataset1 = f"test_3_128.h5"
     test_dataset2 = f"test_3_512.h5"
 
@@ -89,21 +111,22 @@ if __name__ == '__main__':
 
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
-                                  shuffle=True)
+                                  shuffle=False)
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
-                                shuffle=True)
+                                shuffle=False)
 
     test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset1}"), batch_size=64,
                                   shuffle=False)
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = Paolo(train_dataloader.dataset.channels, device)
+    model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
+
     # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)
     if resume_flag and os.path.exists(f"{output_path}/model.pth"):
-        model.load_model(f"{output_path}")
+        model.load_model(f"{output_path}/model.pth")
     else:
         if os.path.exists(output_path):
             shutil.rmtree(output_path)

@@ -20,6 +20,7 @@ class PanColorGan(GanInterface, ABC):
         self.gen_opt = torch.optim.Adam(self.generator.parameters())
         self.disc_opt = torch.optim.Adam(self.discriminator.parameters())
 
+    # ------------------------- Specific GAN Methods -----------------------------------
     class ConvBlock(nn.Module):
         def __init__(self, in_channels, out_channels, kernel, padding=0, stride=1, use_dropout=False):
             super().__init__()
@@ -218,6 +219,7 @@ class PanColorGan(GanInterface, ABC):
 
         return loss_g
 
+    # ------------------------- Concrete Interface Methods -----------------------------
     def train_step(self, dataloader):
         self.train(True)
 
@@ -304,34 +306,25 @@ class PanColorGan(GanInterface, ABC):
                 "Disc loss": disc_loss / len(dataloader)
                 }
 
-    def save_checkpoint(self, path, curr_epoch):
-        torch.save({'gen_state_dict': self.generator.state_dict(),
-                    'disc_state_dict': self.discriminator.state_dict(),
-                    'gen_optimizer_state_dict': self.gen_opt.state_dict(),
-                    'disc_optimizer_state_dict': self.disc_opt.state_dict(),
-                    'gen_best_loss': self.best_losses[0],
-                    'disc_best_loss': self.best_losses[1]
-                    }, f"{path}/checkpoint_{curr_epoch}.pth")
-
     def save_model(self, path):
         torch.save({
-            'best_epoch': self.best_epoch,
             'gen_state_dict': self.generator.state_dict(),
             'disc_state_dict': self.discriminator.state_dict(),
             'gen_optimizer_state_dict': self.gen_opt.state_dict(),
             'disc_optimizer_state_dict': self.disc_opt.state_dict(),
             'gen_best_loss': self.best_losses[0],
             'disc_best_loss': self.best_losses[1],
-            'tot_epochs': self.pretrained_epochs
-        }, f"{path}/model.pth")
+            'tot_epochs': self.tot_epochs,
+            'best_epoch': self.best_epoch
+        }, f"{path}")
 
     def load_model(self, path):
-        trained_model = torch.load(f"{path}/model.pth", map_location=torch.device(self.device))
+        trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
-        self.pretrained_epochs = trained_model['tot_epochs']
+        self.tot_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
 
