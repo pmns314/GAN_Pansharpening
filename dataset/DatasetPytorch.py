@@ -1,8 +1,5 @@
 import h5py
-import numpy as np
-import torch
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import Normalize
 
 from utils import *
 
@@ -38,6 +35,9 @@ class DatasetPytorch(Dataset):
         ms = torch.from_numpy(ms)
         ms_lr = torch.from_numpy(ms_lr)
 
+        if len(pan.shape) != len(ms.shape):
+            pan = torch.unsqueeze(pan, 0)
+
         return pan, ms, ms_lr, gt
 
     def close(self):
@@ -47,14 +47,13 @@ class DatasetPytorch(Dataset):
 if __name__ == '__main__':
     satellite = "W3"
 
-    train_data = DatasetPytorch("../datasets/RR/RR/W3/original_1.h5")
+    train_data = DatasetPytorch("../datasets/W3/test_3_512.h5")
     train_dataloader = DataLoader(train_data, batch_size=32,
                                   shuffle=True)
 
     print(len(train_data))
-    file = h5py.File("../datasets/RR/RR/W3/original_1.h5", 'r')
-    ms = file["gt"][:]
-    print(ms.shape)
+
     pan, ms, ms_lr, gt = (train_dataloader.dataset[0])
 
     print(ms.shape)
+

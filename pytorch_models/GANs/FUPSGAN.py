@@ -97,7 +97,7 @@ class FUPSGAN(PSGAN):
             self.relu = nn.ReLU(inplace=True)
             self.lrelu = LeakyReLU(negative_slope=.2)
 
-        def forward(self, ms_lr, pan):
+        def forward(self, pan, ms_lr):
             pan1 = self.lrelu(self.pan_enc_1(pan))
             pan2 = self.pan_enc_2(pan1)
             pan3 = self.lrelu(pan2)
@@ -140,4 +140,4 @@ class FUPSGAN(PSGAN):
 
     def generate_output(self, pan, **kwargs):
         ms_lr = kwargs['ms_lr']
-        return self.generator(ms_lr, pan)
+        return self.generator(pan, ms_lr)

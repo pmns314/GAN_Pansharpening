@@ -80,7 +80,7 @@ class STPSGAN(PSGAN):
 
             self.relu = nn.ReLU(inplace=True)
 
-        def forward(self, ms, pan):
+        def forward(self, pan, ms):
             conc1 = torch.cat([pan, ms], 1)
             main = self.main_stream(conc1)
             enc = self.enc(main)

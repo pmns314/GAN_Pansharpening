@@ -1,5 +1,4 @@
 import argparse
-import os
 import shutil
 
 import torch
@@ -9,7 +8,24 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANs import *
-from pytorch_models.GANs.PanColorGan import PanColorGan
+from utils import recompose
+
+
+def create_model(name: str, channels, device):
+    name = name.strip().upper()
+    if name == "PSGAN":
+        return PSGAN(channels, device)
+    elif name == "FUPSGAN":
+        return FUPSGAN(channels, device)
+    elif name == "STPSGAN":
+        return STPSGAN(channels, device)
+    elif name == "PANGAN":
+        return PanGan(channels, device)
+    elif name == "PANCOLORGAN":
+        return PanColorGan(channels, device)
+    else:
+        raise KeyError("Model not Defined")
+
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -17,6 +33,11 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--name_model',
                         default='test',
                         help='Provide name of the model. Defaults to test',
+                        type=str
+                        )
+    parser.add_argument('-t', '--type_model',
+                        default='PSGAN',
+                        help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
@@ -40,7 +61,7 @@ if __name__ == '__main__':
                         type=float
                         )
     parser.add_argument('-r', '--resume',
-                        default=None,
+                        default=False,
                         help='Boolean indicating if resuming the training or starting a new one deleting the one '
                              'already existing, if any',
                         type=bool
@@ -55,11 +76,17 @@ if __name__ == '__main__':
                         help='Boolean indicating if commit is to git is needed',
                         type=bool
                         )
+    parser.add_argument('-f', '--force',
+                        default=True,
+                        help='Boolean indicating if forcing GPU Max Memory allowed',
+                        type=bool
+                        )
     args = parser.parse_args()
 
     repo = Repo(ROOT_DIR + "/.git")
 
     file_name = args.name_model
+    type_model = args.type_model
     satellite = args.satellite
     dataset_path = args.dataset_path
     epochs = args.epochs
@@ -68,32 +95,38 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"train_1_64.h5"
-    val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_1_256.h5"
+    train_dataset = f"test_3_128.h5"
+    val_dataset = f"test_3_128.h5"
+    test_dataset1 = f"test_3_128.h5"
     test_dataset2 = f"test_3_512.h5"
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
+    # Force 8 Gb max GPU usage
+    if args.force and device == "cuda":
+        total_memory = torch.cuda.mem_get_info()[1]
+        torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
+
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
-                                  shuffle=True)
+                                  shuffle=False)
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
-                                shuffle=True)
+                                shuffle=False)
 
     test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset1}"), batch_size=64,
                                   shuffle=False)
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
                                   shuffle=False)
     # Model Creation
-    model = PanColorGan(train_dataloader.dataset.channels, device)
+    model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
+
     # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)
     if resume_flag and os.path.exists(f"{output_path}/model.pth"):
-        model.load_model(f"{output_path}")
+        model.load_model(f"{output_path}/model.pth")
     else:
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
@@ -115,7 +148,7 @@ if __name__ == '__main__':
     test_1['pan'] = pan
     test_1['ms'] = ms
     test_1['ms_lr'] = ms_lr
-    test_1['gt'] = torch.squeeze(gt).detach().numpy()
+    test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
     test_1['filename'] = f"{output_path}/test_0.csv"
 
     test_2 = {}
