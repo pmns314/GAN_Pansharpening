@@ -95,9 +95,9 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
 
-    train_dataset = f"test_3_128.h5"
-    val_dataset = f"test_3_128.h5"
-    test_dataset1 = f"test_3_128.h5"
+    train_dataset = f"train_1_64.h5"
+    val_dataset = f"val_1_64.h5"
+    test_dataset1 = f"test_3_64.h5"
     test_dataset2 = f"test_3_512.h5"
 
     # Device Definition
