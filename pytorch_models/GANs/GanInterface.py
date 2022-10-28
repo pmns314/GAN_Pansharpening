@@ -37,10 +37,6 @@ class GanInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def save_checkpoint(self, path, curr_epoch):
-        pass
-
-    @abstractmethod
     def save_model(self, path):
         pass
 
