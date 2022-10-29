@@ -108,9 +108,9 @@ if __name__ == '__main__':
 
     # Data Loading
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
-                                  shuffle=False)
+                                  shuffle=True)
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
-                                shuffle=False)
+                                shuffle=True)
 
     test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset1}"), batch_size=64,
                                   shuffle=False)

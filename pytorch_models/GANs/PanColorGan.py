@@ -26,7 +26,7 @@ class PanColorGan(GanInterface, ABC):
             super().__init__()
             self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel, kernel),
                                   padding=(padding, padding), stride=(stride, stride), bias=True)
-            self.bn = nn.BatchNorm2d(out_channels)
+            self.bn = nn.BatchNorm2d(out_channels, affine=True)
             self.lrelu = nn.LeakyReLU(.2)
             self.dropout = nn.Dropout2d()
             self.use_dropout = use_dropout
@@ -48,7 +48,7 @@ class PanColorGan(GanInterface, ABC):
                                                kernel_size=(kernel, kernel), padding=(padding, padding),
                                                stride=(stride, stride), bias=True,
                                                output_padding=(out_padding, out_padding))
-                self.bn = nn.BatchNorm2d(out_channels)
+                self.bn = nn.BatchNorm2d(out_channels, affine=True)
                 self.lrelu = nn.LeakyReLU(.2)
 
             def forward(self, input_tensor):
@@ -58,11 +58,11 @@ class PanColorGan(GanInterface, ABC):
                 return out
 
         class ResnetBlock(nn.Module):
-            def __init__(self, channels, kernel, padding=0, use_dropout=False):
+            def __init__(self, channels, kernel, padding=1, use_dropout=False):
                 super().__init__()
                 self.conv1 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding))
                 self.lrelu = nn.LeakyReLU(.2, True)
-                self.bn = nn.BatchNorm2d(channels)
+                self.bn = nn.BatchNorm2d(channels, affine=True)
                 self.use_dropout = use_dropout
                 self.dropout = nn.Dropout(.2)
                 self.conv2 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding))
