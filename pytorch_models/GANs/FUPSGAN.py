@@ -124,7 +124,7 @@ class FUPSGAN(PSGAN):
         ms = kwargs['ms']
         ms_lr = kwargs['ms_lr']
         gt = kwargs['gt']
-        outputs = self.generator(ms_lr, pan)
+        outputs = self.generator(pan, ms_lr)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
         # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))

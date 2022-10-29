@@ -107,7 +107,7 @@ class GanInterface(ABC, nn.Module):
                     self.best_losses[i] = losses[i]
 
             # Save Checkpoints
-            if self.tot_epoch in TO_SAVE:
+            if self.tot_epochs in TO_SAVE:
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
             # Generation Indexes
