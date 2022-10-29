@@ -61,10 +61,9 @@ if __name__ == '__main__':
                         type=float
                         )
     parser.add_argument('-r', '--resume',
-                        default=False,
+                        action='store_true',
                         help='Boolean indicating if resuming the training or starting a new one deleting the one '
-                             'already existing, if any',
-                        type=bool
+                             'already existing, if any'
                         )
     parser.add_argument('-o', '--output_path',
                         default="pytorch_models/trained_models",
@@ -72,14 +71,12 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-c', '--commit',
-                        default=True,
+                        action='store_true',
                         help='Boolean indicating if commit is to git is needed',
-                        type=bool
                         )
     parser.add_argument('-f', '--force',
-                        default=True,
-                        help='Boolean indicating if forcing GPU Max Memory allowed',
-                        type=bool
+                        action='store_true',
+                        help='Boolean indicating if forcing GPU Max Memory allowed'
                         )
     args = parser.parse_args()
 
