@@ -19,7 +19,6 @@ class GanInterface(ABC, nn.Module):
         self.best_losses: list = NotImplemented  # Must be defined by subclasses
         self.best_epoch = 0
         self.tot_epochs = 0
-        self.triggertimes = 0
         self.device = device
         self.to(device)
 
@@ -98,9 +97,9 @@ class GanInterface(ABC, nn.Module):
                 self.best_losses[0] = losses[0]
                 self.best_epoch = self.tot_epochs
                 self.save_model(f"{output_path}/model.pth")
-                self.triggertimes = 0
+                triggertimes = 0
             else:
-                self.triggertimes += 1
+                triggertimes += 1
 
             for i in range(1, len(losses)):
                 if losses[i] < self.best_losses[i]:
@@ -146,9 +145,9 @@ class GanInterface(ABC, nn.Module):
                     writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
                                      dataformats='HWC')
 
-            if triggertimes >= patience:
-                print("Early Stopping!")
-                break
+            # if triggertimes >= patience:
+            #     print("Early Stopping!")
+            #     break
             # scheduler_d.step(best_vloss_d)
             # scheduler_g.step(best_vloss_g)
 

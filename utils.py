@@ -18,6 +18,8 @@ if __name__ == '__main__':
 
 
 def recompose(img):
+    if len(img.shape) == 3:
+        return img
     n_patch = img.shape[0]
     dim_patch = img.shape[1]
     original_height = int(sqrt(n_patch) * dim_patch)

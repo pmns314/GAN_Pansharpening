@@ -92,7 +92,10 @@ if __name__ == '__main__':
     resume_flag = args.resume
     output_base_path = args.output_path
     flag_commit = args.commit
-    data_resolution = "RR" if args.rr else "FR"
+    use_rr = args.rr
+
+    use_rr = True
+    data_resolution = "RR" if use_rr else "FR"
 
     train_dataset = f"train_1_64.h5"
     val_dataset = f"val_1_64.h5"
@@ -150,7 +153,7 @@ if __name__ == '__main__':
     test_1['ms_lr'] = ms_lr
     test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
     test_1['filename'] = f"{output_path}/test_0.csv"
-    tests.append(test_1)
+    #tests.append(test_1)
 
     test_2 = {}
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}"),
@@ -166,8 +169,8 @@ if __name__ == '__main__':
     test_2['filename'] = f"{output_path}/test_1.csv"
     tests.append(test_2)
 
-    if args.rr:
-        test_dataloader3 = DataLoader(DatasetPytorch(f"{dataset_path}/FR/{satellite}/{test_dataset2}"),
+    if use_rr:
+        test_dataloader3 = DataLoader(DatasetPytorch(f"{dataset_path}/FR/{satellite}/{test_dataset3}"),
                                       batch_size=64, shuffle=False)
         test_3 = {}
         pan, ms, ms_lr, gt = next(enumerate(test_dataloader3))[1]
