@@ -2,7 +2,6 @@ import argparse
 import shutil
 
 import torch
-from git import Repo
 from torch.utils.data import DataLoader
 
 from constants import *
@@ -78,9 +77,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if forcing GPU Max Memory allowed'
                         )
+    parser.add_argument('--rr',
+                        action='store_true',
+                        help='Boolean indicating if using Reduced Resolution'
+                        )
     args = parser.parse_args()
-
-    repo = Repo(ROOT_DIR + "/.git")
 
     file_name = args.name_model
     type_model = args.type_model
@@ -91,11 +92,13 @@ if __name__ == '__main__':
     resume_flag = args.resume
     output_base_path = args.output_path
     flag_commit = args.commit
+    data_resolution = "RR" if args.rr else "FR"
 
     train_dataset = f"train_1_64.h5"
     val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_3_64.h5"
-    test_dataset2 = f"test_3_512.h5"
+    test_dataset1 = f"test_1_64.h5"
+    test_dataset2 = f"test_3_128.h5"
+    test_dataset3 = f"test_3_512.h5"
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -107,15 +110,11 @@ if __name__ == '__main__':
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
     # Data Loading
-    train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
-                                  shuffle=True)
-    val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
-                                shuffle=True)
+    train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{train_dataset}"),
+                                  batch_size=64, shuffle=True)
+    val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{val_dataset}"),
+                                batch_size=64, shuffle=True)
 
-    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset1}"), batch_size=64,
-                                  shuffle=False)
-    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset2}"), batch_size=64,
-                                  shuffle=False)
     # Model Creation
     model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
@@ -137,7 +136,11 @@ if __name__ == '__main__':
         os.makedirs(chk_path)
 
     # Setting up index evaluation
+    tests = []
+
     test_1 = {}
+    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}"),
+                                  batch_size=64, shuffle=False)
     pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
@@ -147,8 +150,11 @@ if __name__ == '__main__':
     test_1['ms_lr'] = ms_lr
     test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
     test_1['filename'] = f"{output_path}/test_0.csv"
+    tests.append(test_1)
 
     test_2 = {}
+    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}"),
+                                  batch_size=64, shuffle=False)
     pan, ms, ms_lr, gt = next(enumerate(test_dataloader2))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
@@ -158,17 +164,25 @@ if __name__ == '__main__':
     test_2['ms_lr'] = ms_lr
     test_2['gt'] = torch.squeeze(gt).detach().numpy()
     test_2['filename'] = f"{output_path}/test_1.csv"
+    tests.append(test_2)
+
+    if args.rr:
+        test_dataloader3 = DataLoader(DatasetPytorch(f"{dataset_path}/FR/{satellite}/{test_dataset2}"),
+                                      batch_size=64, shuffle=False)
+        test_3 = {}
+        pan, ms, ms_lr, gt = next(enumerate(test_dataloader3))[1]
+        if len(pan.shape) == 3:
+            pan = torch.unsqueeze(pan, 0)
+        gt = torch.permute(gt, (0, 2, 3, 1))
+        test_3['pan'] = pan
+        test_3['ms'] = ms
+        test_3['ms_lr'] = ms_lr
+        test_3['gt'] = torch.squeeze(gt).detach().numpy()
+        test_3['filename'] = f"{output_path}/test_FR.csv"
+        tests.append(test_3)
 
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
-                      [test_1, test_2])
-
-    # # Commit and Push new model
-    # if flag_commit:
-    #     origin = repo.remote(name='origin')
-    #     origin.pull()
-    #     repo.git.add(output_path)
-    #     repo.index.commit(f"model {file_name} - {model.name} trained")
-    #     origin.push()
+                      tests)

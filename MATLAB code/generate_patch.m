@@ -1,11 +1,11 @@
 clear; close all; clc
 extract_train = true;
 %% Path definition
-input_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\data\";
+input_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\data\RR\";
 satellite = "W3/";
 
 satellite_folder = input_path + satellite
-output_folder = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\datasets\" + satellite
+output_folder = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\datasets\RR\" + satellite
 
 if exist(output_folder,'dir')
     rmdir(output_folder, 's')

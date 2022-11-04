@@ -3,7 +3,7 @@ clear, clc, close all
 
 addpath([pwd,'/Tools']);
 folder_path = 'C:\Users\pmans\Documents\Magistrale\Remote Sensing\Progetto\PAirMax'
-output_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\data\"
+output_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\data\RR\"
 ratio = 4;
 if exist(output_path, 'dir')
    rmdir(output_path, 's');
@@ -44,20 +44,17 @@ for i = 1:length(folders)
         I_GT = double(imread(folder_path + "/" + im_name+"/RR/GT.tif"));
         
         % Generate Downgraded Version
-        pan_LP = MTF_PAN(I_PAN,sensor,ratio);
-        pan_LP_d = pan_LP(3:ratio:end,3:ratio:end);
-       
-        ms_orig = imresize(I_MS_LR,1/ratio);
-        ms_LP_d = MTF(ms_orig,sensor,ratio);
-
-        ms_up = interp23tap(ms_LP_d, ratio);
-
+        % GT
+        I_GT = I_MS_LR;
+        
+        %   Preparation of image to fuse
+        [I_MS_LR, I_PAN] = resize_images(I_MS_LR,I_PAN,ratio,sensor);
+        
+        % Upsampling
+        I_MS = interp23tap(I_MS_LR,ratio);
+        
         % Save Images to new Folder
- 
-%         I_PAN = pan_LP_d;
-%         I_GT = I_MS_LR;
-%         I_MS_LR = ms_LP_d;
-%         I_MS = ms_up;
+
         clear i
         save(output_path+"/"+satellite+"/"+im_name+".mat");
                
