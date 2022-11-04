@@ -235,9 +235,10 @@ class PanColorGan(GanInterface, ABC):
             # -------------- Data Manipolation
 
             # Downsample MS_LR
-            ms_lr_down = nn.functional.interpolate(ms_lr, size=ms_lr.shape / 4, mode='bicubic', align_corners=False)
+            size = list(ms_lr.shape)
+            ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1/4, mode='bicubic', align_corners=False)
             # Upsample MS_LR_LR
-            ms_lr_up = nn.functional.interpolate(ms_lr_down, size=ms_lr.shape, mode='bicubic', align_corners=False)
+            ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
             # Convert MS_LR to Grayscale
             ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
 
@@ -303,9 +304,10 @@ class PanColorGan(GanInterface, ABC):
                 ms_lr = ms_lr.to(self.device)
 
                 # Downsample MS_LR
-                ms_lr_down = nn.functional.interpolate(ms_lr, size=ms_lr.shape / 4, mode='bicubic', align_corners=False)
+
+                ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1/4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
-                ms_lr_up = nn.functional.interpolate(ms_lr_down, size=ms_lr.shape, mode='bicubic', align_corners=False)
+                ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
                 # Convert MS_LR to Grayscale
                 ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
 
