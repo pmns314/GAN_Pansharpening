@@ -50,7 +50,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-e', '--epochs',
-                        default=10000,
+                        default=1000,
                         help='Provide number of epochs. Defaults to 1000',
                         type=int
                         )

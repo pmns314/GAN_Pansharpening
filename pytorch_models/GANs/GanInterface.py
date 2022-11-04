@@ -152,6 +152,11 @@ class GanInterface(ABC, nn.Module):
             # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
+        last_tot = self.tot_epochs
+        self.load_model(f"{output_path}/model.pth")
+        self.tot_epochs = last_tot
+        self.save_model(f"{output_path}/model.pth")
+
         writer.flush()
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
