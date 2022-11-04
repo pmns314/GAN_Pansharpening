@@ -180,17 +180,17 @@ class PanColorGan(GanInterface, ABC):
 
         # Label 1 for fake, Label 0 for real
 
-        # # L_RaGAN(x1, x2) = loss( D(x1) - mean( D(x2) )
-        # # Errore perchè classifica i fake come 0
-        # loss_d_fake = self.mse(pred_fake - torch.mean(pred_real), zeros)
-        # # Errore perchè classifica i real come 1
-        # loss_d_real = self.mse(pred_real - torch.mean(pred_fake), ones)
-
-        # Vanilla GAN
+        # L_RaGAN(x1, x2) = loss( D(x1) - mean( D(x2) )
         # Errore perchè classifica i fake come 0
-        loss_d_fake = self.mse(pred_fake, zeros)
+        loss_d_fake = self.mse(pred_fake - torch.mean(pred_real), zeros)
         # Errore perchè classifica i real come 1
-        loss_d_real = self.mse(pred_real, ones)
+        loss_d_real = self.mse(pred_real - torch.mean(pred_fake), ones)
+
+        # # Vanilla GAN
+        # # Errore perchè classifica i fake come 0
+        # loss_d_fake = self.mse(pred_fake, zeros)
+        # # Errore perchè classifica i real come 1
+        # loss_d_real = self.mse(pred_real, ones)
         return (loss_d_real + loss_d_fake) / 2
 
     def loss_generator(self, ms, pan, gt):
@@ -206,17 +206,16 @@ class PanColorGan(GanInterface, ABC):
         zeros = torch.zeros_like(pred_fake)
 
         # RAGAN
-        # loss_g_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
-        # loss_g_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
-        # loss_g_gan = (loss_g_real + loss_g_fake) / 2
+        loss_g_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
+        loss_g_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
+        loss_g_gan = (loss_g_real + loss_g_fake) / 2
 
-        # VANILLA GAN
-        # Errore perchè i fake sono correttamente classificati come 1
-        loss_g_gan = self.mse(pred_fake, ones)
+        # # VANILLA GAN
+        # # Errore perchè i fake sono correttamente classificati come 1
+        # loss_g_gan = self.mse(pred_fake, ones)
 
         loss_g_l1 = self.mae(generated, gt) * self.lambda_factor
         loss_g = (loss_g_gan * self.weight_gan) + loss_g_l1
-
         return loss_g
 
     # ------------------------- Concrete Interface Methods -----------------------------
@@ -233,9 +232,18 @@ class PanColorGan(GanInterface, ABC):
             ms = ms.to(self.device)
             ms_lr = ms_lr.to(self.device)
 
+            # -------------- Data Manipolation
+
+            # Downsample MS_LR
+            ms_lr_down = nn.functional.interpolate(ms_lr, size=ms_lr.shape / 4, mode='bicubic', align_corners=False)
+            # Upsample MS_LR_LR
+            ms_lr_up = nn.functional.interpolate(ms_lr_down, size=ms_lr.shape, mode='bicubic', align_corners=False)
+            # Convert MS_LR to Grayscale
+            ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
+
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(pan, ms=ms)
+                generated_HRMS = self.generate_output(ms_lr_gray, ms=ms_lr_up)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
@@ -243,7 +251,7 @@ class PanColorGan(GanInterface, ABC):
             self.discriminator.zero_grad()
 
             # Compute prediction and loss
-            loss_d = self.loss_discriminator(ms, pan, gt, generated_HRMS)
+            loss_d = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated_HRMS)
 
             # Backpropagation
             self.disc_opt.zero_grad()
@@ -261,7 +269,7 @@ class PanColorGan(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
-            loss_g = self.loss_generator(ms, pan, gt)
+            loss_g = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr)
 
             # Backpropagation
             self.gen_opt.zero_grad()
@@ -294,12 +302,19 @@ class PanColorGan(GanInterface, ABC):
                 ms = ms.to(self.device)
                 ms_lr = ms_lr.to(self.device)
 
-                generated = self.generate_output(pan, ms=ms)
+                # Downsample MS_LR
+                ms_lr_down = nn.functional.interpolate(ms_lr, size=ms_lr.shape / 4, mode='bicubic', align_corners=False)
+                # Upsample MS_LR_LR
+                ms_lr_up = nn.functional.interpolate(ms_lr_down, size=ms_lr.shape, mode='bicubic', align_corners=False)
+                # Convert MS_LR to Grayscale
+                ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
 
-                dloss = self.loss_discriminator(ms, pan, gt, generated)
+                generated = self.generate_output(ms_lr_gray, ms=ms_lr_up)
+
+                dloss = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated)
                 disc_loss += dloss.item()
 
-                gloss = self.loss_generator(ms, pan, gt)
+                gloss = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr)
                 gen_loss += gloss.item()
 
         return {"Gen loss": gen_loss / len(dataloader),
