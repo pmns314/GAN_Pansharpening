@@ -35,7 +35,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='PSGAN',
+                        default='pancolorgan',
                         help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
@@ -94,12 +94,11 @@ if __name__ == '__main__':
     flag_commit = args.commit
     use_rr = args.rr
 
-    use_rr = True
     data_resolution = "RR" if use_rr else "FR"
 
-    train_dataset = f"train_1_64.h5"
+    train_dataset = f"test_3_64.h5"
     val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_1_64.h5"
+    test_dataset1 = f"test_3_64.h5"
     test_dataset2 = f"test_3_128.h5"
     test_dataset3 = f"test_3_512.h5"
 
@@ -148,12 +147,13 @@ if __name__ == '__main__':
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
+    gt = recompose(gt)
     test_1['pan'] = pan
     test_1['ms'] = ms
     test_1['ms_lr'] = ms_lr
     test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
     test_1['filename'] = f"{output_path}/test_0.csv"
-    #tests.append(test_1)
+    tests.append(test_1)
 
     test_2 = {}
     test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}"),
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
     gt = torch.permute(gt, (0, 2, 3, 1))
+    gt = recompose(gt)
     test_2['pan'] = pan
     test_2['ms'] = ms
     test_2['ms_lr'] = ms_lr
@@ -177,6 +178,7 @@ if __name__ == '__main__':
         if len(pan.shape) == 3:
             pan = torch.unsqueeze(pan, 0)
         gt = torch.permute(gt, (0, 2, 3, 1))
+        gt = recompose(gt)
         test_3['pan'] = pan
         test_3['ms'] = ms
         test_3['ms_lr'] = ms_lr
@@ -187,5 +189,5 @@ if __name__ == '__main__':
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, val_dataloader,
+                      train_dataloader, None,
                       tests)
