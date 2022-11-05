@@ -194,7 +194,7 @@ class PanColorGan(GanInterface, ABC):
         return (loss_d_real + loss_d_fake) / 2
 
     def loss_generator(self, ms, pan, gt):
-        generated = self.generator(ms, pan)
+        generated = self.generator(pan, ms)
 
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
