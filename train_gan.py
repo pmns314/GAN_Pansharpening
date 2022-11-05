@@ -26,6 +26,21 @@ def create_model(name: str, channels, device):
         raise KeyError("Model not Defined")
 
 
+def create_test_dict(path, filename):
+    test_dict = {}
+    test_dataloader1 = DataLoader(DatasetPytorch(path), batch_size=64, shuffle=False)
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
+    if len(pan.shape) == 3:
+        pan = torch.unsqueeze(pan, 0)
+    gt = torch.permute(gt, (0, 2, 3, 1))
+    test_dict['pan'] = pan
+    test_dict['ms'] = ms
+    test_dict['ms_lr'] = ms_lr
+    test_dict['gt'] = recompose(torch.squeeze(gt).detach().numpy())
+    test_dict['filename'] = filename
+    return test_dict
+
+
 if __name__ == '__main__':
     # Parsing arguments
     parser = argparse.ArgumentParser()
@@ -138,53 +153,13 @@ if __name__ == '__main__':
         os.makedirs(chk_path)
 
     # Setting up index evaluation
-    tests = []
-
-    test_1 = {}
-    test_dataloader1 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}"),
-                                  batch_size=64, shuffle=False)
-    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
-    if len(pan.shape) == 3:
-        pan = torch.unsqueeze(pan, 0)
-    gt = torch.permute(gt, (0, 2, 3, 1))
-    gt = recompose(gt)
-    test_1['pan'] = pan
-    test_1['ms'] = ms
-    test_1['ms_lr'] = ms_lr
-    test_1['gt'] = recompose(torch.squeeze(gt).detach().numpy())
-    test_1['filename'] = f"{output_path}/test_0.csv"
-    tests.append(test_1)
-
-    test_2 = {}
-    test_dataloader2 = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}"),
-                                  batch_size=64, shuffle=False)
-    pan, ms, ms_lr, gt = next(enumerate(test_dataloader2))[1]
-    if len(pan.shape) == 3:
-        pan = torch.unsqueeze(pan, 0)
-    gt = torch.permute(gt, (0, 2, 3, 1))
-    gt = recompose(gt)
-    test_2['pan'] = pan
-    test_2['ms'] = ms
-    test_2['ms_lr'] = ms_lr
-    test_2['gt'] = torch.squeeze(gt).detach().numpy()
-    test_2['filename'] = f"{output_path}/test_1.csv"
-    tests.append(test_2)
-
+    tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
+                              f"{output_path}/test_0.csv"),
+             create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
+                              f"{output_path}/test_1.csv")]
     if use_rr:
-        test_dataloader3 = DataLoader(DatasetPytorch(f"{dataset_path}/FR/{satellite}/{test_dataset3}"),
-                                      batch_size=64, shuffle=False)
-        test_3 = {}
-        pan, ms, ms_lr, gt = next(enumerate(test_dataloader3))[1]
-        if len(pan.shape) == 3:
-            pan = torch.unsqueeze(pan, 0)
-        gt = torch.permute(gt, (0, 2, 3, 1))
-        gt = recompose(gt)
-        test_3['pan'] = pan
-        test_3['ms'] = ms
-        test_3['ms_lr'] = ms_lr
-        test_3['gt'] = torch.squeeze(gt).detach().numpy()
-        test_3['filename'] = f"{output_path}/test_FR.csv"
-        tests.append(test_3)
+        tests.append(create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset3}",
+                                      f"{output_path}/test_FR.csv"))
 
     # Model Training
     model.train_model(epochs,
