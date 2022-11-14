@@ -24,7 +24,7 @@ def high_pass(img, device='cpu'):
 
 
 class PanGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanGan"):
+    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False):
         super(PanGan, self).__init__(name=name, device=device)
 
         self.generator = PanGan.Generator(channels)
@@ -45,7 +45,7 @@ class PanGan(GanInterface, ABC):
 
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
-        self.use_spatial = False
+        self.use_spatial = train_spat_disc
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
         self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
@@ -93,10 +93,10 @@ class PanGan(GanInterface, ABC):
 
     class Discriminator(nn.Module):
         class ConvBlock(nn.Module):
-            def __init__(self, in_channels, out_channels, batch_normalization=True):
+            def __init__(self, in_channels, out_channels, stride=2, batch_normalization=True):
                 super(PanGan.Discriminator.ConvBlock, self).__init__()
                 self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
-                                       stride=(2, 2), padding=(1, 1), bias=True, padding_mode="replicate")
+                                       stride=(stride, stride), padding=(1, 1), bias=True, padding_mode="replicate")
                 nn.init.trunc_normal_(self.conv2.weight, std=1e-3)
                 nn.init.constant_(self.conv2.bias, 0.0)
                 self.lrelu = nn.LeakyReLU(negative_slope=.2)
@@ -113,7 +113,7 @@ class PanGan(GanInterface, ABC):
         def __init__(self, channels):
             super(PanGan.Discriminator, self).__init__()
             self.strides2_stack = nn.Sequential(
-                self.ConvBlock(channels, 16, batch_normalization=False),
+                self.ConvBlock(channels, 16, stride=1, batch_normalization=False),
                 self.ConvBlock(16, 32),
                 self.ConvBlock(32, 64),
                 self.ConvBlock(64, 128),
@@ -329,5 +329,5 @@ class PanGan(GanInterface, ABC):
             g['lr'] = lr
         for g in self.optimizer_spatial_disc.param_groups:
             g['lr'] = lr
-        for g in self.optimizer_spectral_disct.param_groups:
+        for g in self.optimizer_spectral_disc.param_groups:
             g['lr'] = lr

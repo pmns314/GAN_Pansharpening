@@ -10,7 +10,7 @@ from pytorch_models.GANs import *
 from utils import recompose
 
 
-def create_model(name: str, channels, device):
+def create_model(name: str, channels, device, **kwargs):
     name = name.strip().upper()
     if name == "PSGAN":
         return PSGAN(channels, device)
@@ -19,7 +19,7 @@ def create_model(name: str, channels, device):
     elif name == "STPSGAN":
         return STPSGAN(channels, device)
     elif name == "PANGAN":
-        return PanGan(channels, device)
+        return PanGan(channels, device, train_spat_disc=kwargs['train_spat_disc'])
     elif name == "PANCOLORGAN":
         return PanColorGan(channels, device)
     else:
@@ -100,6 +100,10 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if avoid using the validation set'
                         )
+    parser.add_argument('--train_spat_disc',
+                        action='store_true',
+                        help='Boolean indicating if training the spatial discriminator of the PanGan Network'
+                        )
     args = parser.parse_args()
 
     file_name = args.name_model
@@ -113,13 +117,14 @@ if __name__ == '__main__':
     flag_commit = args.commit
     use_rr = args.rr
     no_val = args.no_val
+    train_spat_disc = args.train_spat_disc
 
     data_resolution = "RR" if use_rr else "FR"
 
     train_dataset = f"test_3_64.h5"
     val_dataset = f"val_1_64.h5"
     test_dataset1 = f"test_3_64.h5"
-    test_dataset2 = f"test_3_128.h5"
+    test_dataset2 = f"test_3_512.h5"
     test_dataset3 = f"test_3_512.h5"
 
     # Device Definition
@@ -138,7 +143,7 @@ if __name__ == '__main__':
                                 batch_size=64, shuffle=True)
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device)
+    model = create_model(type_model, train_dataloader.dataset.channels, device, train_spat_disc=train_spat_disc)
     model.to(device)
 
     output_path = os.path.join(output_base_path, model.name, file_name)
@@ -147,7 +152,7 @@ if __name__ == '__main__':
     chk_path = f"{output_path}/checkpoints"
 
     # Model Loading if resuming training
-    if resume_flag and os.path.exists(chk_path):
+    if resume_flag and os.path.exists(chk_path) and len(os.listdir(chk_path)) != 0:
         latest_checkpoint = max([int((e.split("_")[1]).split(".")[0]) for e in os.listdir(chk_path)])
         model.load_model(f"{output_path}/model.pth")
         best_losses = model.best_losses
