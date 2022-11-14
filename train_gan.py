@@ -96,6 +96,10 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if using Reduced Resolution'
                         )
+    parser.add_argument('--no_val',
+                        action='store_true',
+                        help='Boolean indicating if avoid using the validation set'
+                        )
     args = parser.parse_args()
 
     file_name = args.name_model
@@ -108,6 +112,7 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     flag_commit = args.commit
     use_rr = args.rr
+    no_val = args.no_val
 
     data_resolution = "RR" if use_rr else "FR"
 
@@ -136,21 +141,25 @@ if __name__ == '__main__':
     model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
 
-    # Model Loading if resuming training
     output_path = os.path.join(output_base_path, model.name, file_name)
-    if resume_flag and os.path.exists(f"{output_path}/model.pth"):
+
+    # Checkpoint path definition
+    chk_path = f"{output_path}/checkpoints"
+
+    # Model Loading if resuming training
+    if resume_flag and os.path.exists(chk_path):
+        latest_checkpoint = max([int((e.split("_")[1]).split(".")[0]) for e in os.listdir(chk_path)])
         model.load_model(f"{output_path}/model.pth")
+        best_losses = model.best_losses
+        model.load_model(f"{chk_path}/checkpoint_{latest_checkpoint}.pth")
+        model.best_losses = best_losses
     else:
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
         os.makedirs(output_path)
+        os.makedirs(chk_path)
 
     model.set_optimizers_lr(lr)
-
-    # Checkpoint path definition
-    chk_path = f"{output_path}/checkpoints"
-    if not os.path.exists(chk_path):
-        os.makedirs(chk_path)
 
     # Setting up index evaluation
     tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
@@ -164,5 +173,5 @@ if __name__ == '__main__':
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, None,
+                      train_dataloader, None if no_val else val_dataloader,
                       tests)
