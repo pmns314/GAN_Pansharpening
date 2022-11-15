@@ -50,7 +50,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='pancolorgan',
+                        default='psgan',
                         help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-e', '--epochs',
-                        default=1000,
+                        default=2,
                         help='Provide number of epochs. Defaults to 1000',
                         type=int
                         )
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     val_dataset = f"val_1_64.h5"
     test_dataset1 = f"test_3_64.h5"
     test_dataset2 = f"test_3_512.h5"
-    test_dataset3 = f"test_3_512.h5"
+    test_dataset_FR = f"test_3_512.h5"
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -172,7 +172,7 @@ if __name__ == '__main__':
              create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
                               f"{output_path}/test_1.csv")]
     if use_rr:
-        tests.append(create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset3}",
+        tests.append(create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
                                       f"{output_path}/test_FR.csv"))
 
     # Model Training
@@ -180,3 +180,20 @@ if __name__ == '__main__':
                       output_path, chk_path,
                       train_dataloader, None if no_val else val_dataloader,
                       tests)
+
+    # Report
+    with open(f"{output_path}/report.txt", "w") as f:
+        f.write(f"Network Type : {type_model}\n")
+        f.write(f"Datasets Used: \n")
+        f.write(f"\t Training: {train_dataset}\n")
+        if not no_val:
+            f.write(f"\t Validation: {val_dataset}\n")
+        f.write(f"\t Test From Training: {test_dataset1}\n")
+        f.write(f"\t External Test: {test_dataset2}\n")
+
+        if use_rr:
+            f.write(f"\nTrained at Reduced Resolution."
+                    f"\n\tDataset for testing at Full Resolution: {train_dataset}\n")
+        f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
+        f.write(f"Best Epoch: {model.best_epoch}\n")
+
