@@ -15,11 +15,11 @@ def downsample(img, new_shape):
     return interpolate(img, new_shape, mode='bilinear', antialias=True)
 
 
+kernel = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
+kernel = torch.from_numpy(kernel).unsqueeze(0).unsqueeze(0).float()
 def high_pass(img, device='cpu'):
-    blur_kerel = np.zeros(shape=(1, img.shape[1], 3, 3), dtype=np.float32)
-    value = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
-    blur_kerel[:, :, :, :] = value
-    img_hp = torch.nn.functional.conv2d(img, torch.from_numpy(blur_kerel).to(device), stride=(1, 1), padding='same')
+    global kernel
+    img_hp = torch.nn.functional.conv2d(img, kernel.to(device), stride=(1, 1), padding='same')
     return img_hp
 
 
@@ -336,3 +336,13 @@ class PanGan(GanInterface, ABC):
             g['lr'] = lr
         for g in self.optimizer_spectral_disc.param_groups:
             g['lr'] = lr
+
+
+if __name__ == '__main__':
+    from train_gan import create_test_dict
+    from constants import DATASET_DIR
+
+    x = create_test_dict(f"{DATASET_DIR}/FR/W3/test_1_256.h5", "xx")
+    print(x.keys())
+
+
