@@ -24,7 +24,7 @@ def high_pass(img, device='cpu'):
 
 
 class PanGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False):
+    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False, use_highpass=True):
         super(PanGan, self).__init__(name=name, device=device)
 
         self.generator = PanGan.Generator(channels)
@@ -46,6 +46,8 @@ class PanGan(GanInterface, ABC):
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
         self.use_spatial = train_spat_disc
+        self.use_highpass = use_highpass
+
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
         self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
@@ -161,14 +163,17 @@ class PanGan(GanInterface, ABC):
     def generator_loss(self, pan, ms, generated):
 
         averaged = torch.mean(generated, 1, keepdim=True)
-        # details_generated = high_pass(averaged, self.device)
-        # details_original = high_pass(pan, self.device)
 
         # Spatial Loss
         L_spatial = 0
         if self.use_spatial:
-            L_spatial_base = self.mse(pan, averaged)  # g spatial loss
-            L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
+            if self.use_highpass:
+                details_generated = high_pass(averaged, self.device)
+                details_original = high_pass(pan, self.device)
+                L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
+            else:
+                L_spatial_base = self.mse(pan, averaged)  # g spatial loss
+            # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
             spatial_neg = self.spatial_discriminator(averaged)
             L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
             L_spatial = 5 * L_spatial_base + 5 * L_adv2

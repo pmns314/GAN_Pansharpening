@@ -10,7 +10,7 @@ from pytorch_models.GANs import *
 from utils import recompose
 
 
-def create_model(name: str, channels, device, **kwargs):
+def create_model(name: str, channels, device="cpu", **kwargs):
     name = name.strip().upper()
     if name == "PSGAN":
         return PSGAN(channels, device)
@@ -19,7 +19,9 @@ def create_model(name: str, channels, device, **kwargs):
     elif name == "STPSGAN":
         return STPSGAN(channels, device)
     elif name == "PANGAN":
-        return PanGan(channels, device, train_spat_disc=kwargs['train_spat_disc'])
+        train_spat_disc = kwargs['train_spat_disc']
+        use_highpass = kwargs['use_highpass']
+        return PanGan(channels, device, train_spat_disc=train_spat_disc, use_highpass=use_highpass)
     elif name == "PANCOLORGAN":
         return PanColorGan(channels, device)
     else:
@@ -104,6 +106,10 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if training the spatial discriminator of the PanGan Network'
                         )
+    parser.add_argument('--use_highpass',
+                        action='store_true',
+                        help='Boolean indicating if training using the spatial details of the PanGan Network'
+                        )
     args = parser.parse_args()
 
     file_name = args.name_model
@@ -118,13 +124,14 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
     train_spat_disc = args.train_spat_disc
+    use_highpass = args.use_highpass
 
     data_resolution = "RR" if use_rr else "FR"
 
-    train_dataset = f"test_3_64.h5"
+    train_dataset = f"train_1_64.h5"
     val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_3_64.h5"
-    test_dataset2 = f"test_3_512.h5"
+    test_dataset1 = f"test_1_64.h5"
+    test_dataset2 = f"test_3_64.h5"
     test_dataset_FR = f"test_3_512.h5"
 
     # Device Definition
@@ -143,7 +150,9 @@ if __name__ == '__main__':
                                 batch_size=64, shuffle=True)
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device, train_spat_disc=train_spat_disc)
+    model = create_model(type_model, train_dataloader.dataset.channels, device,
+                         train_spat_disc=train_spat_disc,
+                         use_highpass=use_highpass)
     model.to(device)
 
     output_path = os.path.join(output_base_path, model.name, file_name)
@@ -196,4 +205,3 @@ if __name__ == '__main__':
                     f"\n\tDataset for testing at Full Resolution: {train_dataset}\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
-
