@@ -17,6 +17,8 @@ def downsample(img, new_shape):
 
 kernel = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
 kernel = torch.from_numpy(kernel).unsqueeze(0).unsqueeze(0).float()
+
+
 def high_pass(img, device='cpu'):
     global kernel
     img_hp = torch.nn.functional.conv2d(img, kernel.to(device), stride=(1, 1), padding='same')
@@ -36,8 +38,8 @@ class PanGan(GanInterface, ABC):
         self.b = 1  # Label for Fake
 
         # Generator
-        self.c = 1  # Label For Fake
-        self.d = 1
+        self.c = 1  # Label for Fake
+        self.d = 1  # Label for Fake
 
         self.alpha = .002
         self.beta = .001
@@ -64,6 +66,8 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
+            nn.init.trunc_normal_(self.block_1.weight, std=1e-3)
+            nn.init.constant_(self.block_1.bias, 0.0)
 
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
@@ -72,14 +76,17 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
+            nn.init.trunc_normal_(self.block_2.weight, std=1e-3)
+            nn.init.constant_(self.block_2.bias, 0.0)
 
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
                 nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
                           padding="same", stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.Tanh()
-
             )
+            nn.init.trunc_normal_(self.block_3.weight, std=1e-3)
+            nn.init.constant_(self.block_3.bias, 0.0)
 
         def forward(self, pan, ms):
             input_block_1 = torch.cat([ms, pan], 1)
@@ -165,7 +172,7 @@ class PanGan(GanInterface, ABC):
         averaged = torch.mean(generated, 1, keepdim=True)
 
         # Spatial Loss
-        L_spatial = 0
+        L_spatial = 1000  # set to an arbitrary non-zero value so that using the spatial disc will give a minor loss
         if self.use_spatial:
             if self.use_highpass:
                 details_generated = high_pass(averaged, self.device)
@@ -176,7 +183,7 @@ class PanGan(GanInterface, ABC):
             # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
             spatial_neg = self.spatial_discriminator(averaged)
             L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-            L_spatial = 5 * L_spatial_base + 5 * L_adv2
+            L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
 
         # Spectral Loss
         L_spectral_base = self.mse(generated, ms)  # g spectrum loss
@@ -344,5 +351,3 @@ if __name__ == '__main__':
 
     x = create_test_dict(f"{DATASET_DIR}/FR/W3/test_1_256.h5", "xx")
     print(x.keys())
-
-

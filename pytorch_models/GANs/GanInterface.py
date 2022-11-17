@@ -69,9 +69,10 @@ class GanInterface(ABC, nn.Module):
 
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
+        ending_epoch = self.tot_epochs + epochs
         for epoch in range(epochs):
             self.tot_epochs += 1
-            print(f'\nEpoch {self.tot_epochs}')
+            print(f'\nEpoch {self.tot_epochs}/{ending_epoch}')
 
             # Compute Losses on Train Set
             train_losses = self.train_step(train_dataloader)

@@ -140,6 +140,7 @@ if __name__ == '__main__':
 
     # Force 8 Gb max GPU usage
     if args.force and device == "cuda":
+        print("Forcing to 8Gb")
         total_memory = torch.cuda.mem_get_info()[1]
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
