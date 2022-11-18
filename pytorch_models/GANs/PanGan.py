@@ -56,6 +56,11 @@ class PanGan(GanInterface, ABC):
 
     # ------------------------- Specific GAN Methods -----------------------------------
     class Generator(nn.Module):
+        def init_weights(self, m):
+            if isinstance(m, nn.Conv2d):
+                torch.nn.init.trunc_normal_(m.weight, std=1e-3)
+                m.bias.data.fill_(0.0)
+
         def __init__(self, in_channels):
             super(PanGan.Generator, self).__init__()
 
@@ -66,8 +71,7 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
-            nn.init.trunc_normal_(self.block_1.weight, std=1e-3)
-            nn.init.constant_(self.block_1.bias, 0.0)
+            self.block_1.apply(self.init_weights)
 
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
@@ -76,8 +80,7 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
-            nn.init.trunc_normal_(self.block_2.weight, std=1e-3)
-            nn.init.constant_(self.block_2.bias, 0.0)
+            self.block_2.apply(self.init_weights)
 
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
@@ -85,8 +88,7 @@ class PanGan(GanInterface, ABC):
                           padding="same", stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.Tanh()
             )
-            nn.init.trunc_normal_(self.block_3.weight, std=1e-3)
-            nn.init.constant_(self.block_3.bias, 0.0)
+            self.block_3.apply(self.init_weights)
 
         def forward(self, pan, ms):
             input_block_1 = torch.cat([ms, pan], 1)
