@@ -15,16 +15,18 @@ def downsample(img, new_shape):
     return interpolate(img, new_shape, mode='bilinear', antialias=True)
 
 
+kernel = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
+kernel = torch.from_numpy(kernel).unsqueeze(0).unsqueeze(0).float()
+
+
 def high_pass(img, device='cpu'):
-    blur_kerel = np.zeros(shape=(1, img.shape[1], 3, 3), dtype=np.float32)
-    value = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
-    blur_kerel[:, :, :, :] = value
-    img_hp = torch.nn.functional.conv2d(img, torch.from_numpy(blur_kerel).to(device), stride=(1, 1), padding='same')
+    global kernel
+    img_hp = torch.nn.functional.conv2d(img, kernel.to(device), stride=(1, 1), padding='same')
     return img_hp
 
 
 class PanGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanGan"):
+    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False, use_highpass=True):
         super(PanGan, self).__init__(name=name, device=device)
 
         self.generator = PanGan.Generator(channels)
@@ -36,8 +38,8 @@ class PanGan(GanInterface, ABC):
         self.b = 1  # Label for Fake
 
         # Generator
-        self.c = 1  # Label For Fake
-        self.d = 1
+        self.c = 1  # Label for Fake
+        self.d = 1  # Label for Fake
 
         self.alpha = .002
         self.beta = .001
@@ -45,7 +47,9 @@ class PanGan(GanInterface, ABC):
 
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
-        self.use_spatial = False
+        self.use_spatial = train_spat_disc
+        self.use_highpass = use_highpass
+
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
         self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
@@ -62,6 +66,8 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
+            nn.init.trunc_normal_(self.block_1.weight, std=1e-3)
+            nn.init.constant_(self.block_1.bias, 0.0)
 
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
@@ -70,14 +76,17 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
+            nn.init.trunc_normal_(self.block_2.weight, std=1e-3)
+            nn.init.constant_(self.block_2.bias, 0.0)
 
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
                 nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
                           padding="same", stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.Tanh()
-
             )
+            nn.init.trunc_normal_(self.block_3.weight, std=1e-3)
+            nn.init.constant_(self.block_3.bias, 0.0)
 
         def forward(self, pan, ms):
             input_block_1 = torch.cat([ms, pan], 1)
@@ -93,10 +102,10 @@ class PanGan(GanInterface, ABC):
 
     class Discriminator(nn.Module):
         class ConvBlock(nn.Module):
-            def __init__(self, in_channels, out_channels, batch_normalization=True):
+            def __init__(self, in_channels, out_channels, stride=2, batch_normalization=True):
                 super(PanGan.Discriminator.ConvBlock, self).__init__()
                 self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
-                                       stride=(2, 2), padding=(1, 1), bias=True, padding_mode="replicate")
+                                       stride=(stride, stride), padding=(1, 1), bias=True, padding_mode="replicate")
                 nn.init.trunc_normal_(self.conv2.weight, std=1e-3)
                 nn.init.constant_(self.conv2.bias, 0.0)
                 self.lrelu = nn.LeakyReLU(negative_slope=.2)
@@ -113,7 +122,7 @@ class PanGan(GanInterface, ABC):
         def __init__(self, channels):
             super(PanGan.Discriminator, self).__init__()
             self.strides2_stack = nn.Sequential(
-                self.ConvBlock(channels, 16, batch_normalization=False),
+                self.ConvBlock(channels, 16, stride=1, batch_normalization=False),
                 self.ConvBlock(16, 32),
                 self.ConvBlock(32, 64),
                 self.ConvBlock(64, 128),
@@ -161,17 +170,20 @@ class PanGan(GanInterface, ABC):
     def generator_loss(self, pan, ms, generated):
 
         averaged = torch.mean(generated, 1, keepdim=True)
-        # details_generated = high_pass(averaged, self.device)
-        # details_original = high_pass(pan, self.device)
 
         # Spatial Loss
-        L_spatial = 0
+        L_spatial = 1000  # set to an arbitrary non-zero value so that using the spatial disc will give a minor loss
         if self.use_spatial:
-            L_spatial_base = self.mse(pan, averaged)  # g spatial loss
-            L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
+            if self.use_highpass:
+                details_generated = high_pass(averaged, self.device)
+                details_original = high_pass(pan, self.device)
+                L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
+            else:
+                L_spatial_base = self.mse(pan, averaged)  # g spatial loss
+            # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
             spatial_neg = self.spatial_discriminator(averaged)
             L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-            L_spatial = 5 * L_spatial_base + 5 * L_adv2
+            L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
 
         # Spectral Loss
         L_spectral_base = self.mse(generated, ms)  # g spectrum loss
@@ -329,5 +341,13 @@ class PanGan(GanInterface, ABC):
             g['lr'] = lr
         for g in self.optimizer_spatial_disc.param_groups:
             g['lr'] = lr
-        for g in self.optimizer_spectral_disct.param_groups:
+        for g in self.optimizer_spectral_disc.param_groups:
             g['lr'] = lr
+
+
+if __name__ == '__main__':
+    from train_gan import create_test_dict
+    from constants import DATASET_DIR
+
+    x = create_test_dict(f"{DATASET_DIR}/FR/W3/test_1_256.h5", "xx")
+    print(x.keys())

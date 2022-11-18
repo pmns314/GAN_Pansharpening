@@ -16,7 +16,7 @@ class PSGAN(GanInterface, ABC):
         self.channels = channels
         self.alpha = 1
         self.beta = 100
-        self.generator = PanGan.Generator(channels)
+        self.generator = self.Generator(channels, pad_mode)
         self.discriminator = self.Discriminator(channels, pad_mode)
         self.best_losses = [np.inf, np.inf]
         self.gen_opt = optim.Adam(self.generator.parameters())
@@ -161,7 +161,7 @@ class PSGAN(GanInterface, ABC):
         ms = kwargs['ms']
         pan = kwargs['pan']
         gt = kwargs['gt']
-        outputs = self.generator(ms, pan)
+        outputs = self.generator(pan, ms)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
         # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))

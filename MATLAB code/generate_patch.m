@@ -1,11 +1,11 @@
 clear; close all; clc
 extract_train = true;
 %% Path definition
-input_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\data\";
+input_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\data\RR\";
 satellite = "W3/";
 
 satellite_folder = input_path + satellite
-output_folder = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\datasets\" + satellite
+output_folder = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\datasets\RR\" + satellite
 
 if exist(output_folder,'dir')
     rmdir(output_folder, 's')
@@ -162,7 +162,7 @@ for file=1:length(files)
             lms  = lms_tmp(nz_idx(1:num_train), :, :, :);
             
             %--- for training data:
-            filename_train = output_folder + "/train_"+string(file)+"_"+string(size_h)+".h5";
+            filename_train = output_folder + "/train_full_"+string(file)+"_"+string(size_h)+".h5";
             
             save_dataset(gt, pan, ms, lms, filename_train);
             
@@ -173,7 +173,7 @@ for file=1:length(files)
             lms  = lms_tmp(nz_idx(num_train+1: num_train+num_valid), :, :, :);
             
             %--- for valid data:
-            filename_valid = output_folder + "/val_"+string(file)+"_"+string(size_h)+".h5";
+            filename_valid = output_folder + "/val_full_"+string(file)+"_"+string(size_h)+".h5";
             
             save_dataset(gt, pan, ms, lms, filename_valid);
             fprintf(fid, "Number of Patches for Training : %d\n", num_train);

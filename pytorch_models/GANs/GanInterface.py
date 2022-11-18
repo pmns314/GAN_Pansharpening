@@ -19,7 +19,6 @@ class GanInterface(ABC, nn.Module):
         self.best_losses: list = NotImplemented  # Must be defined by subclasses
         self.best_epoch = 0
         self.tot_epochs = 0
-        self.triggertimes = 0
         self.device = device
         self.to(device)
 
@@ -34,10 +33,6 @@ class GanInterface(ABC, nn.Module):
 
     @abstractmethod
     def validation_step(self, dataloader):
-        pass
-
-    @abstractmethod
-    def save_checkpoint(self, path, curr_epoch):
         pass
 
     @abstractmethod
@@ -74,9 +69,10 @@ class GanInterface(ABC, nn.Module):
 
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
+        ending_epoch = self.tot_epochs + epochs
         for epoch in range(epochs):
             self.tot_epochs += 1
-            print(f'\nEpoch {self.tot_epochs}')
+            print(f'\nEpoch {self.tot_epochs}/{ending_epoch}')
 
             # Compute Losses on Train Set
             train_losses = self.train_step(train_dataloader)
@@ -102,16 +98,16 @@ class GanInterface(ABC, nn.Module):
                 self.best_losses[0] = losses[0]
                 self.best_epoch = self.tot_epochs
                 self.save_model(f"{output_path}/model.pth")
-                self.triggertimes = 0
+                triggertimes = 0
             else:
-                self.triggertimes += 1
+                triggertimes += 1
 
             for i in range(1, len(losses)):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
             # Save Checkpoints
-            if self.tot_epochsh in TO_SAVE:
+            if self.tot_epochs in TO_SAVE or epoch == epochs-1:
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
             # Generation Indexes
@@ -122,7 +118,7 @@ class GanInterface(ABC, nn.Module):
                 gen = self.generate_output(pan=t['pan'].to(self.device),
                                            ms=t['ms'].to(self.device),
                                            ms_lr=t['ms_lr'].to(self.device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to(self.device).numpy()
+                gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
                 gen = recompose(gen)
                 gen = np.squeeze(gen) * 2048.0
                 gt = np.squeeze(t['gt']) * 2048
@@ -150,13 +146,18 @@ class GanInterface(ABC, nn.Module):
                     writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
                                      dataformats='HWC')
 
-            if triggertimes >= patience:
-                print("Early Stopping!")
-                break
+            # if triggertimes >= patience:
+            #     print("Early Stopping!")
+            #     break
             # scheduler_d.step(best_vloss_d)
             # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
+        last_tot = self.tot_epochs
+        self.load_model(f"{output_path}/model.pth")
+        self.tot_epochs = last_tot
+        self.save_model(f"{output_path}/model.pth")
+
         writer.flush()
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
