@@ -26,7 +26,7 @@ class APNN(CnnInterface, ABC):
                                padding_mode='replicate', bias=True)
         self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, ms, pan):
+    def forward(self, pan, ms):
         inputs = torch.cat([ms, pan], 1)
         rs = self.conv1(inputs)
         rs = self.relu(rs)
@@ -52,9 +52,8 @@ class APNN(CnnInterface, ABC):
             ms = ms.to(self.device)
 
             # Compute prediction and loss
-            pred = self(ms, pan)
+            pred = self(pan, ms)
             loss = self.loss_fn(pred, gt)
-            loss /= (32 * 32)
 
             # Backpropagation
             self.opt.zero_grad()
@@ -82,7 +81,7 @@ class APNN(CnnInterface, ABC):
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
 
-                voutputs = self(ms, pan)
+                voutputs = self(pan, ms)
                 vloss = self.loss_fn(voutputs, gt)
                 running_vloss += vloss.item()
 
@@ -91,6 +90,7 @@ class APNN(CnnInterface, ABC):
         return avg_vloss
 
     def generate_output(self, pan, **kwargs):
-        return self(kwargs['ms'], pan)
+        ms = kwargs['ms']
+        return self(pan, ms)
 
 

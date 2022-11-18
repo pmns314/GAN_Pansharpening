@@ -4,6 +4,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+from pytorch_models.CNNs.CnnInterface import CnnInterface
+
 
 class Resblock(nn.Module):
     def __init__(self):
@@ -26,23 +28,22 @@ class Resblock(nn.Module):
         return rs
 
 
-class PanNet(nn.Module):
-    def __init__(self, spectral_num, criterion, channel=32, reg=True):
-        super(PanNet, self).__init__()
-        self.criterion = criterion
-        self.reg = reg
+class PanNet(CnnInterface):
+    def __init__(self, channels, internal_channels=32, device="cpu", name="PanNet"):
+        super(PanNet, self).__init__(device, name)
 
         # ConvTranspose2d: output = (input - 1)*stride + outpading - 2*padding + kernelsize
-        self.deconv = nn.ConvTranspose2d(in_channels=spectral_num, out_channels=spectral_num, kernel_size=8, stride=4,
+        self.deconv = nn.ConvTranspose2d(in_channels=channels, out_channels=channels, kernel_size=8, stride=4,
                                          padding=2, bias=True)
-        self.conv1 = nn.Conv2d(in_channels=spectral_num + 1, out_channels=channel, kernel_size=3, stride=1, padding=1,
+        self.conv1 = nn.Conv2d(in_channels=channels + 1, out_channels=internal_channels, kernel_size=3, stride=1,
+                               padding=1,
                                bias=True)
         self.res1 = Resblock()
         self.res2 = Resblock()
         self.res3 = Resblock()
         self.res4 = Resblock()
 
-        self.conv3 = nn.Conv2d(in_channels=channel, out_channels=spectral_num, kernel_size=3, stride=1, padding=1,
+        self.conv3 = nn.Conv2d(in_channels=internal_channels, out_channels=channels, kernel_size=3, stride=1, padding=1,
                                bias=True)
 
         self.relu = nn.ReLU(inplace=True)
@@ -54,13 +55,10 @@ class PanNet(nn.Module):
             self.res4
         )
 
-        self.apply(init_weights)
-        # init_weights(self.backbone, self.deconv, self.conv1, self.conv3)  # state initialization, important!
+    def forward(self, pan, ms):
 
-    def forward(self, x, y):  # x= hp of ms; y = hp of pan
-
-        output_deconv = self.deconv(x)
-        input = torch.cat([output_deconv, y], 1)  # Bsx9x64x64
+        output_deconv = self.deconv(ms)
+        input = torch.cat([output_deconv, pan], 1)  # Bsx9x64x64
         rs = self.relu(self.conv1(input))  # Bsx32x64x64
 
         rs = self.backbone(rs)  # ResNet's backbone!
@@ -68,31 +66,56 @@ class PanNet(nn.Module):
         output = self.conv3(rs)  # Bsx8x64x64
         return output
 
-    def train_step(self, data, *args, **kwargs):
-        log_vars = {}
-        gt, lms, ms_hp, pan_hp = data['gt'].cuda(), data['lms'].cuda(), \
-                                 data['ms_hp'].cuda(), data['pan_hp'].cuda()
-        hp_sr = self(ms_hp, pan_hp)
-        sr = lms + hp_sr  # output:= lms + hp_sr
-        loss = self.criterion(sr, gt, *args, **kwargs)
-        # return sr, loss
-        log_vars.update(loss=loss['loss'])
-        return {'loss': loss['loss'], 'log_vars': log_vars}
+    def train_step(self, dataloader):
+        self.train(True)
 
-    def val_step(self, data, *args, **kwargs):
-        # gt, lms, ms, pan = data
-        gt, lms, ms_hp, pan_hp = data['gt'].cuda(), data['lms'].cuda(), \
-                                 data['ms'].cuda(), data['pan'].cuda()
-        hp_sr = self(ms_hp, pan_hp)
-        sr = lms + hp_sr  # output:= lms + hp_sr
-        return sr, gt
+        loss_batch = 0
+        for batch, data in enumerate(dataloader):
+            pan, ms, ms_lr, gt = data
 
+            if len(pan.shape) == 3:
+                pan = torch.unsqueeze(pan, 0)
+            gt = gt.to(self.device)
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
 
-if __name__ == '__main__':
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
-    model = Resblock().to(device)
-    print(model)
+            # Compute prediction and loss
+            pred = self.generate_output(pan, ms=ms)
+            loss = self.loss_fn(pred, gt)
 
-    from torchsummary import summary
-    summary(model,(64,64,9))
+            # Backpropagation
+            self.opt.zero_grad()
+            loss.backward()
+            self.opt.step()
+
+            loss = loss.item()
+            torch.cuda.empty_cache()
+
+            loss_batch += loss
+        return loss_batch / (len(dataloader))
+
+    def validation_step(self, dataloader):
+        self.train(False)
+        self.eval()
+        running_vloss = 0.0
+        i = 0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
+
+                voutputs = self.generate_output(pan, ms=ms)
+                vloss = self.loss_fn(voutputs, gt)
+                running_vloss += vloss.item()
+
+        avg_vloss = running_vloss / (i + 1)
+
+        return avg_vloss
+
+    def generate_output(self, pan, **kwargs):
+        ms = kwargs['ms']
+        return self(pan, ms)

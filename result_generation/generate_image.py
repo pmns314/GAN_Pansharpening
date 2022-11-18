@@ -11,12 +11,7 @@ from torch.utils.data import DataLoader
 
 import constants
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.CNNs.APNN import APNN
-from pytorch_models.GANs.PSGAN import PSGAN
-from pytorch_models.GANs.FUPSGAN import FUPSGAN
-from pytorch_models.GANs.STPSGAN import STPSGAN
-from pytorch_models.GANs.PanGan import PanGan
-from pytorch_models.GANs.PanColorGan import PanColorGan
+from train_gan import create_model
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -34,25 +29,25 @@ if __name__ == '__main__':
 
     satellite = "W3"
     dataset_path = args.dataset_path
-    result_folder = f"../results/{satellite}"
+    result_folder = f"../results/GANs"
     model_name = args.name_model
-    model_name = f"PanGanv3p64"
-    model_path1 = f"../pytorch_models/trained_models/PanGan/{model_name}/model.pth"
-    model_path1 = f"C:/Users/pmans/Downloads/model.pth"
+    model_name = f"psganrr"
+    model_type = f"PSGAN"
+    model_path1 = f"../pytorch_models/trained_models/{model_type}/{model_name}/model.pth"
 
     index_test = 3
-    test_set_path = dataset_path + satellite + f"/test_{index_test}_512.h5"
+    test_set_path = dataset_path + "/FR/" + satellite + f"/test_{index_test}_512.h5"
     if os.path.exists(test_set_path):
         test_dataloader = DataLoader(DatasetPytorch(test_set_path),
                                      batch_size=64,
                                      shuffle=False)
 
-        model = PanGan(test_dataloader.dataset.channels)
+        model = create_model(model_type, test_dataloader.dataset.channels)
 
         # Load Pre trained Model
         trained_model = torch.load(model_path1, map_location=torch.device('cpu'))
         model.generator.load_state_dict(trained_model['gen_state_dict'])
-
+        print(f"Best Epoch : {trained_model['best_epoch']}")
         # Generation Images
         pan, ms, ms_lr, gt = next(enumerate(test_dataloader))[1]
         if len(pan.shape) == 3:
@@ -89,11 +84,10 @@ if __name__ == '__main__':
         ################################################################################
         import matplotlib.pyplot as plt
 
-
-        plt.imshow(np.squeeze(gen)[:, :, :3]*2048)
+        plt.imshow(np.squeeze(gen)[:, :, :3] * 2048)
         plt.show()
         print(f"Saving {model_name}_test_{index_test}.mat")
-        if not os.path.exists(f"{result_folder}/{model_name}"):
-            os.makedirs(f"{result_folder}/{model_name}")
-        scio.savemat(f"{result_folder}/{model_name}/{model_name}_test_{index_test}.mat",
+        if not os.path.exists(f"{result_folder}/{model_type}"):
+            os.makedirs(f"{result_folder}/{model_type}")
+        scio.savemat(f"{result_folder}/{model_type}/{model_name}_test_{index_test}.mat",
                      dict(gen_decomposed=gen, gt_decomposed=gt))

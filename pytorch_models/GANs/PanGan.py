@@ -172,7 +172,9 @@ class PanGan(GanInterface, ABC):
         averaged = torch.mean(generated, 1, keepdim=True)
 
         # Spatial Loss
-        L_spatial = 1000  # set to an arbitrary non-zero value so that using the spatial disc will give a minor loss
+        sp_loss = self.best_losses[1]
+        # set initial to an arbitrary non-zero value so that training using the spatial disc will give a minor loss
+        L_spatial = 1000 if sp_loss == np.inf else sp_loss
         if self.use_spatial:
             if self.use_highpass:
                 details_generated = high_pass(averaged, self.device)
