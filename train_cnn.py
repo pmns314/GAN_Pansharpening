@@ -15,6 +15,14 @@ def create_model(name: str, channels, device="cpu"):
     name = name.strip().upper()
     if name == "APNN":
         return APNN(channels, device)
+    if name == "BDPN":
+        return BDPN(channels, device)
+    if name == "DRPNN":
+        return DRPNN(channels, device)
+    if name == "PANNET":
+        return PanNet(channels, device)
+    if name == "PNN":
+        return PNN(channels, device)
     else:
         raise KeyError("Model not Defined")
 
@@ -108,6 +116,7 @@ if __name__ == '__main__':
     no_val = args.no_val
     mae = args.mae
 
+    type_model = "BDPN"
     data_resolution = "RR" if use_rr else "FR"
 
     train_dataset = f"test_3_64.h5"
@@ -161,10 +170,6 @@ if __name__ == '__main__':
             shutil.rmtree(output_path)
         os.makedirs(output_path)
         os.makedirs(chk_path)
-        model.compile(
-            torch.nn.MSELoss(size_average=True).to(device),
-            torch.optim.Adam(model.parameters(), lr=lr)
-        )
 
     # Setting up index evaluation
     tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
