@@ -27,6 +27,8 @@ def create_model(name: str, channels, device="cpu"):
         return DiCNN(channels, device)
     if name == "FUSIONNET":
         return FusionNet(channels, device)
+    if name == "MSDCNN":
+        return MSDCNN(channels, device)
     else:
         raise KeyError("Model not Defined")
 
@@ -55,7 +57,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='apnn',
+                        default='msdcnn',
                         help='Provide type of the model. Defaults to APNN',
                         type=str
                         )
@@ -115,7 +117,6 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
 
-    type_model = "DICNN"
     data_resolution = "RR" if use_rr else "FR"
 
     train_dataset = f"test_3_64.h5"
