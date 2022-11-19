@@ -180,10 +180,9 @@ if __name__ == '__main__':
     tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
                               f"{output_path}/test_0.csv"),
              create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
-                              f"{output_path}/test_1.csv")]
-    if use_rr:
-        tests.append(create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
-                                      f"{output_path}/test_FR.csv"))
+                              f"{output_path}/test_1.csv"),
+             create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
+                              f"{output_path}/test_FR.csv")]
 
     # Model Training
     model.train_model(epochs,
