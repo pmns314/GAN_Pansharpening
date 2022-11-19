@@ -99,10 +99,6 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if avoid using the validation set'
                         )
-    parser.add_argument('--mae',
-                        action='store_true',
-                        help='Boolean indicating if avoid using the Mean Absolute Error'
-                        )
 
     args = parser.parse_args()
 
@@ -116,7 +112,6 @@ if __name__ == '__main__':
     output_base_path = args.output_path
     use_rr = args.rr
     no_val = args.no_val
-    mae = args.mae
 
     type_model = "DICNN"
     data_resolution = "RR" if use_rr else "FR"
@@ -146,15 +141,6 @@ if __name__ == '__main__':
     model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
 
-    # ---
-    if not mae:
-        loss_fn = torch.nn.MSELoss(reduction='mean').to(device)
-    else:
-        loss_fn = torch.nn.L1Loss(reduction='mean').to(device)
-    optimizer = Adam(model.parameters(), lr=lr)
-    model.compile(loss_fn, optimizer)
-    # ---
-
     output_path = os.path.join(output_base_path, model.name, file_name)
 
     # Checkpoint path definition
@@ -172,15 +158,17 @@ if __name__ == '__main__':
             shutil.rmtree(output_path)
         os.makedirs(output_path)
         os.makedirs(chk_path)
+        model.compile()
+
+    model.set_optimizer_lr(lr)
 
     # Setting up index evaluation
     tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
                               f"{output_path}/test_0.csv"),
              create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
-                              f"{output_path}/test_1.csv")]
-    if use_rr:
-        tests.append(create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
-                                      f"{output_path}/test_FR.csv"))
+                              f"{output_path}/test_1.csv"),
+             create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
+                              f"{output_path}/test_FR.csv")]
 
     # Model Training
     model.train_model(epochs,

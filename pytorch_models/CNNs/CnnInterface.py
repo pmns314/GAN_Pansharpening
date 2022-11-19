@@ -29,22 +29,67 @@ class CnnInterface(ABC, nn.Module):
 
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
-    def train_step(self, dataloader):
-        pass
-
-    @abstractmethod
-    def validation_step(self, dataloader):
-        pass
-
-    @abstractmethod
     def generate_output(self, pan, **kwargs):
+        pass
+
+    def compile(self, loss_fn=None, optimizer=None):
         pass
 
     # ------------------------- Concrete Methods ------------------------------
 
-    def compile(self, loss_fn, optimizer):
-        self.loss_fn = loss_fn
-        self.opt = optimizer
+    def train_step(self, dataloader):
+        self.train(True)
+
+        loss_batch = 0
+        for batch, data in enumerate(dataloader):
+            pan, ms, ms_lr, gt = data
+
+            if len(pan.shape) == 3:
+                pan = torch.unsqueeze(pan, 0)
+            gt = gt.to(self.device)
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
+            ms_lr = ms_lr.to(self.device)
+
+            # Compute prediction and loss
+            pred = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+            loss = self.loss_fn(pred, gt)
+
+            # Backpropagation
+            self.opt.zero_grad()
+            loss.backward()
+            self.opt.step()
+
+            loss = loss.item()
+            torch.cuda.empty_cache()
+
+            loss_batch += loss
+        return loss_batch / len(dataloader)
+
+    def validation_step(self, dataloader):
+        self.train(False)
+        self.eval()
+        running_vloss = 0.0
+        i = 0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
+                ms_lr = ms_lr.to(self.device)
+
+                # Compute prediction and loss
+                voutputs = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+                vloss = self.loss_fn(voutputs, gt)
+                running_vloss += vloss.item()
+
+        avg_vloss = running_vloss / (i + 1)
+
+        return avg_vloss
 
     def save_model(self, path):
         torch.save({
@@ -155,3 +200,8 @@ class CnnInterface(ABC, nn.Module):
         test_loss = self.validation_step(dataloader)
         print(f"Evaluation on Test Set: \n "
               f"\t Loss: {test_loss:>8f} \n")
+
+    def set_optimizer_lr(self, lr):
+        for g in self.opt.param_groups:
+            g['lr'] = lr
+

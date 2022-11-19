@@ -68,56 +68,10 @@ class DRPNN(CnnInterface):
         rs = self.conv2_final(rs)
         return rs
 
-    def train_step(self, dataloader):
-        self.train(True)
-
-        loss_batch = 0
-        for batch, data in enumerate(dataloader):
-            pan, ms, ms_lr, gt = data
-
-            if len(pan.shape) == 3:
-                pan = torch.unsqueeze(pan, 0)
-            gt = gt.to(self.device)
-            pan = pan.to(self.device)
-            ms = ms.to(self.device)
-
-            # Compute prediction and loss
-            pred = self.generate_output(pan, ms=ms)
-            loss = self.loss_fn(pred, gt)
-
-            # Backpropagation
-            self.opt.zero_grad()
-            loss.backward()
-            self.opt.step()
-
-            loss = loss.item()
-            torch.cuda.empty_cache()
-
-            loss_batch += loss
-        return loss_batch / (len(dataloader))
-
-    def validation_step(self, dataloader):
-        self.train(False)
-        self.eval()
-        running_vloss = 0.0
-        i = 0
-        with torch.no_grad():
-            for i, data in enumerate(dataloader):
-                pan, ms, ms_lr, gt = data
-                if len(pan.shape) == 3:
-                    pan = torch.unsqueeze(pan, 0)
-                gt = gt.to(self.device)
-                pan = pan.to(self.device)
-                ms = ms.to(self.device)
-
-                voutputs = self.generate_output(pan, ms=ms)
-                vloss = self.loss_fn(voutputs, gt)
-                running_vloss += vloss.item()
-
-        avg_vloss = running_vloss / (i + 1)
-
-        return avg_vloss
-
     def generate_output(self, pan, **kwargs):
         ms = kwargs['ms']
         return self(pan, ms)
+
+    def compile(self, loss_fn=None, optimizer=None):
+        self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')
+        self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())
