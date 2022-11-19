@@ -23,6 +23,8 @@ def create_model(name: str, channels, device="cpu"):
         return PanNet(channels, device)
     if name == "PNN":
         return PNN(channels, device)
+    if name == "DICNN":
+        return DiCNN(channels, device)
     else:
         raise KeyError("Model not Defined")
 
@@ -116,7 +118,7 @@ if __name__ == '__main__':
     no_val = args.no_val
     mae = args.mae
 
-    type_model = "BDPN"
+    type_model = "DICNN"
     data_resolution = "RR" if use_rr else "FR"
 
     train_dataset = f"test_3_64.h5"
