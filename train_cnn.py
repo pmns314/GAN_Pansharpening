@@ -25,6 +25,8 @@ def create_model(name: str, channels, device="cpu"):
         return PNN(channels, device)
     if name == "DICNN":
         return DiCNN(channels, device)
+    if name == "FUSIONNET":
+        return FusionNet(channels, device)
     else:
         raise KeyError("Model not Defined")
 
