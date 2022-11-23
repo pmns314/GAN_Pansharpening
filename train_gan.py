@@ -205,3 +205,5 @@ if __name__ == '__main__':
                     f"\n\tDataset for testing at Full Resolution: {train_dataset}\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
+        f.write(f"Best Loss: {model.best_losses[0]}\n")
+
