@@ -42,9 +42,9 @@ if __name__ == '__main__':
                 pan = np.reshape(pan, (*pan.shape, 1))
                 ms = np.array(mat['I_MS'])
                 ms_lr = np.array(mat['I_MS_LR'])
+                test_data = {}
 
                 for dim_patch in [2 ** e for e in range(6, int(np.log2(gt.shape[0])) + 1)]:
-                    test_data = {}
                     if train:
                         with h5py.File(f"{satellite_output_folder}/train_{cnt}_{dim_patch}.h5", 'a') as f_train:
                             with h5py.File(f"{satellite_output_folder}/val_{cnt}_{dim_patch}.h5", 'a') as f_val:
@@ -89,20 +89,21 @@ if __name__ == '__main__':
                                 info.write(f"\tPatch Size: {patch_img_val.shape[1]}x{patch_img_val.shape[2]}\n\n")
                         # Save Dataset
                         train = False
-                    else:
+                    elif not bool(test_data):
                         test_data['gt'] = gt
                         test_data['pan'] = pan
                         test_data['ms'] = ms
                         test_data['ms_lr'] = ms_lr
 
+                    # Creating Training Patches
+                    patch_gt_test = create_patches(test_data['gt'], dim_patch, dim_patch)
+                    if patch_gt_test.shape[0] == 0:
+                        continue
+                    patch_pan_test = create_patches(test_data['pan'], dim_patch, dim_patch)
+                    patch_ms_test = create_patches(test_data['ms'], dim_patch, dim_patch)
+                    patch_ms_lr_test = create_patches(test_data['ms_lr'], dim_patch // ratio, dim_patch // ratio)
+
                     with h5py.File(os.path.join(satellite_output_folder, f'test_{cnt}_{dim_patch}.h5'), 'a') as f_test:
-
-                        # Creating Training Patches
-                        patch_gt_test = create_patches(test_data['gt'], dim_patch, dim_patch)
-                        patch_pan_test = create_patches(test_data['pan'], dim_patch, dim_patch)
-                        patch_ms_test = create_patches(test_data['ms'], dim_patch, dim_patch)
-                        patch_ms_lr_test = create_patches(test_data['ms_lr'], dim_patch//ratio, dim_patch//ratio)
-
                         # Saving data
                         f_test.create_dataset('gt', data=np.transpose(patch_gt_test, (0, 3, 1, 2)))
                         f_test.create_dataset('pan', data=np.transpose(patch_pan_test, (0, 3, 1, 2)))

@@ -148,7 +148,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{train_dataset}"),
                                   batch_size=64, shuffle=True)
     val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{val_dataset}"),
-                                batch_size=64, shuffle=True)
+                                batch_size=64, shuffle=False)
 
     # Model Creation
     model = create_model(type_model, train_dataloader.dataset.channels, device,
