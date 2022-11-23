@@ -31,8 +31,8 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     result_folder = f"../results/GANs"
     model_name = args.name_model
-    model_name = f"psganrr"
-    model_type = f"PSGAN"
+    model_name = f"pancolorgan_v7"
+    model_type = f"PANCOLORGAN"
     model_path1 = f"../pytorch_models/trained_models/{model_type}/{model_name}/model.pth"
 
     index_test = 3
@@ -42,7 +42,7 @@ if __name__ == '__main__':
                                      batch_size=64,
                                      shuffle=False)
 
-        model = create_model(model_type, test_dataloader.dataset.channels)
+        model = create_model(model_type, test_dataloader.dataset.channels, train_spat_disc=None, use_highpass=None)
 
         # Load Pre trained Model
         trained_model = torch.load(model_path1, map_location=torch.device('cpu'))

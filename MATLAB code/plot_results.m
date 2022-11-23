@@ -1,23 +1,23 @@
 clear, clc, close all
-data_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-PAN\results\" + ...
-    "W3_full3\"
+data_path = "C:\Users\pmans\Documenti\Progetti_local\Pycharm\Gan-Pansharpening\" + ...
+    "pytorch_models\trained_models\" 
 
-filenames = ["W3_1_32_01_mse","W3_1_32_001_mse","W3_1_32_0001_mse"];
+filenames = ["PSGAN\psganrr\","FUPSGAN\fupsganrr\","STPSGAN\stpsganrr\"];
 best_epochs = [];
 %best_epochs = [1859 3143 12932];
 
 if length(best_epochs) == length(filenames)
     lrs = ["lr 01","Best lr 01" ,"lr 001", "Best lr 001" ,"lr 0001","Best lr 0001"];
 else
-    lrs = ["lr 01","lr 001","lr 0001"];
+    lrs = ["psgan","fupsgan","stpsgan"];
 end
 colors = ['b', 'r', 'g'];
 cnt =1;
 for filename = filenames
-    T = readtable(data_path + filename+"/test_1.xlsx")
+    T = readtable(data_path + filename+"test_FR.csv")
     var_names = T.Properties.VariableNames
 
-    for i=2:6
+    for i=2:5
         figure(i)
         line = table2array(T(:,i));
         indexes = table2array(T(:,1));
@@ -35,8 +35,10 @@ end
 
 %% Plot Single CSV
 %clear, clc, close all
-data_path = "C:\Users\pmans\Documents\Progetti_Local\Pycharm\Gan-Pansharpening\pytorch_models\trained_models\" + ...
-    "RR\pancolorgannew\test_1.csv"
+close all
+data_path = "C:\Users\pmans\Documents\Progetti_Local\Pycharm\Gan-Pansharpening\" + ...
+    "pytorch_models\trained_models\" + ...
+    "PANGAN\pangan_v14\test_FR.csv"
 %data_path = "C:\Users\pmans\Downloads\test_1 (4).csv"
 cnt =1;
 
