@@ -106,43 +106,43 @@ class GanInterface(ABC, nn.Module):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
-            # Save Checkpoints
             if self.tot_epochs in TO_SAVE or epoch == epochs-1:
+                # Save Checkpoints
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
-            # Generation Indexes
-            for idx_test in range(len(tests)):
-                t = tests[idx_test]
-                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
+                # Generation Indexes
+                for idx_test in range(len(tests)):
+                    t = tests[idx_test]
+                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
 
-                gen = self.generate_output(pan=t['pan'].to(self.device),
-                                           ms=t['ms'].to(self.device),
-                                           ms_lr=t['ms_lr'].to(self.device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
-                gen = recompose(gen)
-                gen = np.squeeze(gen) * 2048.0
-                gt = np.squeeze(t['gt']) * 2048
+                    gen = self.generate_output(pan=t['pan'].to(self.device),
+                                               ms=t['ms'].to(self.device),
+                                               ms_lr=t['ms_lr'].to(self.device))
+                    gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gen = recompose(gen)
+                    gen = np.squeeze(gen) * 2048.0
+                    gt = np.squeeze(t['gt']) * 2048
 
-                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
-                                                            th_values)
-                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-                df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                          mode='a', sep=";")
+                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
+                                                                th_values)
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                    df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                              mode='a', sep=";")
 
-                # fig = plt.figure()
-                # fig.add_subplot(1, 2, 1)
-                # # showing image
-                # plt.imshow(gt[:, :, 3:0:-1]/2048)
-                # plt.axis('off')
-                # plt.title("GT")
-                # # Adds a subplot at the 2nd position
-                # fig.add_subplot(1, 2, 2)
-                # # showing image
-                # plt.imshow(gen[:, :, 3:0:-1] / 2048.0)
-                # plt.axis('off')
-                # plt.title("Generated")
-                # plt.show()
-                if self.tot_epochs in TO_SAVE:
+                    # fig = plt.figure()
+                    # fig.add_subplot(1, 2, 1)
+                    # # showing image
+                    # plt.imshow(gt[:, :, 3:0:-1]/2048)
+                    # plt.axis('off')
+                    # plt.title("GT")
+                    # # Adds a subplot at the 2nd position
+                    # fig.add_subplot(1, 2, 2)
+                    # # showing image
+                    # plt.imshow(gen[:, :, 3:0:-1] / 2048.0)
+                    # plt.axis('off')
+                    # plt.title("Generated")
+                    # plt.show()
+
                     writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
                                      dataformats='HWC')
 
