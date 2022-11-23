@@ -10,7 +10,7 @@ from utils import create_patches, augment_data
 
 if __name__ == '__main__':
     input_folder = f"..\\data\\FR"
-    output_folder = f"..\\datasets\\FR2"
+    output_folder = f"..\\datasets\\FR"
     dim_patch = 64
     overlap = 16
     ratio = 4
@@ -75,8 +75,11 @@ if __name__ == '__main__':
                                     patch_img_val = patch_img_train_aug[index_val:, :, :, :]
 
                                     # Saving data
-                                    f_train.create_dataset(name, data=patch_img_train)
-                                    f_val.create_dataset(name, data=patch_img_val)
+                                    train_data = np.transpose(patch_img_train, (0, 3, 1, 2))
+                                    f_train.create_dataset(name, data=train_data)
+
+                                    val_data = np.transpose(patch_img_val, (0, 3, 1, 2))
+                                    f_val.create_dataset(name, data=val_data)
 
                                 info.write(f"\nTrain File: train_{cnt}_{dim_patch}\n")
                                 info.write(f"\tNum Patches: {patch_img_train.shape[0]}\n")
@@ -98,13 +101,13 @@ if __name__ == '__main__':
                         patch_gt_test = create_patches(test_data['gt'], dim_patch, dim_patch)
                         patch_pan_test = create_patches(test_data['pan'], dim_patch, dim_patch)
                         patch_ms_test = create_patches(test_data['ms'], dim_patch, dim_patch)
-                        patch_ms_lr_test = create_patches(test_data['ms_lr'], dim_patch, dim_patch)
+                        patch_ms_lr_test = create_patches(test_data['ms_lr'], dim_patch//ratio, dim_patch//ratio)
 
                         # Saving data
-                        f_test.create_dataset('gt', data=patch_gt_test)
-                        f_test.create_dataset('pan', data=patch_pan_test)
-                        f_test.create_dataset('ms', data=patch_ms_test)
-                        f_test.create_dataset('ms_lr', data=patch_ms_lr_test)
+                        f_test.create_dataset('gt', data=np.transpose(patch_gt_test, (0, 3, 1, 2)))
+                        f_test.create_dataset('pan', data=np.transpose(patch_pan_test, (0, 3, 1, 2)))
+                        f_test.create_dataset('ms', data=np.transpose(patch_ms_test, (0, 3, 1, 2)))
+                        f_test.create_dataset('ms_lr', data=np.transpose(patch_ms_lr_test, (0, 3, 1, 2)))
 
                         info.write(f"Test File: test_{cnt}_{dim_patch}\n")
                         info.write(f"\tNum Patches: {patch_gt_test.shape[0]}\n")

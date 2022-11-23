@@ -19,8 +19,8 @@ class DatasetPytorch(Dataset):
         # Load Data
         gt = np.array(self.file["gt"][index], dtype=np.float32)
         pan = np.array(self.file["pan"][index], dtype=np.float32)
-        ms = np.array(self.file["lms"][index], dtype=np.float32)
-        ms_lr = np.array(self.file["ms"][index], dtype=np.float32)
+        ms = np.array(self.file["ms"][index], dtype=np.float32)
+        ms_lr = np.array(self.file["ms_lr"][index], dtype=np.float32)
 
 
         # Normalization
@@ -47,7 +47,7 @@ class DatasetPytorch(Dataset):
 if __name__ == '__main__':
     satellite = "W3"
 
-    train_data = DatasetPytorch("../datasets/W3/test_3_512.h5")
+    train_data = DatasetPytorch("../datasets/FR/W3/test_3_512.h5")
     train_dataloader = DataLoader(train_data, batch_size=32,
                                   shuffle=True)
 
