@@ -47,7 +47,7 @@ class DatasetPytorch(Dataset):
 if __name__ == '__main__':
     satellite = "W3"
 
-    train_data = DatasetPytorch("../datasets/FR/W3/test_3_512.h5")
+    train_data = DatasetPytorch("../datasets/FR/W3/train_1_64.h5")
     train_dataloader = DataLoader(train_data, batch_size=32,
                                   shuffle=True)
 

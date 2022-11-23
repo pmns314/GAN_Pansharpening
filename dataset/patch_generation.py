@@ -46,6 +46,7 @@ if __name__ == '__main__':
 
                 for dim_patch in [2 ** e for e in range(6, int(np.log2(gt.shape[0])) + 1)]:
                     if train:
+                        p = None
                         with h5py.File(f"{satellite_output_folder}/train_{cnt}_{dim_patch}.h5", 'a') as f_train:
                             with h5py.File(f"{satellite_output_folder}/val_{cnt}_{dim_patch}.h5", 'a') as f_val:
                                 for (img, name, dim_patch_img, stride_img) in [(gt, 'gt', dim_patch, overlap),
@@ -68,7 +69,9 @@ if __name__ == '__main__':
                                     patch_img_train_aug = augment_data(patch_img_train_original)
 
                                     # Division in Training 90 % training - 10 % validation
-                                    np.random.shuffle(patch_img_train_aug)
+                                    if p is None:
+                                        p = np.random.permutation(patch_img_train_aug.shape[0])
+                                    patch_img_train_aug = patch_img_train_aug[p]
                                     total_patch = patch_img_train_aug.shape[0]
                                     index_val = int(total_patch * .9)
                                     patch_img_train = patch_img_train_aug[:index_val, :, :, :]
@@ -114,40 +117,5 @@ if __name__ == '__main__':
                         info.write(f"\tNum Patches: {patch_gt_test.shape[0]}\n")
                         info.write(f"\tPatch Size: {patch_gt_test.shape[1]}x{patch_gt_test.shape[2]}\n")
                 cnt += 1
-        #     # Patch Division
-        #     patch_gt = create_patches(gt, dim_patch, overlap)
-        #     patch_pan = create_patches(pan, dim_patch, overlap)
-        #     patch_ms = create_patches(ms, dim_patch, overlap)
-        #     patch_ms_lr = create_patches(ms_lr, dim_patch // ratio, overlap // ratio)
-        #
-        #     # Data augmentation
-        #     patch_gt_aug = augment_data(patch_gt)
-        #     patch_pan_aug = augment_data(patch_pan)
-        #     patch_ms_aug = augment_data(patch_ms)
-        #     patch_ms_lr_aug = augment_data(patch_ms_lr)
-        #
-        # # Saving data
-        # pan = np.transpose(np.expand_dims(np.array(pan, dtype=np.float32), -1), (0, 3, 1, 2))
-        # gt = np.transpose(np.array(gt, dtype=np.float32), (0, 3, 1, 2))
-        # ms = np.transpose(np.array(ms, dtype=np.float32), (0, 3, 1, 2))
-        # ms_lr = np.transpose(np.array(ms_lr, dtype=np.float32), (0, 3, 1, 2))
-        #
-        # with h5py.File(os.path.join(dataset_folder, 'train.h5'), 'a') as f:
-        #     f.create_dataset('pan', data=pan[:train_index])
-        #     f.create_dataset('gt', data=gt[:train_index])
-        #     f.create_dataset('lms', data=ms[:train_index])
-        #     f.create_dataset('ms', data=ms_lr[:train_index])
-        #
-        # with h5py.File(os.path.join(dataset_folder, 'val.h5'), 'a') as f:
-        #     f.create_dataset('pan', data=pan[train_index:train_index + val_index])
-        #     f.create_dataset('gt', data=gt[train_index:train_index + val_index])
-        #     f.create_dataset('lms', data=ms[train_index:train_index + val_index])
-        #     f.create_dataset('ms', data=ms_lr[train_index:train_index + val_index])
-        #
-        # with h5py.File(os.path.join(dataset_folder, 'test.h5'), 'a') as f:
-        #     f.create_dataset('pan', data=pan[train_index + val_index:])
-        #     f.create_dataset('gt', data=gt[train_index + val_index:])
-        #     f.create_dataset('lms', data=ms[train_index + val_index:])
-        #     f.create_dataset('ms', data=ms_lr[train_index + val_index:])
 
     print("Dataset Created")

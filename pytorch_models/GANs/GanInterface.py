@@ -98,6 +98,7 @@ class GanInterface(ABC, nn.Module):
                 self.best_losses[0] = losses[0]
                 self.best_epoch = self.tot_epochs
                 self.save_model(f"{output_path}/model.pth")
+                print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
                 triggertimes = 0
             else:
                 triggertimes += 1
@@ -128,20 +129,6 @@ class GanInterface(ABC, nn.Module):
                     df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
                     df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
-
-                    # fig = plt.figure()
-                    # fig.add_subplot(1, 2, 1)
-                    # # showing image
-                    # plt.imshow(gt[:, :, 3:0:-1]/2048)
-                    # plt.axis('off')
-                    # plt.title("GT")
-                    # # Adds a subplot at the 2nd position
-                    # fig.add_subplot(1, 2, 2)
-                    # # showing image
-                    # plt.imshow(gen[:, :, 3:0:-1] / 2048.0)
-                    # plt.axis('off')
-                    # plt.title("Generated")
-                    # plt.show()
 
                     writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
                                      dataformats='HWC')
