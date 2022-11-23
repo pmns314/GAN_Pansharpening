@@ -17,6 +17,38 @@ if __name__ == '__main__':
     print(calc_padding_conv2d(64, 3, 2, 32))
 
 
+def create_patches(img, dim_patch, stride):
+    dim_im_row, dim_im_col = img.shape[:2]
+    channels = img.shape[2]
+
+    if stride == 0:
+        stride = dim_patch
+    starts_row = range(0, dim_im_row - dim_patch + 1, stride)
+    stops_row = range(dim_patch, dim_im_row + 1, stride)
+    starts_col = range(0, dim_im_col - dim_patch + 1, stride)
+    stops_col = range(dim_patch, dim_im_col + 1, stride)
+
+    zz_row = list(zip(starts_row, stops_row))
+    zz_col = list(zip(starts_col, stops_col))
+
+    patches = np.empty((len(zz_row) * len(zz_col), dim_patch, dim_patch, channels))
+    cnt = 0
+    for start_row, end_row in zz_row:
+        for start_col, end_col in zz_col:
+            patches[cnt, :, :, :] = img[start_row:end_row, start_col:end_col, :]
+            cnt += 1
+
+    return patches
+
+
+def augment_data(original):
+    flip_ud = np.flip(original, 1)
+    flip_lr = np.flip(original, 2)
+    # flip_ud_lr = np.flip(original, (1, 2))
+
+    return np.concatenate((original, flip_ud, flip_lr))
+
+
 def recompose(img):
     if len(img.shape) == 3:
         return img
