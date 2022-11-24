@@ -98,7 +98,7 @@ if __name__ == '__main__':
                         test_data['ms'] = ms
                         test_data['ms_lr'] = ms_lr
 
-                    # Creating Training Patches
+                    # Creating Training Patches without overlap
                     patch_gt_test = create_patches(test_data['gt'], dim_patch, dim_patch)
                     if patch_gt_test.shape[0] == 0:
                         continue

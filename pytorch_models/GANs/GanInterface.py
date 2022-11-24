@@ -122,7 +122,7 @@ class GanInterface(ABC, nn.Module):
                     gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
                     gen = recompose(gen)
                     gen = np.squeeze(gen) * 2048.0
-                    gt = np.squeeze(t['gt']) * 2048
+                    gt = np.squeeze(t['gt']) * 2048.0
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                                 th_values)

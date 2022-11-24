@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
         if use_rr:
             f.write(f"\nTrained at Reduced Resolution."
-                    f"\n\tDataset for testing at Full Resolution: {train_dataset}\n")
+                    f"\n\tDataset for testing at Full Resolution: {test_dataset_FR}\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
         f.write(f"Best Loss: {model.best_losses[0]}\n")
