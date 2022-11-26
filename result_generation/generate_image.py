@@ -1,11 +1,5 @@
 """ Loads the model, generates the high resolution image and saves it a .mat file"""
 import argparse
-import os
-import shutil
-
-import matlab.engine
-import numpy as np
-import torch
 from scipy import io as scio
 from torch.utils.data import DataLoader
 
