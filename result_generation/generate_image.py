@@ -33,12 +33,12 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     result_folder = f"../results/GANs"
     model_name = args.name_model
-    model_name = f"pangan_v2.2"
-    model_type = f"PANGAN"
-    model_path1 = f"../pytorch_models/trained_models/{model_type}/{model_name}/model.pth"
+    model_name = f"pancolorgan_v2.1"
+    model_type = f"PANCOLORGAN"
+    model_path1 = f"../pytorch_models/trained_models/{model_type}/{model_name}/model2.pth"
 
     index_test = 3
-    test_set_path = dataset_path + "/FR/" + satellite + f"/test_{index_test}_512.h5"
+    test_set_path = f"{dataset_path}/FR/{satellite}/test_{index_test}_512.h5"
     if os.path.exists(test_set_path):
         test_dataloader = DataLoader(DatasetPytorch(test_set_path),
                                      batch_size=64,
@@ -58,15 +58,12 @@ if __name__ == '__main__':
 
         gen = model.generate_output(pan, ms=ms, ms_lr=ms_lr)
         # From NxCxHxW to NxHxWxC
-        gt = torch.permute(gt, (0, 2, 3, 1))
-        gen = torch.permute(gen, (0, 2, 3, 1))
-
-        gen = gen.detach().numpy()
-        gt = gt.detach().numpy()
-
+        gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
         gen = recompose(gen)
         np.clip(gen, 0, 1, out=gen)
-        gt = recompose(gt)
+        gen = np.squeeze(gen)
+
+        gt = recompose(torch.squeeze(torch.permute(gt, (0, 2, 3, 1))).detach().numpy())
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                     th_values)

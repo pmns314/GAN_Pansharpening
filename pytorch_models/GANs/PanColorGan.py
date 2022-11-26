@@ -8,10 +8,10 @@ from pytorch_models.GANs.GanInterface import GanInterface
 
 
 class PanColorGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanColorGan"):
+    def __init__(self, channels, device="cpu", name="PanColorGan", padding_mode="replicate"):
         super().__init__(device, name)
         self.best_losses = [np.inf, np.inf]
-        self.generator = PanColorGan.Generator(channels)
+        self.generator = PanColorGan.Generator(channels, padding_mode)
         self.discriminator = PanColorGan.Discriminator(channels)
         self.mse = torch.nn.MSELoss(reduction='mean')
         self.mae = torch.nn.L1Loss(reduction='mean')
@@ -22,10 +22,11 @@ class PanColorGan(GanInterface, ABC):
 
     # ------------------------- Specific GAN Methods -----------------------------------
     class ConvBlock(nn.Module):
-        def __init__(self, in_channels, out_channels, kernel, padding=0, stride=1, use_dropout=False):
+        def __init__(self, in_channels, out_channels, kernel, padding_mode="replicate", padding=0, stride=1, use_dropout=False):
             super().__init__()
             self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel, kernel),
-                                  padding=(padding, padding), stride=(stride, stride), bias=True)
+                                  padding=(padding, padding), stride=(stride, stride), padding_mode=padding_mode,
+                                  bias=True)
             self.bn = nn.BatchNorm2d(out_channels, affine=True)
             self.lrelu = nn.LeakyReLU(.2)
             self.dropout = nn.Dropout2d()
@@ -42,7 +43,7 @@ class PanColorGan(GanInterface, ABC):
     class Generator(nn.Module):
 
         class UpConvBlock(nn.Module):
-            def __init__(self, in_channels, out_channels, kernel, padding=0, stride=1, out_padding=0):
+            def __init__(self, in_channels, out_channels, kernel,padding=0, stride=1, out_padding=0):
                 super().__init__()
                 self.conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels,
                                                kernel_size=(kernel, kernel), padding=(padding, padding),
@@ -58,14 +59,16 @@ class PanColorGan(GanInterface, ABC):
                 return out
 
         class ResnetBlock(nn.Module):
-            def __init__(self, channels, kernel, padding=1, use_dropout=False):
+            def __init__(self, channels, kernel, padding_mode, padding=1, use_dropout=False):
                 super().__init__()
-                self.conv1 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding))
+                self.conv1 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding),
+                                       padding_mode=padding_mode)
                 self.lrelu = nn.LeakyReLU(.2, True)
                 self.bn = nn.BatchNorm2d(channels, affine=True)
                 self.use_dropout = use_dropout
                 self.dropout = nn.Dropout(.2)
-                self.conv2 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding))
+                self.conv2 = nn.Conv2d(channels, channels, kernel, padding=(padding, padding),
+                                       padding_mode=padding_mode)
 
             def forward(self, input_tensor):
                 out = self.conv1(input_tensor)
@@ -77,48 +80,48 @@ class PanColorGan(GanInterface, ABC):
                 out = self.bn(out)
                 return out + input_tensor
 
-        def __init__(self, channels, name="Gen"):
+        def __init__(self, channels, padding_mode, name="Gen"):
             super().__init__()
             self._model_name = name
             self.channels = channels
 
             # Color Injection
             self.color1 = nn.Sequential(
-                PanColorGan.ConvBlock(channels, 32, 3, padding=1),
-                PanColorGan.ConvBlock(32, 32, 3, padding=1)
+                PanColorGan.ConvBlock(channels, 32, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.ConvBlock(32, 32, 3, padding=1, padding_mode=padding_mode)
             )
-            self.color2 = PanColorGan.ConvBlock(32, 64, 3, stride=2, padding=1)
-            self.color3 = PanColorGan.ConvBlock(64, 128, 3, stride=2, padding=1)
+            self.color2 = PanColorGan.ConvBlock(32, 64, 3, stride=2, padding=1, padding_mode=padding_mode)
+            self.color3 = PanColorGan.ConvBlock(64, 128, 3, stride=2, padding=1, padding_mode=padding_mode)
 
             # Spatial Details Extraction
             self.model1 = nn.Sequential(
-                PanColorGan.ConvBlock(1, 32, 3, padding=1),
-                PanColorGan.ConvBlock(32, 32, 3, padding=1)
+                PanColorGan.ConvBlock(1, 32, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.ConvBlock(32, 32, 3, padding=1, padding_mode=padding_mode)
             )
-            self.model2 = PanColorGan.ConvBlock(64, 64, 3, stride=2, padding=1)
-            self.model3 = PanColorGan.ConvBlock(128, 128, 3, stride=2, padding=1)
+            self.model2 = PanColorGan.ConvBlock(64, 64, 3, stride=2, padding=1, padding_mode=padding_mode)
+            self.model3 = PanColorGan.ConvBlock(128, 128, 3, stride=2, padding=1, padding_mode=padding_mode)
 
             # Feature Transformation
             self.feature_transformation = nn.Sequential(
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1),
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1),
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1),
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1),
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1),
-                PanColorGan.Generator.ResnetBlock(256, 3, padding=1)
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode),
+                PanColorGan.Generator.ResnetBlock(256, 3, padding=1, padding_mode=padding_mode)
             )
 
             # Image Synthesis
-            self.model4 = PanColorGan.ConvBlock(256, 128, 3, padding=1)
+            self.model4 = PanColorGan.ConvBlock(256, 128, 3, padding=1, padding_mode=padding_mode)
             self.model5 = PanColorGan.Generator.UpConvBlock(256, 128, 3, stride=2, padding=1, out_padding=1)
 
-            self.model6 = PanColorGan.ConvBlock(128, 64, 3, padding=1)
+            self.model6 = PanColorGan.ConvBlock(128, 64, 3, padding=1, padding_mode=padding_mode)
             self.model7 = PanColorGan.Generator.UpConvBlock(128, 64, 3, stride=2, padding=1, out_padding=1)
 
-            self.model8 = PanColorGan.ConvBlock(64, 32, 3, padding=1)
+            self.model8 = PanColorGan.ConvBlock(64, 32, 3, padding=1, padding_mode=padding_mode)
             self.model9 = nn.Sequential(
-                PanColorGan.ConvBlock(64, 32, 3, padding=1),
-                nn.Conv2d(32, channels, kernel_size=(3, 3), padding=(1, 1))
+                PanColorGan.ConvBlock(64, 32, 3, padding=1, padding_mode=padding_mode),
+                nn.Conv2d(32, channels, kernel_size=(3, 3), padding=(1, 1), padding_mode=padding_mode)
             )
             self.out_model = nn.Tanh()
 
@@ -236,7 +239,7 @@ class PanColorGan(GanInterface, ABC):
 
             # Downsample MS_LR
             size = list(ms_lr.shape)
-            ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1/4, mode='bicubic', align_corners=False)
+            ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1 / 4, mode='bicubic', align_corners=False)
             # Upsample MS_LR_LR
             ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
             # Convert MS_LR to Grayscale
@@ -305,7 +308,7 @@ class PanColorGan(GanInterface, ABC):
 
                 # Downsample MS_LR
 
-                ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1/4, mode='bicubic', align_corners=False)
+                ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
                 ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
                 # Convert MS_LR to Grayscale
