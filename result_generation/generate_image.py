@@ -9,9 +9,11 @@ import torch
 from scipy import io as scio
 from torch.utils.data import DataLoader
 
-import constants
+from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from train_gan import create_model
+from utils import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -21,7 +23,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
-                        default=f'{constants.DATASET_DIR}',
+                        default=f'{DATASET_DIR}',
                         help='Provide path to the dataset. Defaults to ROOT/datasets',
                         type=str
                         )
@@ -31,8 +33,8 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     result_folder = f"../results/GANs"
     model_name = args.name_model
-    model_name = f"pancolorgan_v7"
-    model_type = f"PANCOLORGAN"
+    model_name = f"pangan_v2.2"
+    model_type = f"PANGAN"
     model_path1 = f"../pytorch_models/trained_models/{model_type}/{model_name}/model.pth"
 
     index_test = 3
@@ -50,6 +52,7 @@ if __name__ == '__main__':
         print(f"Best Epoch : {trained_model['best_epoch']}")
         # Generation Images
         pan, ms, ms_lr, gt = next(enumerate(test_dataloader))[1]
+
         if len(pan.shape) == 3:
             pan = torch.unsqueeze(pan, 0)
 
@@ -61,30 +64,17 @@ if __name__ == '__main__':
         gen = gen.detach().numpy()
         gt = gt.detach().numpy()
 
-        # ######################################## Testing Toolbox Python ###################
-        # L = 11;
-        # Qblocks_size = 32;
-        # flag_cut_bounds = 1;
-        # dim_cut = 21;
-        # th_values = 0;
-        # printEPS = 0;
-        # ratio = 4.0;
-        # gen = np.squeeze(gen) * 2048
-        # gt = np.squeeze(gt) * 2048
-        # from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-        # Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut, th_values)
-        # print(f"Python:\n\tQ2n={Q2n:.5f}\t Q_avg={Q_avg:.5f}\t ERGAS={ERGAS:.5f}\t SAM={SAM:.5f}")
-        #
-        # eng = matlab.engine.start_matlab()
-        # Q_avg, SAM, ERGAS, SCC, Q = eng.indexes_evaluation(
-        #     matlab.double(gen.tolist()),
-        #     matlab.double(gt.tolist()),
-        #     ratio, L, float(Qblocks_size), flag_cut_bounds, dim_cut, th_values, nargout=5)
-        # print(f"MATLAB:\n\tQ2n={Q:.5f}\t Q_avg={Q_avg:.5f}\t ERGAS={ERGAS:.5f}\t SAM={SAM:.5f}")
-        ################################################################################
-        import matplotlib.pyplot as plt
+        gen = recompose(gen)
+        np.clip(gen, 0, 1, out=gen)
+        gt = recompose(gt)
 
-        plt.imshow(np.squeeze(gen)[:, :, :3] * 2048)
+        Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
+                                                    th_values)
+        print(f"Q2n: {Q2n :.3f}\t Q_avg: {Q_avg:.3f}\t ERGAS: {ERGAS:.3f}\t SAM: {SAM:.3f}")
+
+        view_image(gt)
+        view_image(gen)
+        view_image(np.concatenate([gt, gen], 1))
         plt.show()
         print(f"Saving {model_name}_test_{index_test}.mat")
         if not os.path.exists(f"{result_folder}/{model_type}"):

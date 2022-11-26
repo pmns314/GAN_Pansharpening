@@ -206,4 +206,5 @@ if __name__ == '__main__':
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
         f.write(f"Best Loss: {model.best_losses[0]}\n")
+        f.write(f"Learning Rate: {lr}\n")
 

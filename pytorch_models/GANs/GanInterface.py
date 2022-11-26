@@ -121,6 +121,7 @@ class GanInterface(ABC, nn.Module):
                                                ms_lr=t['ms_lr'].to(self.device))
                     gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
                     gen = recompose(gen)
+                    np.clip(gen, 0, 1, out=gen)
                     gen = np.squeeze(gen) * 2048.0
                     gt = np.squeeze(t['gt']) * 2048.0
 
