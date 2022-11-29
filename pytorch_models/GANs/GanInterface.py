@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
-from utils import recompose
+from utils import recompose, linear_strech
 import matplotlib.pyplot as plt
 
 
@@ -132,7 +132,8 @@ class GanInterface(ABC, nn.Module):
                     df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
 
-                    writer.add_image(f'gen_img_test_{idx_test}', gen[:, :, 2:0:-1] / 2048, self.tot_epochs,
+                    saving_image = linear_strech(gen[:, :, (0, 2, 4)])
+                    writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
                                      dataformats='HWC')
 
             # if triggertimes >= patience:

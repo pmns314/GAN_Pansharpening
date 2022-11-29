@@ -59,7 +59,7 @@ if __name__ == '__main__':
     model_path = args.model_path
 
     model_path1 = f"{model_path}/{model_type}/{model_name}/model.pth"
-    index_test = 3
+    index_test = 2
     test_set_path = f"{dataset_path}/FR/{satellite}/test_{index_test}_512.h5"
 
     # Device Definition

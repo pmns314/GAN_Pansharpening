@@ -131,8 +131,8 @@ if __name__ == '__main__':
     train_dataset = f"train_1_64.h5"
     val_dataset = f"val_1_64.h5"
     test_dataset1 = f"test_1_64.h5"
-    test_dataset2 = f"test_3_64.h5"
-    test_dataset_FR = f"test_3_512.h5"
+    test_dataset2 = f"test_2_64.h5"
+    test_dataset_FR = f"test_2_512.h5"
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -156,7 +156,7 @@ if __name__ == '__main__':
                          use_highpass=use_highpass)
     model.to(device)
 
-    output_path = os.path.join(output_base_path, model.name, file_name)
+    output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
 
     # Checkpoint path definition
     chk_path = f"{output_path}/checkpoints"
@@ -207,4 +207,3 @@ if __name__ == '__main__':
         f.write(f"Best Epoch: {model.best_epoch}\n")
         f.write(f"Best Loss: {model.best_losses[0]}\n")
         f.write(f"Learning Rate: {lr}\n")
-
