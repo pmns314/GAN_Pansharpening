@@ -25,8 +25,12 @@ class PNN(CnnInterface, ABC):
         out = self.conv3(rs)
         return out
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms = kwargs['ms']
+        if evaluation:
+            self.eval()
+            with torch.no_grad():
+                return self(pan, ms)
         return self(pan, ms)
 
     def compile(self, loss_fn=None, optimizer=None):

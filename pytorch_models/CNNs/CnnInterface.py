@@ -29,7 +29,7 @@ class CnnInterface(ABC, nn.Module):
 
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         pass
 
     def compile(self, loss_fn=None, optimizer=None):
@@ -52,7 +52,7 @@ class CnnInterface(ABC, nn.Module):
             ms_lr = ms_lr.to(self.device)
 
             # Compute prediction and loss
-            pred = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+            pred = self.generate_output(pan, ms=ms, ms_lr=ms_lr, evaluation=False)
             loss = self.loss_fn(pred, gt)
 
             # Backpropagation

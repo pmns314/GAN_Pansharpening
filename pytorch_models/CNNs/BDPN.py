@@ -95,8 +95,12 @@ class BDPN(CnnInterface, ABC):
 
         return output
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms_lr = kwargs['ms_lr']
+        if evaluation:
+            self.eval()
+            with torch.no_grad():
+                return self(pan, ms_lr)
         return self(pan, ms_lr)
 
     def compile(self, loss_fn=None, optimizer=None):
