@@ -311,8 +311,12 @@ class PSGAN(GanInterface, ABC):
         self.best_epoch = trained_model['best_epoch']
         self.tot_epochs = trained_model['tot_epochs']
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=False, **kwargs):
         ms = kwargs['ms']
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, ms)
         return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):

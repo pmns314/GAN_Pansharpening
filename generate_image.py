@@ -15,12 +15,12 @@ if __name__ == '__main__':
     # Parsing arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name_model',
-                        default='pancolorgan_v2.3',
+                        default='test',
                         help='Provide name of the model. Defaults to test',
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='pancolorgan',
+                        default='psgan',
                         help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
@@ -40,7 +40,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-o', '--output_path',
-                        default=f"{ROOT_DIR}/results/",
+                        default=f"{ROOT_DIR}/results/GANs",
                         help='Path of the output folder',
                         type=str
                         )
@@ -71,7 +71,8 @@ if __name__ == '__main__':
                                      batch_size=64,
                                      shuffle=False)
 
-        model = create_model(model_type, test_dataloader.dataset.channels, device=device, train_spat_disc=None, use_highpass=None)
+        model = create_model(model_type, test_dataloader.dataset.channels, device=device, train_spat_disc=None,
+                             use_highpass=None)
 
         # Load Pre trained Model
         trained_model = torch.load(model_path1, map_location=torch.device(device))
@@ -84,7 +85,7 @@ if __name__ == '__main__':
         if len(pan.shape) == 3:
             pan = torch.unsqueeze(pan, 0)
 
-        gen = model.generate_output(pan.to(device), ms=ms.to(device), ms_lr=ms_lr.to(device))
+        gen = model.generate_output(pan.to(device), evaluation=True, ms=ms.to(device), ms_lr=ms_lr.to(device))
         # From NxCxHxW to NxHxWxC
         gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
         gen = recompose(gen)
@@ -97,8 +98,8 @@ if __name__ == '__main__':
                                                     th_values)
         print(f"Q2n: {Q2n :.3f}\t Q_avg: {Q_avg:.3f}\t ERGAS: {ERGAS:.3f}\t SAM: {SAM:.3f}")
 
-        view_image(gt)
-        view_image(gen)
+        # view_image(gt)
+        # view_image(gen)
         view_image(np.concatenate([gt, gen], 1))
         plt.show()
         print(f"Saving {model_name}_test_{index_test}.mat")

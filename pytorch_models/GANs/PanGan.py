@@ -337,7 +337,11 @@ class PanGan(GanInterface, ABC):
                             trained_model['spat_disc_best_loss'],
                             trained_model['spec_disc_best_loss']]
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=False, **kwargs):
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, kwargs['ms'])
         return self.generator(pan, kwargs['ms'])
 
     def set_optimizers_lr(self, lr):

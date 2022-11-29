@@ -348,8 +348,12 @@ class PanColorGan(GanInterface, ABC):
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=False, **kwargs):
         ms = kwargs['ms']
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, ms)
         return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):

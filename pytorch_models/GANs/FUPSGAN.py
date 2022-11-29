@@ -138,6 +138,11 @@ class FUPSGAN(PSGAN):
 
         return gen_loss
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=False, **kwargs):
         ms_lr = kwargs['ms_lr']
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, ms_lr)
         return self.generator(pan, ms_lr)
+

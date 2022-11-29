@@ -44,7 +44,7 @@ class GanInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=False, **kwargs):
         pass
 
     @abstractmethod
@@ -118,7 +118,8 @@ class GanInterface(ABC, nn.Module):
 
                     gen = self.generate_output(pan=t['pan'].to(self.device),
                                                ms=t['ms'].to(self.device),
-                                               ms_lr=t['ms_lr'].to(self.device))
+                                               ms_lr=t['ms_lr'].to(self.device),
+                                               evaluation=True)
                     gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
                     gen = recompose(gen)
                     np.clip(gen, 0, 1, out=gen)
