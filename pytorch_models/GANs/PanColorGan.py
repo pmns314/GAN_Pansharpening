@@ -197,7 +197,7 @@ class PanColorGan(GanInterface, ABC):
         return (loss_d_real + loss_d_fake) / 2
 
     def loss_generator(self, ms, pan, gt):
-        generated = self.generator(pan, ms)
+        generated = self.generate_output(pan, ms=ms, evaluation=False)
 
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
@@ -296,18 +296,14 @@ class PanColorGan(GanInterface, ABC):
 
         gen_loss = 0.0
         disc_loss = 0.0
-        i = 0
+
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = gt.to(self.device)
-                pan = pan.to(self.device)
-                ms = ms.to(self.device)
                 ms_lr = ms_lr.to(self.device)
 
                 # Downsample MS_LR
-
                 ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
                 ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
@@ -348,7 +344,7 @@ class PanColorGan(GanInterface, ABC):
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
 
-    def generate_output(self, pan, evaluation=False, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms = kwargs['ms']
         if evaluation:
             self.generator.eval()

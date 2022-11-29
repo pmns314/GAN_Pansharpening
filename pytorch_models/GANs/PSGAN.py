@@ -161,7 +161,7 @@ class PSGAN(GanInterface, ABC):
         ms = kwargs['ms']
         pan = kwargs['pan']
         gt = kwargs['gt']
-        outputs = self.generator(pan, ms)
+        outputs = self.generate_output(pan, ms=ms, evaluation=False)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
         # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
@@ -311,7 +311,7 @@ class PSGAN(GanInterface, ABC):
         self.best_epoch = trained_model['best_epoch']
         self.tot_epochs = trained_model['tot_epochs']
 
-    def generate_output(self, pan, evaluation=False, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms = kwargs['ms']
         if evaluation:
             self.generator.eval()

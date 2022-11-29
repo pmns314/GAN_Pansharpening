@@ -44,7 +44,7 @@ class GanInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def generate_output(self, pan, evaluation=False, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         pass
 
     @abstractmethod

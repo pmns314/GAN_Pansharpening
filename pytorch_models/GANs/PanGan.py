@@ -210,10 +210,8 @@ class PanGan(GanInterface, ABC):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            # ms_lr = ms_lr.to(self.device)
 
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
@@ -256,7 +254,7 @@ class PanGan(GanInterface, ABC):
 
             # Compute prediction and loss
             self.optimizer_gen.zero_grad()
-            generated = self.generator(pan, ms)
+            generated = self.generate_output(pan, ms=ms, evaluation=False)
             loss_generator = self.generator_loss(pan, ms, generated)
 
             # Backpropagation
@@ -286,10 +284,9 @@ class PanGan(GanInterface, ABC):
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
-                ms_lr = ms_lr.to(self.device)
+
                 if len(pan.shape) != len(ms.shape):
                     pan = torch.unsqueeze(pan, 0)
                 generated_HRMS = self.generate_output(pan, ms=ms)
@@ -337,7 +334,7 @@ class PanGan(GanInterface, ABC):
                             trained_model['spat_disc_best_loss'],
                             trained_model['spec_disc_best_loss']]
 
-    def generate_output(self, pan, evaluation=False, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         if evaluation:
             self.generator.eval()
             with torch.no_grad():
