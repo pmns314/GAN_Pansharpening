@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from train_gan import create_model
+from train_gan import create_model, create_test_dict
 from utils import *
 
 if __name__ == '__main__':
@@ -71,28 +71,32 @@ if __name__ == '__main__':
                                      batch_size=64,
                                      shuffle=False)
 
-        model = create_model(model_type, test_dataloader.dataset.channels, device=device, train_spat_disc=None, use_highpass=None)
-
+        model = create_model(model_type, test_dataloader.dataset.channels, device=device, train_spat_disc=None,
+                             use_highpass=None)
         # Load Pre trained Model
         trained_model = torch.load(model_path1, map_location=torch.device(device))
         model.generator.load_state_dict(trained_model['gen_state_dict'])
         model.to(device)
+
+        def check(model, tr_weights):
+            model = model.generator.state_dict()
+            tr_weights = tr_weights['gen_state_dict']
+            for k in tr_weights.keys():
+                assert (model[k] == tr_weights[k]).all()
+        check(model, trained_model)
+
         print(f"Best Epoch : {trained_model['best_epoch']}")
         # Generation Images
-        pan, ms, ms_lr, gt = next(enumerate(test_dataloader))[1]
-
-        if len(pan.shape) == 3:
-            pan = torch.unsqueeze(pan, 0)
-
-        gen = model.generate_output(pan.to(device), ms=ms.to(device), ms_lr=ms_lr.to(device))
-        # From NxCxHxW to NxHxWxC
+        t = create_test_dict(test_set_path,
+                         f"aaa.csv")
+        gen = model.generate_output(pan=t['pan'].to(model.device),
+                                   ms=t['ms'].to(model.device),
+                                   ms_lr=t['ms_lr'].to(model.device))
         gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
         gen = recompose(gen)
         np.clip(gen, 0, 1, out=gen)
         gen = np.squeeze(gen) * 2048.0
-
-        gt = np.squeeze(recompose(torch.squeeze(torch.permute(gt, (0, 2, 3, 1))).detach().numpy())) * 2048.0
-
+        gt = np.squeeze(t['gt']) * 2048.0
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                     th_values)
         print(f"Q2n: {Q2n :.3f}\t Q_avg: {Q_avg:.3f}\t ERGAS: {ERGAS:.3f}\t SAM: {SAM:.3f}")
