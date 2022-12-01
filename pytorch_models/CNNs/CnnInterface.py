@@ -32,6 +32,7 @@ class CnnInterface(ABC, nn.Module):
     def generate_output(self, pan, evaluation=True, **kwargs):
         pass
 
+    @abstractmethod
     def compile(self, loss_fn=None, optimizer=None):
         pass
 
