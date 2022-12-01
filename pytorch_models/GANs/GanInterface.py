@@ -128,7 +128,7 @@ class GanInterface(ABC, nn.Module):
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                                 th_values)
-                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, SAM, ERGAS]
                     df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
                     try:
