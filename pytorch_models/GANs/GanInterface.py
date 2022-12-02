@@ -114,7 +114,7 @@ class GanInterface(ABC, nn.Module):
                 # Generation Indexes
                 for idx_test in range(len(tests)):
                     t = tests[idx_test]
-                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
+                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
 
                     gen = self.generate_output(pan=t['pan'].to(self.device),
                                                ms=t['ms'].to(self.device),
@@ -128,7 +128,7 @@ class GanInterface(ABC, nn.Module):
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                                 th_values)
-                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, SAM, ERGAS]
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
                     df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
                     try:
