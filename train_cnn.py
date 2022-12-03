@@ -163,7 +163,7 @@ if __name__ == '__main__':
         os.makedirs(chk_path)
         model.compile()
 
-    model.set_optimizer_lr(lr)
+    model.set_optimizers_lr(lr)
 
     # Setting up index evaluation
     tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",

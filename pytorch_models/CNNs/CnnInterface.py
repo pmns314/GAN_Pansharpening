@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
-from utils import recompose
+from utils import recompose, linear_strech
 
 
 class CnnInterface(ABC, nn.Module):
@@ -162,24 +162,32 @@ class CnnInterface(ABC, nn.Module):
             if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
-            # Generation Indexes
-            for t in tests:
-                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "SAM", "ERGAS"])
+                # Generation Indexes
+                for idx_test in range(len(tests)):
+                    t = tests[idx_test]
+                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
 
-                gen = self.generate_output(pan=t['pan'].to(self.device),
-                                           ms=t['ms'].to(self.device),
-                                           ms_lr=t['ms_lr'].to(self.device))
-                # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
-                gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
-                gen = recompose(gen)
-                gen = np.squeeze(gen) * 2048
-                gt = np.squeeze(t['gt']) * 2048
+                    gen = self.generate_output(pan=t['pan'].to(self.device),
+                                               ms=t['ms'].to(self.device),
+                                               ms_lr=t['ms_lr'].to(self.device), evaluation=True)
+                    # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
+                    gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
+                    gen = recompose(gen)
+                    gen = np.squeeze(gen) * 2048
+                    gt = np.squeeze(t['gt']) * 2048
 
-                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
-                                                            th_values)
-                df.loc[0] = [self.tot_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
-                df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                          mode='a', sep=";")
+                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                                dim_cut,
+                                                                th_values)
+                    df.loc[0] = [self.tot_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
+                    df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                              mode='a', sep=";")
+                    try:
+                        saving_image = linear_strech(gen[:, :, (0, 2, 4)])
+                        writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
+                                         dataformats='HWC')
+                    except:
+                        pass
 
             # if triggertimes >= patience:
             #     print("Early Stopping!")
@@ -202,7 +210,6 @@ class CnnInterface(ABC, nn.Module):
         print(f"Evaluation on Test Set: \n "
               f"\t Loss: {test_loss:>8f} \n")
 
-    def set_optimizer_lr(self, lr):
+    def set_optimizers_lr(self, lr):
         for g in self.opt.param_groups:
             g['lr'] = lr
-
