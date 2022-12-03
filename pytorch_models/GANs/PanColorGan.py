@@ -196,8 +196,7 @@ class PanColorGan(GanInterface, ABC):
         # loss_d_real = self.mse(pred_real, ones)
         return (loss_d_real + loss_d_fake) / 2
 
-    def loss_generator(self, ms, pan, gt):
-        generated = self.generate_output(pan, ms=ms, evaluation=False)
+    def loss_generator(self, ms, pan, gt, generated):
 
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
@@ -273,7 +272,8 @@ class PanColorGan(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
-            loss_g = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr)
+            generated = self.generate_output(ms_lr_gray, ms=ms_lr_up, evaluation=False)
+            loss_g = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
 
             # Backpropagation
             self.gen_opt.zero_grad()
@@ -311,11 +311,11 @@ class PanColorGan(GanInterface, ABC):
                 ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
 
                 generated = self.generate_output(ms_lr_gray, ms=ms_lr_up)
-
                 dloss = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated)
                 disc_loss += dloss.item()
 
-                gloss = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr)
+                generated = self.generate_output(ms_lr_gray, ms=ms_lr_up)
+                gloss = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
                 gen_loss += gloss.item()
 
         return {"Gen loss": gen_loss / len(dataloader),

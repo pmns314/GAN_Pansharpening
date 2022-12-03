@@ -62,7 +62,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-s', '--satellite',
-                        default='W3',
+                        default='W2',
                         help='Provide satellite to use as training. Defaults to W3',
                         type=str
                         )
