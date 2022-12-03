@@ -1,90 +1,82 @@
 import argparse
-import os
 import shutil
 
-import numpy as np
 import torch
-from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 
-import constants
-from constants import ROOT_DIR
+from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.CNNs.APNN import APNN
-from git import Repo
+from pytorch_models.GANs import *
+from pytorch_models.CNNs import *
+from utils import recompose
 
 
-def train_model(model, epochs,
-                loss_fn, optimizer, best_vloss,
-                output_path,chk_path,
-                train_dataloader, val_dataloader, test_dataloader=None,
-                pretrained_epochs=0, device='cpu'):
-    # TensorBoard
-    writer = SummaryWriter(output_path + "/log/")
+def create_model(name: str, channels, device="cpu", **kwargs):
+    name = name.strip().upper()
+    if name == "APNN":
+        model = APNN(channels, device)
+        model.compile()
+        return model
+    if name == "BDPN":
+        model = BDPN(channels, device)
+        model.compile()
+        return model
+    if name == "DRPNN":
+        model = DRPNN(channels, device)
+        model.compile()
+        return model
+    if name == "PANNET":
+        model = PanNet(channels, device)
+        model.compile()
+        return model
+    if name == "PNN":
+        model = PNN(channels, device)
+        model.compile()
+        return model
+    if name == "DICNN":
+        model = DiCNN(channels, device)
+        model.compile()
+        return model
+    if name == "FUSIONNET":
+        model = FusionNet(channels, device)
+        model.compile()
+        return model
+    if name == "MSDCNN":
+        model = MSDCNN(channels, device)
+        model.compile()
+        return model
+    if name == "PSGAN":
+        return PSGAN(channels, device)
+    elif name == "FUPSGAN":
+        return FUPSGAN(channels, device)
+    elif name == "STPSGAN":
+        return STPSGAN(channels, device)
+    elif name == "PANGAN":
+        train_spat_disc = kwargs['train_spat_disc']
+        use_highpass = kwargs['use_highpass']
+        return PanGan(channels, device, train_spat_disc=train_spat_disc, use_highpass=use_highpass)
+    elif name == "PANCOLORGAN":
+        return PanColorGan(channels, device)
+    else:
+        raise KeyError("Model not Defined")
 
-    # Early stopping
-    patience = 250
-    triggertimes = 0
 
-    pretrained_epochs = pretrained_epochs + 1
-    epoch = 0
-
-    print(f"Training started for {output_path} at epoch {pretrained_epochs}")
-    for epoch in range(epochs):
-        train_loss = model.train_step(train_dataloader, loss_fn, optimizer, device)
-        if val_dataloader is not None:
-            curr_loss = model.validation_step(val_dataloader, loss_fn, device)
-            print(f'Epoch {pretrained_epochs + epoch}\t'
-                  f'\t train {train_loss :.2f}\t valid {curr_loss:.2f}')
-            writer.add_scalars("Loss", {"train": train_loss, "validation": curr_loss}, pretrained_epochs + epoch)
-        else:
-            print(f'Epoch {pretrained_epochs + epoch}\t'
-                  f'\t train {train_loss :.2f}')
-            curr_loss = train_loss
-            writer.add_scalar("Loss/train", train_loss, pretrained_epochs + epoch)
-
-        # Test loss
-        if test_dataloader is not None:
-            test_loss = model.validation_step(test_dataloader, loss_fn, device)
-            writer.add_scalar("Loss/test", test_loss, pretrained_epochs + epoch)
-
-        # Save Checkpoint
-        torch.save({'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'best_loss': best_vloss
-        }, f"{chk_path}/checkpoint_{pretrained_epochs + epoch}.pth")
-
-        # Save Best Model
-        if curr_loss < best_vloss:
-            best_vloss = curr_loss
-
-            torch.save({
-                'best_epoch': pretrained_epochs + epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss_fn': loss_fn,
-                'best_loss': best_vloss
-            }, output_path + "/model.pth")
-
-            triggertimes = 0
-        else:
-            triggertimes += 1
-
-            # Early Stopping
-            if triggertimes >= patience:
-                print("Early Stopping!")
-                break
-
-    m = torch.load(output_path + "/model.pth")
-    m['tot_epochs'] = pretrained_epochs + epoch
-    torch.save(m, output_path + "/model.pth")
-    writer.flush()
-    print(f"Training Completed at epoch {pretrained_epochs + epoch}. Saved in {output_path} folder")
+def create_test_dict(path, filename):
+    test_dict = {}
+    test_dataloader1 = DataLoader(DatasetPytorch(path), batch_size=64, shuffle=False)
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
+    if len(pan.shape) == 3:
+        pan = torch.unsqueeze(pan, 0)
+    gt = torch.permute(gt, (0, 2, 3, 1))
+    test_dict['pan'] = pan
+    test_dict['ms'] = ms
+    test_dict['ms_lr'] = ms_lr
+    test_dict['gt'] = recompose(torch.squeeze(gt).detach().numpy())
+    test_dict['filename'] = filename
+    return test_dict
 
 
 if __name__ == '__main__':
-
     # Parsing arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name_model',
@@ -92,18 +84,23 @@ if __name__ == '__main__':
                         help='Provide name of the model. Defaults to test',
                         type=str
                         )
+    parser.add_argument('-t', '--type_model',
+                        default='psgan',
+                        help='Provide type of the model. Defaults to PSGAN',
+                        type=str
+                        )
     parser.add_argument('-d', '--dataset_path',
-                        default=f'{constants.DATASET_DIR}',
+                        default=f'{DATASET_DIR}',
                         help='Provide name of the model. Defaults to ROOT/datasets',
                         type=str
                         )
     parser.add_argument('-s', '--satellite',
-                        default='W3',
+                        default='W2',
                         help='Provide satellite to use as training. Defaults to W3',
                         type=str
                         )
     parser.add_argument('-e', '--epochs',
-                        default=10000,
+                        default=2,
                         help='Provide number of epochs. Defaults to 1000',
                         type=int
                         )
@@ -113,88 +110,133 @@ if __name__ == '__main__':
                         type=float
                         )
     parser.add_argument('-r', '--resume',
-                        default=None,
-                        help='Provide path to the partially trained model. Defaults to None',
+                        action='store_true',
+                        help='Boolean indicating if resuming the training or starting a new one deleting the one '
+                             'already existing, if any'
+                        )
+    parser.add_argument('-o', '--output_path',
+                        default="pytorch_models/trained_models",
+                        help='Path of the output folder',
                         type=str
                         )
-    parser.add_argument('-ck', '--checkpoints',
-                        default=None,
-                        help='Path to the checkpoints',
-                        type=str
+    parser.add_argument('-c', '--commit',
+                        action='store_true',
+                        help='Boolean indicating if commit is to git is needed',
+                        )
+    parser.add_argument('-f', '--force',
+                        action='store_true',
+                        help='Boolean indicating if forcing GPU Max Memory allowed'
+                        )
+    parser.add_argument('--rr',
+                        action='store_true',
+                        help='Boolean indicating if using Reduced Resolution'
+                        )
+    parser.add_argument('--no_val',
+                        action='store_true',
+                        help='Boolean indicating if avoid using the validation set'
+                        )
+    parser.add_argument('--train_spat_disc',
+                        action='store_true',
+                        help='Boolean indicating if training the spatial discriminator of the PanGan Network'
+                        )
+    parser.add_argument('--use_highpass',
+                        action='store_true',
+                        help='Boolean indicating if training using the spatial details of the PanGan Network'
                         )
     args = parser.parse_args()
 
-    repo = Repo(ROOT_DIR + "/.git")
-
     file_name = args.name_model
+    type_model = args.type_model
     satellite = args.satellite
     dataset_path = args.dataset_path
     epochs = args.epochs
     lr = args.learning_rate
-    pretrained_model_path = args.resume
-    chk_path = args.checkpoints
+    resume_flag = args.resume
+    output_base_path = args.output_path
+    flag_commit = args.commit
+    use_rr = args.rr
+    no_val = args.no_val
+    train_spat_disc = args.train_spat_disc
+    use_highpass = args.use_highpass
 
-    # Listing Patch Sizes Training
-    patch_sizes = []
-    file_num = -1
-    for file in os.listdir(f"{dataset_path}/{satellite}"):
-        if file.startswith("train"):
-            if file.endswith(".h5"):
-                patch_sizes.append(file[8:-3])
-                file_num = file[6]
+    data_resolution = "RR" if use_rr else "FR"
 
-    # -------- Override of listing -------- #
-    patch_sizes = [32]
-    # ------------------------------------- #
+    train_dataset = f"train_1_64.h5"
+    val_dataset = f"val_1_64.h5"
+    test_dataset1 = f"test_1_64.h5"
+    test_dataset2 = f"test_2_64.h5"
+    test_dataset_FR = f"test_2_512.h5"
 
-    for patch_size in patch_sizes:
-        train_dataset = f"train_{file_num}_{patch_size}.h5"
-        val_dataset = f"val_{file_num}_{patch_size}.h5"
-        test_dataset = f"test_1_256.h5"
+    # Device Definition
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
 
-        file_name = f"{satellite}_{file_num}_{patch_size}_{str(lr)[2:]}_mae"
-        output_path = os.path.join(ROOT_DIR, 'pytorch_models', 'trained_models', 'W3_all', file_name)
+    # Force 8 Gb max GPU usage
+    if args.force and device == "cuda":
+        print("Forcing to 8Gb")
+        total_memory = torch.cuda.mem_get_info()[1]
+        torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
-        # Device Definition
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Using {device} device")
+    # Data Loading
+    train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{train_dataset}"),
+                                  batch_size=64, shuffle=True)
+    val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{val_dataset}"),
+                                batch_size=64, shuffle=False)
 
-        # Data Loading
-        train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{train_dataset}"), batch_size=64,
-                                      shuffle=True)
-        val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{val_dataset}"), batch_size=64,
-                                    shuffle=True)
-        test_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{satellite}/{test_dataset}"), batch_size=64,
-                                     shuffle=False)
-        # Model Creation
-        model = APNN(train_dataloader.dataset.channels)
-        model.to(device)
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Model Creation
+    model = create_model(type_model, train_dataloader.dataset.channels, device,
+                         train_spat_disc=train_spat_disc,
+                         use_highpass=use_highpass)
+    model.to(device)
 
-        if pretrained_model_path is not None:
-            trained_model = torch.load(f"{pretrained_model_path}/model.pth", map_location=torch.device(device))
-            model.load_state_dict(trained_model['model_state_dict'])
-            optimizer.load_state_dict(trained_model['optimizer_state_dict'])
-            trained_epochs = trained_model['tot_epochs']
-            loss_fn = trained_model['loss_fn']
-            best_vloss = trained_model['best_loss']
-        else:
-            loss_fn = torch.nn.L1Loss(reduction='mean').to(device)
-            trained_epochs = 0
-            best_vloss = +np.inf
-            if os.path.exists(output_path):
-                shutil.rmtree(output_path)
+    output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
 
-        # Model Training
-        train_model(model, epochs,
-                    loss_fn, optimizer, best_vloss,
-                    output_path,chk_path,
-                    train_dataloader, val_dataloader, test_dataloader,
-                    pretrained_epochs=trained_epochs, device=device)
+    # Checkpoint path definition
+    chk_path = f"{output_path}/checkpoints"
 
-        # Commit and Push new model
-        origin = repo.remote(name='origin')
-        origin.pull()
-        repo.git.add(output_path)
-        repo.index.commit(f"model {file_name} trained")
-        origin.push()
+    # Model Loading if resuming training
+    if resume_flag and os.path.exists(chk_path) and len(os.listdir(chk_path)) != 0:
+        latest_checkpoint = max([int((e.split("_")[1]).split(".")[0]) for e in os.listdir(chk_path)])
+        model.load_model(f"{output_path}/model.pth")
+        best_losses = model.best_losses
+        model.load_model(f"{chk_path}/checkpoint_{latest_checkpoint}.pth")
+        model.best_losses = best_losses
+    else:
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+        os.makedirs(output_path)
+        os.makedirs(chk_path)
+
+    model.set_optimizers_lr(lr)
+
+    # Setting up index evaluation
+    tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
+                              f"{output_path}/test_0.csv"),
+             create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
+                              f"{output_path}/test_1.csv"),
+             create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
+                              f"{output_path}/test_FR.csv")]
+
+    # Model Training
+    model.train_model(epochs,
+                      output_path, chk_path,
+                      train_dataloader, None if no_val else val_dataloader,
+                      tests)
+
+    # Report
+    with open(f"{output_path}/report.txt", "w") as f:
+        f.write(f"Network Type : {type_model}\n")
+        f.write(f"Datasets Used: \n")
+        f.write(f"\t Training: {train_dataset}\n")
+        if not no_val:
+            f.write(f"\t Validation: {val_dataset}\n")
+        f.write(f"\t Test From Training: {test_dataset1}\n")
+        f.write(f"\t External Test: {test_dataset2}\n")
+
+        if use_rr:
+            f.write(f"\nTrained at Reduced Resolution."
+                    f"\n\tDataset for testing at Full Resolution: {test_dataset_FR}\n")
+        f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
+        f.write(f"Best Epoch: {model.best_epoch}\n")
+        f.write(f"Best Loss: {model.best_losses[0]}\n")
+        f.write(f"Learning Rate: {lr}\n")
