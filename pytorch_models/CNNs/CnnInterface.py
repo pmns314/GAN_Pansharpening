@@ -153,6 +153,7 @@ class CnnInterface(ABC, nn.Module):
             if curr_loss < self.best_loss:
                 self.best_loss = curr_loss
                 self.best_epoch = self.tot_epochs
+                print(f"New Best Loss {self.best_loss:.3f} at epoch {self.best_epoch}")
                 self.save_model(f"{output_path}/model.pth")
                 triggertimes = 0
             else:
@@ -169,17 +170,18 @@ class CnnInterface(ABC, nn.Module):
 
                     gen = self.generate_output(pan=t['pan'].to(self.device),
                                                ms=t['ms'].to(self.device),
-                                               ms_lr=t['ms_lr'].to(self.device), evaluation=True)
-                    # gen = self.generator(t['ms'].to(device), t['pan'].to(device))
-                    gen = torch.permute(gen, (0, 2, 3, 1)).detach().to('cpu').numpy()
+                                               ms_lr=t['ms_lr'].to(self.device),
+                                               evaluation=True)
+                    gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
                     gen = recompose(gen)
-                    gen = np.squeeze(gen) * 2048
-                    gt = np.squeeze(t['gt']) * 2048
+                    np.clip(gen, 0, 1, out=gen)
+                    gen = np.squeeze(gen) * 2048.0
+                    gt = np.squeeze(t['gt']) * 2048.0
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                                 dim_cut,
                                                                 th_values)
-                    df.loc[0] = [self.tot_epochs + epoch, Q2n, Q_avg, ERGAS, SAM]
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
                     df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
                     try:

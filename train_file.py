@@ -85,7 +85,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='psgan',
+                        default='apnn',
                         help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
