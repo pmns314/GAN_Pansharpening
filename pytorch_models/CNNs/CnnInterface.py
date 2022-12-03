@@ -15,7 +15,7 @@ class CnnInterface(ABC, nn.Module):
     def __init__(self, device, name):
         super().__init__()
         self._model_name = name
-        self.best_loss = np.inf
+        self.best_losses = np.inf
         self.best_epoch = 0
         self.tot_epochs = 0
         self.device = device
@@ -97,7 +97,7 @@ class CnnInterface(ABC, nn.Module):
             'model_state_dict': self.state_dict(),
             'optimizer_state_dict': self.opt.state_dict(),
             'loss_fn': self.loss_fn,
-            'best_loss': self.best_loss,
+            'best_losses': self.best_losses,
             'best_epoch': self.best_epoch,
             'tot_epochs': self.tot_epochs
         }, path)
@@ -107,7 +107,7 @@ class CnnInterface(ABC, nn.Module):
         self.load_state_dict(trained_model['model_state_dict'])
         self.opt.load_state_dict(trained_model['optimizer_state_dict'])
         self.loss_fn = trained_model['loss_fn']
-        self.best_loss = trained_model['best_loss']
+        self.best_losses = trained_model['best_losses']
         self.tot_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
 
@@ -150,10 +150,10 @@ class CnnInterface(ABC, nn.Module):
 
             # Updates best losses
             # Saves the model if the loss of the generator ( position 0 ) improved
-            if curr_loss < self.best_loss:
-                self.best_loss = curr_loss
+            if curr_loss < self.best_losses:
+                self.best_losses = curr_loss
                 self.best_epoch = self.tot_epochs
-                print(f"New Best Loss {self.best_loss:.3f} at epoch {self.best_epoch}")
+                print(f"New Best Loss {self.best_losses:.3f} at epoch {self.best_epoch}")
                 self.save_model(f"{output_path}/model.pth")
                 triggertimes = 0
             else:
