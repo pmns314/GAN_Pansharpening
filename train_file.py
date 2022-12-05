@@ -6,59 +6,28 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANs import *
-from pytorch_models.CNNs import *
+from pytorch_models.GANS import GANS
+from pytorch_models.CNNS import CNNS
 from utils import recompose
 
 
 def create_model(name: str, channels, device="cpu", **kwargs):
     name = name.strip().upper()
-    if name == "APNN":
-        model = APNN(channels, device)
-        model.compile()
+    try:
+        return GANS[name].value(channels, device)
+    except KeyError:
+        pass
+
+    try:
+        model = CNNS[name].value(channels, device)
+        loss_fn = kwargs['loss_fn'] if "loss_fn" in kwargs else None
+        optimizer = kwargs['optimizer'] if "optimizer" in kwargs else None
+        model.compile(loss_fn, optimizer)
         return model
-    if name == "BDPN":
-        model = BDPN(channels, device)
-        model.compile()
-        return model
-    if name == "DRPNN":
-        model = DRPNN(channels, device)
-        model.compile()
-        return model
-    if name == "PANNET":
-        model = PanNet(channels, device)
-        model.compile()
-        return model
-    if name == "PNN":
-        model = PNN(channels, device)
-        model.compile()
-        return model
-    if name == "DICNN":
-        model = DiCNN(channels, device)
-        model.compile()
-        return model
-    if name == "FUSIONNET":
-        model = FusionNet(channels, device)
-        model.compile()
-        return model
-    if name == "MSDCNN":
-        model = MSDCNN(channels, device)
-        model.compile()
-        return model
-    if name == "PSGAN":
-        return PSGAN(channels, device)
-    elif name == "FUPSGAN":
-        return FUPSGAN(channels, device)
-    elif name == "STPSGAN":
-        return STPSGAN(channels, device)
-    elif name == "PANGAN":
-        train_spat_disc = kwargs['train_spat_disc']
-        use_highpass = kwargs['use_highpass']
-        return PanGan(channels, device, train_spat_disc=train_spat_disc, use_highpass=use_highpass)
-    elif name == "PANCOLORGAN":
-        return PanColorGan(channels, device)
-    else:
-        raise KeyError("Model not Defined")
+    except KeyError:
+        pass
+
+    raise KeyError("Model not defined!")
 
 
 def create_test_dict(path, filename):

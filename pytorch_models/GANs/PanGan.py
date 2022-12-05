@@ -26,7 +26,7 @@ def high_pass(img, device='cpu'):
 
 
 class PanGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False, use_highpass=True):
+    def __init__(self, channels, device="cpu", name="PanGan"):
         super(PanGan, self).__init__(name=name, device=device)
 
         self.generator = PanGan.Generator(channels)
@@ -47,8 +47,6 @@ class PanGan(GanInterface, ABC):
 
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
-        self.use_spatial = train_spat_disc
-        self.use_highpass = use_highpass
 
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
@@ -173,21 +171,14 @@ class PanGan(GanInterface, ABC):
 
         averaged = torch.mean(generated, 1, keepdim=True)
 
-        # Spatial Loss
-        sp_loss = self.best_losses[1]
-        # set initial to an arbitrary non-zero value so that training using the spatial disc will give a minor loss
-        L_spatial = 1000 if sp_loss == np.inf else sp_loss
-        if self.use_spatial:
-            if self.use_highpass:
-                details_generated = high_pass(averaged, self.device)
-                details_original = high_pass(pan, self.device)
-                L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
-            else:
-                L_spatial_base = self.mse(pan, averaged)  # g spatial loss
-            # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
-            spatial_neg = self.spatial_discriminator(averaged)
-            L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-            L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
+        details_generated = high_pass(averaged, self.device)
+        details_original = high_pass(pan, self.device)
+        L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
+
+        # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
+        spatial_neg = self.spatial_discriminator(averaged)
+        L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
+        L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
 
         # Spectral Loss
         L_spectral_base = self.mse(generated, ms)  # g spectrum loss
@@ -227,15 +218,14 @@ class PanGan(GanInterface, ABC):
             self.spatial_discriminator.zero_grad()
             self.spectral_discriminator.zero_grad()
 
-            if self.use_spatial:
-                # Spatial Discriminator
-                self.optimizer_spatial_disc.zero_grad()
-                loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
-                loss_spatial.backward()
-                self.optimizer_spatial_disc.step()
-                loss = loss_spatial.item()
-                torch.cuda.empty_cache()
-                loss_d_spat_batch += loss
+            # Spatial Discriminator
+            self.optimizer_spatial_disc.zero_grad()
+            loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
+            loss_spatial.backward()
+            self.optimizer_spatial_disc.step()
+            loss = loss_spatial.item()
+            torch.cuda.empty_cache()
+            loss_d_spat_batch += loss
 
             # Spectral Discriminator
             self.optimizer_spectral_disc.zero_grad()
@@ -291,9 +281,8 @@ class PanGan(GanInterface, ABC):
                     pan = torch.unsqueeze(pan, 0)
                 generated_HRMS = self.generate_output(pan, ms=ms)
 
-                if self.use_spatial:
-                    d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
-                    loss_d_spat_batch += d_spat_loss.item()
+                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                loss_d_spat_batch += d_spat_loss.item()
 
                 d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
                 loss_d_spec_batch += d_spec_loss.item()
