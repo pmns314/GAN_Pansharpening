@@ -7,7 +7,6 @@ from torch.nn import LeakyReLU
 
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.GANs.PanGan import PanGan
 
 
 class PSGAN(GanInterface, ABC):

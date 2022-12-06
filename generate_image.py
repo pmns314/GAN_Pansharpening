@@ -11,12 +11,13 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from train_gan import create_model
+from train_file import create_model
 from utils import *
 
 
 def gen_image(model_name, show_image=False, model_file="model.pth"):
     model_path1 = f"{model_path}/{satellite}/{model_type}/{model_name}/{model_file}"
+
     index_test = 2
     test_set_path = f"{dataset_path}/FR/{satellite}/test_{index_test}_512.h5"
 
@@ -26,14 +27,12 @@ def gen_image(model_name, show_image=False, model_file="model.pth"):
                                      batch_size=64,
                                      shuffle=False)
 
-        model = create_model(model_type, test_dataloader.dataset.channels, device=device, train_spat_disc=None,
-                             use_highpass=None)
+        model = create_model(model_type, test_dataloader.dataset.channels, device=device)
 
         # Load Pre trained Model
-        trained_model = torch.load(model_path1, map_location=torch.device(device))
-        model.generator.load_state_dict(trained_model['gen_state_dict'])
+        model.load_model(model_path1)
         model.to(device)
-        print(f"Best Epoch : {trained_model['best_epoch']}")
+        print(f"Best Epoch : {model.best_epoch}")
         # Generation Images
         pan, ms, ms_lr, gt = next(enumerate(test_dataloader))[1]
 
