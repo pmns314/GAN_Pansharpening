@@ -30,7 +30,7 @@ def gen_image(model_name, show_image=False, model_file="model.pth"):
         model = create_model(model_type, test_dataloader.dataset.channels, device=device)
 
         # Load Pre trained Model
-        model.load_model(model_path1)
+        model.load_model(model_path1, weights_only=True)
         model.to(device)
         print(f"Best Epoch : {model.best_epoch}")
         # Generation Images

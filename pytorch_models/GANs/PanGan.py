@@ -309,11 +309,13 @@ class PanGan(GanInterface, ABC):
                     'tot_epochs': self.tot_epochs
                     }, f"{path}")
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.spatial_discriminator.load_state_dict(trained_model['spat_disc_state_dict'])
         self.spectral_discriminator.load_state_dict(trained_model['spec_disc_state_dict'])
+        if weights_only:
+            return
         self.optimizer_gen.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.optimizer_spatial_disc.load_state_dict(trained_model['spat_disc_optimizer_state_dict'])
         self.optimizer_spectral_disc.load_state_dict(trained_model['spec_disc_optimizer_state_dict'])

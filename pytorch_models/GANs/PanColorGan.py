@@ -22,7 +22,8 @@ class PanColorGan(GanInterface, ABC):
 
     # ------------------------- Specific GAN Methods -----------------------------------
     class ConvBlock(nn.Module):
-        def __init__(self, in_channels, out_channels, kernel, padding_mode="replicate", padding=0, stride=1, use_dropout=False):
+        def __init__(self, in_channels, out_channels, kernel, padding_mode="replicate", padding=0, stride=1,
+                     use_dropout=False):
             super().__init__()
             self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel, kernel),
                                   padding=(padding, padding), stride=(stride, stride), padding_mode=padding_mode,
@@ -43,7 +44,7 @@ class PanColorGan(GanInterface, ABC):
     class Generator(nn.Module):
 
         class UpConvBlock(nn.Module):
-            def __init__(self, in_channels, out_channels, kernel,padding=0, stride=1, out_padding=0):
+            def __init__(self, in_channels, out_channels, kernel, padding=0, stride=1, out_padding=0):
                 super().__init__()
                 self.conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels,
                                                kernel_size=(kernel, kernel), padding=(padding, padding),
@@ -334,10 +335,12 @@ class PanColorGan(GanInterface, ABC):
             'best_epoch': self.best_epoch
         }, f"{path}")
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
+        if weights_only:
+            return
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
         self.tot_epochs = trained_model['tot_epochs']

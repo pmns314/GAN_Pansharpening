@@ -9,7 +9,6 @@ from torch.utils.tensorboard import SummaryWriter
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
 from utils import recompose, linear_strech
-import matplotlib.pyplot as plt
 
 
 class NetworkInterface(ABC, nn.Module):
@@ -40,7 +39,7 @@ class NetworkInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         pass
 
     @abstractmethod

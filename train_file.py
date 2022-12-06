@@ -1,6 +1,7 @@
 import argparse
 import shutil
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -54,7 +55,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='apnn',
+                        default='psgan',
                         help='Provide type of the model. Defaults to PSGAN',
                         type=str
                         )
@@ -64,7 +65,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-s', '--satellite',
-                        default='W2',
+                        default='W3',
                         help='Provide satellite to use as training. Defaults to W3',
                         type=str
                         )
@@ -88,9 +89,10 @@ if __name__ == '__main__':
                         help='Path of the output folder',
                         type=str
                         )
-    parser.add_argument('-c', '--commit',
-                        action='store_true',
-                        help='Boolean indicating if commit is to git is needed',
+    parser.add_argument('-b', '--base_path',
+                        default=None,
+                        help='Path of the model to use as basis of the training',
+                        type=str
                         )
     parser.add_argument('-f', '--force',
                         action='store_true',
@@ -104,14 +106,7 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if avoid using the validation set'
                         )
-    parser.add_argument('--train_spat_disc',
-                        action='store_true',
-                        help='Boolean indicating if training the spatial discriminator of the PanGan Network'
-                        )
-    parser.add_argument('--use_highpass',
-                        action='store_true',
-                        help='Boolean indicating if training using the spatial details of the PanGan Network'
-                        )
+
     args = parser.parse_args()
 
     file_name = args.name_model
@@ -122,11 +117,9 @@ if __name__ == '__main__':
     lr = args.learning_rate
     resume_flag = args.resume
     output_base_path = args.output_path
-    flag_commit = args.commit
     use_rr = args.rr
     no_val = args.no_val
-    train_spat_disc = args.train_spat_disc
-    use_highpass = args.use_highpass
+    base_path = args.base_path
 
     data_resolution = "RR" if use_rr else "FR"
 
@@ -153,9 +146,7 @@ if __name__ == '__main__':
                                 batch_size=64, shuffle=False)
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device,
-                         train_spat_disc=train_spat_disc,
-                         use_highpass=use_highpass)
+    model = create_model(type_model, train_dataloader.dataset.channels, device)
     model.to(device)
 
     output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
@@ -171,6 +162,10 @@ if __name__ == '__main__':
         model.load_model(f"{chk_path}/checkpoint_{latest_checkpoint}.pth")
         model.best_losses = best_losses
     else:
+        if base_path is not None:
+            print(f"Using weights from {base_path}")
+            model.load_model(base_path, weights_only=True)
+
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
         os.makedirs(output_path)

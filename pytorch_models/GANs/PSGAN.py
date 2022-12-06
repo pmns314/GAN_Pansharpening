@@ -300,10 +300,12 @@ class PSGAN(GanInterface, ABC):
             'tot_epochs': self.tot_epochs
         }, f"{path}")
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
+        if weights_only:
+            return
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]

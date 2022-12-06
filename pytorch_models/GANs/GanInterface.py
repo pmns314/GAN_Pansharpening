@@ -24,7 +24,7 @@ class GanInterface(NetworkInterface):
         pass
 
     @abstractmethod
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         pass
 
     @abstractmethod

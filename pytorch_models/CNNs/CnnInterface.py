@@ -87,9 +87,11 @@ class CnnInterface(NetworkInterface):
             'tot_epochs': self.tot_epochs
         }, path)
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.load_state_dict(trained_model['model_state_dict'])
+        if weights_only:
+            return
         self.opt.load_state_dict(trained_model['optimizer_state_dict'])
         self.loss_fn = trained_model['loss_fn']
         self.tot_epochs = trained_model['tot_epochs']
