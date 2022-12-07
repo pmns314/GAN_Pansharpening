@@ -107,6 +107,24 @@ if __name__ == '__main__':
                         help='Boolean indicating if avoid using the validation set'
                         )
 
+    parser.add_argument('--source_dataset',
+                        help='Choose from Train, Train&Val, Train&Val&Test and Test',
+                        type=str,
+                        default=["Train", "Test", "Test"]
+                        )
+    parser.add_argument('--index_images',
+                        help='Indexes',
+                        type=int,
+                        nargs="+",
+                        default=[1, 1, 1]
+                        )
+    parser.add_argument('--patch_size',
+                        help='Set Patch Sizes',
+                        type=int,
+                        nargs="+",
+                        default=[64, 64, 512]
+                        )
+
     args = parser.parse_args()
 
     file_name = args.name_model
@@ -120,14 +138,9 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
     base_path = args.base_path
-
-    data_resolution = "RR" if use_rr else "FR"
-
-    train_dataset = f"train_1_64.h5"
-    val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_1_64.h5"
-    test_dataset2 = f"test_2_64.h5"
-    test_dataset_FR = f"test_2_512.h5"
+    source_dataset = args.source_dataset
+    index_images = args.index_images
+    patch_size = args.patch_size
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -139,15 +152,26 @@ if __name__ == '__main__':
         total_memory = torch.cuda.mem_get_info()[1]
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
-    # Data Loading
-    train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{train_dataset}"),
-                                  batch_size=64, shuffle=True)
+    dataset_settings = list(zip(source_dataset, index_images, patch_size))
+    data_resolution = "RR3" if use_rr else "FR3"
 
+    # Data Loading
+    cnt = 0
+    train_dataset = f"train_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+    train_dataloader = DataLoader(
+        DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{train_dataset}"),
+        batch_size=64, shuffle=True)
+    cnt += 1
+    no_val = True
     if no_val:
+        val_dataset = None
         val_dataloader = None
     else:
-        val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{val_dataset}"),
-                                    batch_size=64, shuffle=False)
+        val_dataset = f"val_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+        val_dataloader = DataLoader(
+            DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{val_dataset}"),
+            batch_size=64, shuffle=False)
+        cnt += 1
 
     # Model Creation
     model = create_model(type_model, train_dataloader.dataset.channels, device)
@@ -178,12 +202,17 @@ if __name__ == '__main__':
     model.set_optimizers_lr(lr)
 
     # Setting up index evaluation
-    tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
-                              f"{output_path}/test_0.csv"),
-             create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
-                              f"{output_path}/test_1.csv"),
-             create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
-                              f"{output_path}/test_FR.csv")]
+    tests = []
+    for cnt in range(cnt, len(dataset_settings) - 1):
+        test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+        tests.append(
+            create_test_dict(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
+                             f"{output_path}/test_{cnt}.csv"))
+    cnt += 1
+    test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+    tests.append(
+        create_test_dict(f"{dataset_path}/FR3/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
+                         f"{output_path}/test_{cnt}.csv"))
 
     # Model Training
     model.train_model(epochs,
@@ -195,15 +224,11 @@ if __name__ == '__main__':
     with open(f"{output_path}/report.txt", "w") as f:
         f.write(f"Network Type : {type_model}\n")
         f.write(f"Datasets Used: \n")
-        f.write(f"\t Training: {train_dataset}\n")
-        if not no_val:
-            f.write(f"\t Validation: {val_dataset}\n")
-        f.write(f"\t Test From Training: {test_dataset1}\n")
-        f.write(f"\t External Test: {test_dataset2}\n")
+        for ds in dataset_settings:
+            f.write(f"\t{ds[0]} - Image: {ds[1]} - Patch Size: {ds[2]}\n")
 
         if use_rr:
-            f.write(f"\nTrained at Reduced Resolution."
-                    f"\n\tDataset for testing at Full Resolution: {test_dataset_FR}\n")
+            f.write(f"\nTrained at Reduced Resolution.\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
         f.write(f"Best Loss: {model.best_losses[0]}\n")
