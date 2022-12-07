@@ -110,6 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--source_dataset',
                         help='Choose from Train, Train&Val, Train&Val&Test and Test',
                         type=str,
+                        nargs="+",
                         default=["Train", "Test", "Test"]
                         )
     parser.add_argument('--index_images',
