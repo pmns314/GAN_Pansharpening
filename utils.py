@@ -3,6 +3,7 @@ from math import sqrt
 
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 
 def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
@@ -15,6 +16,38 @@ def calc_padding_conv2d(input_size, kernel, stride, output_size):
 
 if __name__ == '__main__':
     print(calc_padding_conv2d(64, 3, 2, 32))
+
+
+def create_patches(img, dim_patch, stride):
+    dim_im_row, dim_im_col = img.shape[:2]
+    channels = img.shape[2]
+
+    if stride == 0:
+        stride = dim_patch
+    starts_row = range(0, dim_im_row - dim_patch + 1, stride)
+    stops_row = range(dim_patch, dim_im_row + 1, stride)
+    starts_col = range(0, dim_im_col - dim_patch + 1, stride)
+    stops_col = range(dim_patch, dim_im_col + 1, stride)
+
+    zz_row = list(zip(starts_row, stops_row))
+    zz_col = list(zip(starts_col, stops_col))
+
+    patches = np.empty((len(zz_row) * len(zz_col), dim_patch, dim_patch, channels))
+    cnt = 0
+    for start_row, end_row in zz_row:
+        for start_col, end_col in zz_col:
+            patches[cnt, :, :, :] = img[start_row:end_row, start_col:end_col, :]
+            cnt += 1
+
+    return patches
+
+
+def augment_data(original):
+    flip_ud = np.flip(original, 1)
+    flip_lr = np.flip(original, 2)
+    # flip_ud_lr = np.flip(original, (1, 2))
+
+    return np.concatenate((original, flip_ud, flip_lr))
 
 
 def recompose(img):
@@ -92,12 +125,52 @@ def norm_max_val(data):
     return data / 2048
 
 
-def highpass(data):
-    rs = np.zeros_like(data)
-    N = data.shape[0]
-    for i in range(N):
-        if len(data.shape) == 3:
-            rs[i, :, :] = data[i, :, :] - cv2.boxFilter(data[i, :, :], -1, (5, 5))
-        else:
-            rs[i, :, :, :] = data[i, :, :, :] - cv2.boxFilter(data[i, :, :, :], -1, (5, 5))
-    return rs
+import cv2
+
+# [N,M,~] = size(ImageToView);
+# NM = N*M;
+# for i=1:3
+#     b = reshape(double(uint16(ImageToView(:,:,i))),NM,1);
+#     [hb,levelb] = hist(b,max(b)-min(b));
+#     chb = cumsum(hb);
+#     t(1)=ceil(levelb(find(chb>NM*tol(i,1), 1 )));
+#     t(2)=ceil(levelb(find(chb<NM*tol(i,2), 1, 'last' )));
+#     b(b<t(1))=t(1);
+#     b(b>t(2))=t(2);
+#     b = (b-t(1))/(t(2)-t(1));
+#     ImageToView(:,:,i) = reshape(b,N,M);
+# end
+
+tol1 = [104, 103, 33]
+tol2 = [215, 664, 941]
+
+
+def linear_strech(data, calculate_limits=True):
+    global tol1
+    global tol2
+    N, M = data.shape[:2]
+    NM = N * M
+    data = (data * 2048).astype(int).astype(float)
+    for i in [0, 1, 2]:
+        band = (data[:, :, i]).flatten()
+
+        if calculate_limits:
+            hb, levelb = np.histogram(band, int(np.max(band) - np.min(band)))
+            chb = np.cumsum(hb)
+            tol1[i] = np.ceil(levelb[np.where(chb > NM * 0.01)[0][0]])
+            tol2[i] = np.ceil(levelb[np.where(chb < NM * 0.99)[0][-1]])
+
+        t_1 = tol1[i]
+        t_2 = tol2[i]
+        band[band < t_1] = t_1
+        band[band > t_2] = t_2
+        band = (band - t_1) / (t_2 - t_1)
+        data[:, :, i] = np.reshape(band, (N, M))
+
+    return data
+
+
+def view_image(data, calculate_limits=True):
+    xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+    plt.figure()
+    plt.imshow((xx[:, :, ::-1]))

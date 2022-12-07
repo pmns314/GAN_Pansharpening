@@ -124,7 +124,7 @@ class FUPSGAN(PSGAN):
         ms = kwargs['ms']
         ms_lr = kwargs['ms_lr']
         gt = kwargs['gt']
-        outputs = self.generator(pan, ms_lr)
+        outputs = self.generate_output(pan, ms_lr, evaluation=False)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
         # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
@@ -138,6 +138,11 @@ class FUPSGAN(PSGAN):
 
         return gen_loss
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms_lr = kwargs['ms_lr']
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, ms_lr)
         return self.generator(pan, ms_lr)
+

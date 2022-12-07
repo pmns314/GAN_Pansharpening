@@ -7,7 +7,6 @@ from torch.nn import LeakyReLU
 
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.GANs.PanGan import PanGan
 
 
 class PSGAN(GanInterface, ABC):
@@ -161,7 +160,7 @@ class PSGAN(GanInterface, ABC):
         ms = kwargs['ms']
         pan = kwargs['pan']
         gt = kwargs['gt']
-        outputs = self.generator(pan, ms)
+        outputs = self.generate_output(pan, ms=ms, evaluation=False)
         predict_fake = self.discriminator(ms, outputs)
         # From Code
         # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
@@ -301,18 +300,24 @@ class PSGAN(GanInterface, ABC):
             'tot_epochs': self.tot_epochs
         }, f"{path}")
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
+        if weights_only:
+            return
         self.gen_opt.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.disc_opt.load_state_dict(trained_model['disc_optimizer_state_dict'])
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
         self.best_epoch = trained_model['best_epoch']
         self.tot_epochs = trained_model['tot_epochs']
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
         ms = kwargs['ms']
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, ms)
         return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):

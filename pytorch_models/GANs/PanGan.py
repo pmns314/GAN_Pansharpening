@@ -26,7 +26,7 @@ def high_pass(img, device='cpu'):
 
 
 class PanGan(GanInterface, ABC):
-    def __init__(self, channels, device="cpu", name="PanGan", train_spat_disc=False, use_highpass=True):
+    def __init__(self, channels, device="cpu", name="PanGan"):
         super(PanGan, self).__init__(name=name, device=device)
 
         self.generator = PanGan.Generator(channels)
@@ -47,8 +47,6 @@ class PanGan(GanInterface, ABC):
 
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
-        self.use_spatial = train_spat_disc
-        self.use_highpass = use_highpass
 
         self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
@@ -56,6 +54,11 @@ class PanGan(GanInterface, ABC):
 
     # ------------------------- Specific GAN Methods -----------------------------------
     class Generator(nn.Module):
+        def init_weights(self, m):
+            if isinstance(m, nn.Conv2d):
+                torch.nn.init.trunc_normal_(m.weight, std=1e-3)
+                m.bias.data.fill_(0.0)
+
         def __init__(self, in_channels):
             super(PanGan.Generator, self).__init__()
 
@@ -66,8 +69,7 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
-            nn.init.trunc_normal_(self.block_1.weight, std=1e-3)
-            nn.init.constant_(self.block_1.bias, 0.0)
+            self.block_1.apply(self.init_weights)
 
             # Bx64+C+1xHxW ---> Bx32xHxW
             self.block_2 = nn.Sequential(
@@ -76,8 +78,7 @@ class PanGan(GanInterface, ABC):
                 nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
                 nn.ReLU()
             )
-            nn.init.trunc_normal_(self.block_2.weight, std=1e-3)
-            nn.init.constant_(self.block_2.bias, 0.0)
+            self.block_2.apply(self.init_weights)
 
             # Bx32+64+C+1  ---> BxCxHxW
             self.block_3 = nn.Sequential(
@@ -85,8 +86,7 @@ class PanGan(GanInterface, ABC):
                           padding="same", stride=(1, 1), bias=True, padding_mode="replicate"),
                 nn.Tanh()
             )
-            nn.init.trunc_normal_(self.block_3.weight, std=1e-3)
-            nn.init.constant_(self.block_3.bias, 0.0)
+            self.block_3.apply(self.init_weights)
 
         def forward(self, pan, ms):
             input_block_1 = torch.cat([ms, pan], 1)
@@ -171,19 +171,14 @@ class PanGan(GanInterface, ABC):
 
         averaged = torch.mean(generated, 1, keepdim=True)
 
-        # Spatial Loss
-        L_spatial = 1000  # set to an arbitrary non-zero value so that using the spatial disc will give a minor loss
-        if self.use_spatial:
-            if self.use_highpass:
-                details_generated = high_pass(averaged, self.device)
-                details_original = high_pass(pan, self.device)
-                L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
-            else:
-                L_spatial_base = self.mse(pan, averaged)  # g spatial loss
-            # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
-            spatial_neg = self.spatial_discriminator(averaged)
-            L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
-            L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
+        details_generated = high_pass(averaged, self.device)
+        details_original = high_pass(pan, self.device)
+        L_spatial_base = self.mse(details_original, details_generated)  # g spatial loss
+
+        # L_spatial_base = torch.mean(torch.square(torch.linalg.norm(averaged - pan)))  # g spatial loss
+        spatial_neg = self.spatial_discriminator(averaged)
+        L_adv2 = self.mse(spatial_neg, torch.ones_like(spatial_neg) * self.d)  # spatial_loss_ad
+        L_spatial = self.mu * L_spatial_base + self.mu * L_adv2
 
         # Spectral Loss
         L_spectral_base = self.mse(generated, ms)  # g spectrum loss
@@ -206,10 +201,8 @@ class PanGan(GanInterface, ABC):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            # ms_lr = ms_lr.to(self.device)
 
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
@@ -225,15 +218,14 @@ class PanGan(GanInterface, ABC):
             self.spatial_discriminator.zero_grad()
             self.spectral_discriminator.zero_grad()
 
-            if self.use_spatial:
-                # Spatial Discriminator
-                self.optimizer_spatial_disc.zero_grad()
-                loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
-                loss_spatial.backward()
-                self.optimizer_spatial_disc.step()
-                loss = loss_spatial.item()
-                torch.cuda.empty_cache()
-                loss_d_spat_batch += loss
+            # Spatial Discriminator
+            self.optimizer_spatial_disc.zero_grad()
+            loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
+            loss_spatial.backward()
+            self.optimizer_spatial_disc.step()
+            loss = loss_spatial.item()
+            torch.cuda.empty_cache()
+            loss_d_spat_batch += loss
 
             # Spectral Discriminator
             self.optimizer_spectral_disc.zero_grad()
@@ -252,7 +244,7 @@ class PanGan(GanInterface, ABC):
 
             # Compute prediction and loss
             self.optimizer_gen.zero_grad()
-            generated = self.generator(pan, ms)
+            generated = self.generate_output(pan, ms=ms, evaluation=False)
             loss_generator = self.generator_loss(pan, ms, generated)
 
             # Backpropagation
@@ -282,17 +274,15 @@ class PanGan(GanInterface, ABC):
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
-                ms_lr = ms_lr.to(self.device)
+
                 if len(pan.shape) != len(ms.shape):
                     pan = torch.unsqueeze(pan, 0)
                 generated_HRMS = self.generate_output(pan, ms=ms)
 
-                if self.use_spatial:
-                    d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
-                    loss_d_spat_batch += d_spat_loss.item()
+                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                loss_d_spat_batch += d_spat_loss.item()
 
                 d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
                 loss_d_spec_batch += d_spec_loss.item()
@@ -319,11 +309,13 @@ class PanGan(GanInterface, ABC):
                     'tot_epochs': self.tot_epochs
                     }, f"{path}")
 
-    def load_model(self, path):
+    def load_model(self, path, weights_only=False):
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.spatial_discriminator.load_state_dict(trained_model['spat_disc_state_dict'])
         self.spectral_discriminator.load_state_dict(trained_model['spec_disc_state_dict'])
+        if weights_only:
+            return
         self.optimizer_gen.load_state_dict(trained_model['gen_optimizer_state_dict'])
         self.optimizer_spatial_disc.load_state_dict(trained_model['spat_disc_optimizer_state_dict'])
         self.optimizer_spectral_disc.load_state_dict(trained_model['spec_disc_optimizer_state_dict'])
@@ -333,7 +325,11 @@ class PanGan(GanInterface, ABC):
                             trained_model['spat_disc_best_loss'],
                             trained_model['spec_disc_best_loss']]
 
-    def generate_output(self, pan, **kwargs):
+    def generate_output(self, pan, evaluation=True, **kwargs):
+        if evaluation:
+            self.generator.eval()
+            with torch.no_grad():
+                return self.generator(pan, kwargs['ms'])
         return self.generator(pan, kwargs['ms'])
 
     def set_optimizers_lr(self, lr):
