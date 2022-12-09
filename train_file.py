@@ -142,6 +142,7 @@ if __name__ == '__main__':
     source_dataset = args.source_dataset
     index_images = args.index_images
     patch_size = args.patch_size
+    assert len(patch_size) == len(index_images) == len(source_dataset)
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -163,7 +164,7 @@ if __name__ == '__main__':
         DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{train_dataset}"),
         batch_size=64, shuffle=True)
     cnt += 1
-    no_val = True
+
     if no_val:
         val_dataset = None
         val_dataloader = None
