@@ -15,13 +15,11 @@ from train_file import create_model
 from utils import *
 
 
-def gen_image(model_name, show_image=False, model_file="model.pth"):
+def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
     model_path1 = f"{model_path}/{satellite}/{model_type}/{model_name}/{model_file}"
 
-    index_test = 2
-    test_set_path = f"{dataset_path}/FR/{satellite}/test_{index_test}_512.h5"
+    test_set_path = f"{dataset_path}/FR3/Test/{satellite}/test_{index_test}_512.h5"
 
-    print(model_name)
     if os.path.exists(test_set_path):
         test_dataloader = DataLoader(DatasetPytorch(test_set_path),
                                      batch_size=64,
@@ -32,7 +30,6 @@ def gen_image(model_name, show_image=False, model_file="model.pth"):
         # Load Pre trained Model
         model.load_model(model_path1, weights_only=True)
         model.to(device)
-        print(f"Best Epoch : {model.best_epoch}")
         # Generation Images
         pan, ms, ms_lr, gt = next(enumerate(test_dataloader))[1]
 
@@ -50,7 +47,7 @@ def gen_image(model_name, show_image=False, model_file="model.pth"):
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                     th_values)
-        print(f"Q2n: {Q2n :.3f}\t Q_avg: {Q_avg:.3f}\t ERGAS: {ERGAS:.3f}\t SAM: {SAM:.3f}")
+        print(f"Q2n: {Q2n :.4f}\t Q_avg: {Q_avg:.4f}\t ERGAS: {ERGAS:.4f}\t SAM: {SAM:.4f}")
         print("mean abs diff : ", np.abs(np.round(np.mean(gt, (0, 1))) - np.round(np.mean(gen, (0, 1)))))
         # view_image(gt)
         # view_image(gen)
@@ -63,8 +60,10 @@ def gen_image(model_name, show_image=False, model_file="model.pth"):
 
         if not os.path.exists(f"{result_folder}/{satellite}/{model_type}"):
             os.makedirs(f"{result_folder}/{satellite}/{model_type}")
-        if not os.path.exists(f"{result_folder}/{satellite}/gt.tiff"):
-            io.imsave(f"{result_folder}/{satellite}/gt.tiff", gt, check_contrast=False)
+        if not os.path.exists(f"{result_folder}/{satellite}/gt_{index_test}.tif"):
+            # TODO : Matlab non legge bene i tiff
+            # io.imsave(f"{result_folder}/{satellite}/gt_{index_test}.tif", gt, check_contrast=False)
+            pass
 
         filename = f"{result_folder}/{satellite}/{model_type}/{model_name}_test_{index_test}.{data_out_format}"
         if os.path.exists(filename):
@@ -97,7 +96,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-s', '--satellite',
-                        default='W3',
+                        default='W2',
                         help='Provide satellite to use as training. Defaults to W3',
                         type=str
                         )
@@ -129,10 +128,18 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     data_out_format = "mat"
-    satellite = "W2"
-    model_type = "PSGAN"
-    model_name = "psganrr_v2.2"
-    gen_image(model_name, True, "checkpoint_500.pth")
+    index_test = 1
+    satellite = "W3"
+    model_type = "PanColorGan"
+
+    model_name = "pancolorgan_v3.0"
+    gen_image(model_name, index_test, True, "model.pth")
     exit(0)
     for model_name in os.listdir(f"{model_path}/{satellite}/{model_type}"):
-        gen_image(model_name)
+        if model_name == "test":
+            continue
+        try:
+            gen_image(model_name, index_test)
+        except RuntimeError as e:
+            print(e)
+            print(model_name)

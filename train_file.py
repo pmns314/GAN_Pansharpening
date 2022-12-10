@@ -209,12 +209,12 @@ if __name__ == '__main__':
         test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
         tests.append(
             create_test_dict(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
-                             f"{output_path}/test_{cnt}.csv"))
+                             f"{output_path}/test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.csv"))
     cnt += 1
     test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
     tests.append(
         create_test_dict(f"{dataset_path}/FR3/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
-                         f"{output_path}/test_{cnt}.csv"))
+                         f"{output_path}/test_FR.csv"))
 
     # Model Training
     model.train_model(epochs,
@@ -226,6 +226,7 @@ if __name__ == '__main__':
     with open(f"{output_path}/report.txt", "w") as f:
         f.write(f"Network Type : {type_model}\n")
         f.write(f"Datasets Used: \n")
+        f.write(f"\tSatellite: {satellite} \n")
         for ds in dataset_settings:
             f.write(f"\t{ds[0]} - Image: {ds[1]} - Patch Size: {ds[2]}\n")
 
