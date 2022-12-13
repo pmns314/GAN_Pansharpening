@@ -55,9 +55,10 @@ def recompose(img):
         return img
     n_patch = img.shape[0]
     dim_patch = img.shape[1]
+    channels = img.shape[3]
     original_height = int(sqrt(n_patch) * dim_patch)
     num_patch_per_row = original_height // dim_patch
-    out = np.zeros((original_height, original_height, 8), dtype='float32')
+    out = np.zeros((original_height, original_height, channels), dtype='float32')
 
     start_row = stop_row = 0
     start_col = stop_col = 0
