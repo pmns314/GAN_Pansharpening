@@ -342,7 +342,7 @@ class PanGan(GanInterface, ABC):
 
 
 if __name__ == '__main__':
-    from train_gan import create_test_dict
+    from train_file import create_test_dict
     from constants import DATASET_DIR
 
     x = create_test_dict(f"{DATASET_DIR}/FR/W3/test_1_256.h5", "xx")

@@ -56,7 +56,10 @@ if __name__ == '__main__':
                         )
     parser.add_argument('-t', '--type_model',
                         default='psgan',
-                        help='Provide type of the model. Defaults to PSGAN',
+                        help=f'Provide type of the model. Select one of the followings.\n'
+                             f'\tGANs Choices: {[e.name for e in GANS]}\n'
+                             f'\tCNNs Choices: {[e.name for e in CNNS]}\n'
+                             f'Defaults to PSGAN',
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
