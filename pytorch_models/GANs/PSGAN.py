@@ -40,7 +40,7 @@ class PSGAN(GanInterface, ABC):
                                        padding_mode=pad_mode, bias=True)
 
             # BxCxHxW  ---> Bx32xHxW
-            self.ms_enc_1 = nn.Conv2d(in_channels=8, out_channels=32, kernel_size=(3, 3), padding='same',
+            self.ms_enc_1 = nn.Conv2d(in_channels=channels, out_channels=32, kernel_size=(3, 3), padding='same',
                                       padding_mode=pad_mode, bias=True)
             # Bx32xHxW  ---> Bx32xHxW
             self.ms_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same',
