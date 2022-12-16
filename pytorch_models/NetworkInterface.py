@@ -146,6 +146,23 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
+        t = tests[-1]
+        gen = self.generate_output(pan=t['pan'].to(self.device),
+                                   ms=t['ms'].to(self.device),
+                                   ms_lr=t['ms_lr'].to(self.device),
+                                   evaluation=True)
+        gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
+        gen = recompose(gen)
+        np.clip(gen, 0, 1, out=gen)
+        gen = np.squeeze(gen) * 2048.0
+        gt = np.squeeze(t['gt']) * 2048.0
+
+        Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                    dim_cut,
+                                                    th_values)
+
+        print(f"Best Model Results:\n"
+              f"\t Q2n: {Q2n :.4f}  Q_avg:{Q_avg:.4f} ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")
     def test_model(self, dataloader):
         results: dict = self.validation_step(dataloader)
         print(f"Evaluation on Test Set: \n ")

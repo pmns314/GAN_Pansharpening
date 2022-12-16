@@ -48,7 +48,7 @@ class PanGan(GanInterface, ABC):
         self.best_losses = [np.inf, np.inf, np.inf]
         self.mse = torch.nn.MSELoss(reduction='mean')
 
-        self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001)
+        self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001, weight_decay=.99)
         self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
         self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
 
