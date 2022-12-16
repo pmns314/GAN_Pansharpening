@@ -111,11 +111,17 @@ class NetworkInterface(ABC, nn.Module):
                                                ms=t['ms'].to(self.device),
                                                ms_lr=t['ms_lr'].to(self.device),
                                                evaluation=True)
+                    gt = np.squeeze(t['gt']) * 2048.0
                     gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
+                    # Output Transformation
                     gen = recompose(gen)
                     np.clip(gen, 0, 1, out=gen)
                     gen = np.squeeze(gen) * 2048.0
-                    gt = np.squeeze(t['gt']) * 2048.0
+                    ms_lr = np.squeeze(t['ms_lr']) * 2048.0
+                    mgen = np.mean(gen, (0, 1))
+                    mgt = np.mean(ms_lr, (0, 1))
+                    gen = (gen / mgen) * mgt
+                    gen = np.round(gen)
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                                 dim_cut,
@@ -152,17 +158,25 @@ class NetworkInterface(ABC, nn.Module):
                                    ms_lr=t['ms_lr'].to(self.device),
                                    evaluation=True)
         gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
+        gt = np.squeeze(t['gt']) * 2048.0
+        # Output Transformation
         gen = recompose(gen)
         np.clip(gen, 0, 1, out=gen)
         gen = np.squeeze(gen) * 2048.0
-        gt = np.squeeze(t['gt']) * 2048.0
+        ms_lr = np.squeeze(t['ms_lr']) * 2048.0
+        mgen = np.mean(gen, (0, 1))
+        mgt = np.mean(ms_lr, (0, 1))
+        gen = (gen / mgen) * mgt
+        gen = np.round(gen)
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                     dim_cut,
                                                     th_values)
 
         print(f"Best Model Results:\n"
-              f"\t Q2n: {Q2n :.4f}  Q_avg:{Q_avg:.4f} ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")
+              f"\t Q2n: {Q2n :.4f}  Q_avg:{Q_avg:.4f}"
+              f" ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")
+
     def test_model(self, dataloader):
         results: dict = self.validation_step(dataloader)
         print(f"Evaluation on Test Set: \n ")

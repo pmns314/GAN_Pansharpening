@@ -55,7 +55,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='psgan',
+                        default='apnn',
                         help=f'Provide type of the model. Select one of the followings.\n'
                              f'\tGANs Choices: {[e.name for e in GANS]}\n'
                              f'\tCNNs Choices: {[e.name for e in CNNS]}\n'
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{train_dataset}"),
         batch_size=64, shuffle=True)
     cnt += 1
-
+    no_val=True
     if no_val:
         val_dataset = None
         val_dataloader = None
