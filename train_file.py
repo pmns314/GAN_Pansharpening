@@ -37,11 +37,10 @@ def create_test_dict(path, filename):
     pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
-    gt = torch.permute(gt, (0, 2, 3, 1))
     test_dict['pan'] = pan
     test_dict['ms'] = ms
     test_dict['ms_lr'] = ms_lr
-    test_dict['gt'] = recompose(torch.squeeze(gt).detach().numpy())
+    test_dict['gt'] = gt
     test_dict['filename'] = filename
     return test_dict
 
