@@ -77,11 +77,12 @@ def recompose(img):
 def adjust_image(img, ms_lr=None):
     img = torch.permute(img, (0, 2, 3, 1)).detach().cpu().numpy()
     img = recompose(img)
-    img = np.squeeze(img) * 2048.0
+    img = np.squeeze(img)
     if ms_lr is None:
-        return img
+        return img * 2048.0
 
     np.clip(img, 0, 1, out=img)
+    img = img * 2048.0
     ms_lr = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
     ms_lr = recompose(ms_lr)
     ms_lr = np.squeeze(ms_lr) * 2048.0
