@@ -74,6 +74,23 @@ def recompose(img):
     return out
 
 
+def adjust_image(img, ms_lr=None):
+    img = torch.permute(img, (0, 2, 3, 1)).detach().cpu().numpy()
+    img = recompose(img)
+    img = np.squeeze(img) * 2048.0
+    if ms_lr is None:
+        return img
+
+    np.clip(img, 0, 1, out=img)
+    ms_lr = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
+    ms_lr = recompose(ms_lr)
+    ms_lr = np.squeeze(ms_lr) * 2048.0
+    mgen = np.mean(img, (0, 1))
+    mgt = np.mean(ms_lr, (0, 1))
+    img = (img / mgen) * mgt
+    return np.round(img)
+
+
 def norm_min_max_channels(data, channels):
     for im in range(data.shape[0]):
         for i in range(channels):

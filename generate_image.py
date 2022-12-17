@@ -38,12 +38,8 @@ def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
 
         gen = model.generate_output(pan.to(device), evaluation=True, ms=ms.to(device), ms_lr=ms_lr.to(device))
         # From NxCxHxW to NxHxWxC
-        gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
-        gen = recompose(gen)
-        np.clip(gen, 0, 1, out=gen)
-        gen = np.squeeze(gen) * 2048.0
-
-        gt = np.squeeze(recompose(torch.squeeze(torch.permute(gt, (0, 2, 3, 1))).detach().numpy())) * 2048.0
+        gen = adjust_image(gen, ms_lr)
+        gt = adjust_image(gt)
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
                                                     th_values)

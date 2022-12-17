@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
-from utils import recompose, linear_strech
+from utils import recompose, linear_strech, adjust_image
 
 
 class NetworkInterface(ABC, nn.Module):
@@ -111,17 +111,8 @@ class NetworkInterface(ABC, nn.Module):
                                                ms=t['ms'].to(self.device),
                                                ms_lr=t['ms_lr'].to(self.device),
                                                evaluation=True)
-                    gt = np.squeeze(t['gt']) * 2048.0
-                    gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
-                    # Output Transformation
-                    gen = recompose(gen)
-                    np.clip(gen, 0, 1, out=gen)
-                    gen = np.squeeze(gen) * 2048.0
-                    ms_lr = np.squeeze(t['ms_lr']) * 2048.0
-                    mgen = np.mean(gen, (0, 1))
-                    mgt = np.mean(ms_lr, (0, 1))
-                    gen = (gen / mgen) * mgt
-                    gen = np.round(gen)
+                    gen = adjust_image(gen, t['ms_lr'])
+                    gt = adjust_image(t['gt'])
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                                 dim_cut,
@@ -157,17 +148,8 @@ class NetworkInterface(ABC, nn.Module):
                                    ms=t['ms'].to(self.device),
                                    ms_lr=t['ms_lr'].to(self.device),
                                    evaluation=True)
-        gen = torch.permute(gen, (0, 2, 3, 1)).detach().cpu().numpy()
-        gt = np.squeeze(t['gt']) * 2048.0
-        # Output Transformation
-        gen = recompose(gen)
-        np.clip(gen, 0, 1, out=gen)
-        gen = np.squeeze(gen) * 2048.0
-        ms_lr = np.squeeze(t['ms_lr']) * 2048.0
-        mgen = np.mean(gen, (0, 1))
-        mgt = np.mean(ms_lr, (0, 1))
-        gen = (gen / mgen) * mgt
-        gen = np.round(gen)
+        gen = adjust_image(gen, t['ms_lr'])
+        gt = adjust_image(t['gt'])
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                     dim_cut,
