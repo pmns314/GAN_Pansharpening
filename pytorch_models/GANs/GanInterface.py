@@ -5,6 +5,8 @@ from pytorch_models.NetworkInterface import NetworkInterface
 class GanInterface(NetworkInterface):
     def __init__(self, device, name):
         super().__init__(device, name)
+        self.adv_loss = None
+        self.rec_loss = None
 
     @property
     def name(self):
@@ -33,4 +35,8 @@ class GanInterface(NetworkInterface):
 
     @abstractmethod
     def set_optimizers_lr(self, lr):
+        pass
+
+    @abstractmethod
+    def define_losses(self, rec_loss=None, adv_loss=None):
         pass

@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
 
-import numpy as np
 import pandas as pd
-import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from constants import *
-from utils import recompose, linear_strech, adjust_image
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from utils import linear_strech, adjust_image
 
 
 class NetworkInterface(ABC, nn.Module):

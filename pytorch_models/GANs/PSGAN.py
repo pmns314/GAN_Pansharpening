@@ -7,6 +7,7 @@ from torch.nn import LeakyReLU
 
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
+from pytorch_models.adversarial_losses import PSGAN_loss
 
 
 class PSGAN(GanInterface, ABC):
@@ -160,40 +161,21 @@ class PSGAN(GanInterface, ABC):
         pan = kwargs['pan']
         gt = kwargs['gt']
         outputs = self.generate_output(pan, ms=ms, evaluation=False)
-        predict_fake = self.discriminator(ms, outputs)
-        # From Code
-        # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
-        # gen_loss_L1 = tf.reduce_mean(tf.math.abs(gt - outputs))
-        # gen_loss = gen_loss_GAN * self.alpha + gen_loss_L1 * self.beta
+        pred_fake = self.discriminator(ms, outputs)
 
         # From Formula
-        gen_loss_GAN = torch.mean(-torch.log(predict_fake + EPS))  # Inganna il discriminatore
-        gen_loss_L1 = torch.mean(torch.abs(gt - outputs))  # Avvicina la risposta del generatore alla ground truth
+        gen_loss_GAN = self.adv_loss(pred_fake, torch.zeros_like(pred_fake))  # Inganna il discriminatore
+        gen_loss_L1 = self.rec_loss(gt, outputs)
+
         gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
         return gen_loss
 
     def loss_discriminator(self, ms, gt, output):
-        predict_fake = self.discriminator(torch.cat([ms, output], 1))
-        predict_real = self.discriminator(torch.cat([ms, gt], 1))
+        pred_fake = self.discriminator(torch.cat([ms, output], 1))
+        pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
-        # From Formula
-        # mean[ 1 - log(fake) + log(real) ]
-        # return torch.mean(
-        #     1 - torch.log(predict_fake + EPS) + torch.log(predict_real + EPS)
-        # )
-
-        # From Code
-        # return tf.reduce_mean(
-        #     -(
-        #             tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)
-        #     )
-        # )
-        return torch.mean(
-            -(
-                    torch.log(predict_real + EPS) + torch.log(1 - predict_fake + EPS)
-            )
-        )
+        return self.adv_loss(pred_real, pred_fake)
 
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
@@ -323,6 +305,10 @@ class PSGAN(GanInterface, ABC):
             g['lr'] = lr
         for g in self.disc_opt.param_groups:
             g['lr'] = lr
+
+    def define_losses(self, rec_loss=None, adv_loss=None):
+        self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
+        self.adv_loss = adv_loss if adv_loss is not None else PSGAN_loss()
 
 
 if __name__ == '__main__':

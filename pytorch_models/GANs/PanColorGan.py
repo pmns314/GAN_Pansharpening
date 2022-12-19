@@ -5,6 +5,7 @@ import torch
 from torch import nn
 
 from pytorch_models.GANs.GanInterface import GanInterface
+from pytorch_models.adversarial_losses import *
 
 
 class PanColorGan(GanInterface, ABC):
@@ -179,23 +180,7 @@ class PanColorGan(GanInterface, ABC):
         pred_fake = self.discriminator(fake_ab)
         pred_real = self.discriminator(real_ab)
 
-        ones = torch.ones_like(pred_fake)
-        zeros = torch.zeros_like(pred_fake)
-
-        # Label 1 for fake, Label 0 for real
-
-        # L_RaGAN(x1, x2) = loss( D(x1) - mean( D(x2) )
-        # Errore perchè classifica i fake come 0
-        loss_d_fake = self.mse(pred_fake - torch.mean(pred_real), zeros)
-        # Errore perchè classifica i real come 1
-        loss_d_real = self.mse(pred_real - torch.mean(pred_fake), ones)
-
-        # # Vanilla GAN
-        # # Errore perchè classifica i fake come 0
-        # loss_d_fake = self.mse(pred_fake, zeros)
-        # # Errore perchè classifica i real come 1
-        # loss_d_real = self.mse(pred_real, ones)
-        return (loss_d_real + loss_d_fake) / 2
+        return self.adv_loss(pred_real, pred_fake)
 
     def loss_generator(self, ms, pan, gt, generated):
 
@@ -205,20 +190,10 @@ class PanColorGan(GanInterface, ABC):
         pred_fake = self.discriminator(fake_ab)
         pred_real = self.discriminator(real_ab)
 
-        ones = torch.ones_like(pred_fake)
-        zeros = torch.zeros_like(pred_fake)
+        loss_adv = self.adv_loss(pred_fake, pred_real)
+        loss_rec = self.rec_loss(generated, gt)
 
-        # RAGAN
-        loss_g_real = self.mse(pred_real - torch.mean(pred_fake), zeros)
-        loss_g_fake = self.mse(pred_fake - torch.mean(pred_real), ones)
-        loss_g_gan = (loss_g_real + loss_g_fake) / 2
-
-        # # VANILLA GAN
-        # # Errore perchè i fake sono correttamente classificati come 1
-        # loss_g_gan = self.mse(pred_fake, ones)
-
-        loss_g_l1 = self.mae(generated, gt) * self.lambda_factor
-        loss_g = (loss_g_gan * self.weight_gan) + loss_g_l1
+        loss_g = (loss_adv * self.weight_gan) + loss_rec * self.lambda_factor
         return loss_g
 
     # ------------------------- Concrete Interface Methods -----------------------------
@@ -360,3 +335,7 @@ class PanColorGan(GanInterface, ABC):
             g['lr'] = lr
         for g in self.disc_opt.param_groups:
             g['lr'] = lr
+
+    def define_losses(self, rec_loss=None, adv_loss=None):
+        self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
+        self.adv_loss = adv_loss if adv_loss is not None else Ragan_Loss()
