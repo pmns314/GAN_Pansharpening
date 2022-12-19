@@ -149,8 +149,7 @@ class PSGAN(GanInterface, ABC):
                                       padding='same', padding_mode=pad_mode, bias=True)
             self.sigmoid = nn.Sigmoid()
 
-        def forward(self, generated, target):
-            inputs = torch.cat([generated, target], 1)  # B x 2*C x H x W
+        def forward(self, inputs):
             out = self.backbone(inputs)
             out = self.out_conv(out)
             out = self.sigmoid(out)
@@ -175,9 +174,8 @@ class PSGAN(GanInterface, ABC):
         return gen_loss
 
     def loss_discriminator(self, ms, gt, output):
-
-        predict_fake = self.discriminator(ms, output)
-        predict_real = self.discriminator(ms, gt)
+        predict_fake = self.discriminator(torch.cat([ms, output], 1))
+        predict_real = self.discriminator(torch.cat([ms, gt], 1))
 
         # From Formula
         # mean[ 1 - log(fake) + log(real) ]
