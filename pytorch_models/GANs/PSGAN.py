@@ -7,7 +7,7 @@ from torch.nn import LeakyReLU
 
 from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.adversarial_losses import PSGAN_loss
+from pytorch_models.adversarial_losses import MinimaxLoss
 
 
 class PSGAN(GanInterface, ABC):
@@ -160,12 +160,13 @@ class PSGAN(GanInterface, ABC):
         ms = kwargs['ms']
         pan = kwargs['pan']
         gt = kwargs['gt']
-        outputs = self.generate_output(pan, ms=ms, evaluation=False)
-        pred_fake = self.discriminator(ms, outputs)
+        output = self.generate_output(pan, ms=ms, evaluation=False)
+        pred_fake = self.discriminator(torch.cat([ms, output], 1))
+        pred_true = self.discriminator(torch.cat([ms, gt], 1))
 
         # From Formula
-        gen_loss_GAN = self.adv_loss(pred_fake, torch.zeros_like(pred_fake))  # Inganna il discriminatore
-        gen_loss_L1 = self.rec_loss(gt, outputs)
+        gen_loss_GAN = self.adv_loss(pred_fake, pred_true, True)  # Inganna il discriminatore
+        gen_loss_L1 = self.rec_loss(gt, output)
 
         gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
@@ -175,7 +176,7 @@ class PSGAN(GanInterface, ABC):
         pred_fake = self.discriminator(torch.cat([ms, output], 1))
         pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
-        return self.adv_loss(pred_real, pred_fake)
+        return self.adv_loss(pred_fake, pred_real)
 
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
@@ -308,7 +309,7 @@ class PSGAN(GanInterface, ABC):
 
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
-        self.adv_loss = adv_loss if adv_loss is not None else PSGAN_loss()
+        self.adv_loss = adv_loss if adv_loss is not None else MinimaxLoss()
 
 
 if __name__ == '__main__':

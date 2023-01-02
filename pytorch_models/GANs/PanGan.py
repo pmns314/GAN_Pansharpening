@@ -10,7 +10,7 @@ from torch.nn.functional import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pytorch_models.adversarial_losses import LSGAN_loss
+from pytorch_models.adversarial_losses import LSGAN_loss, Ragan_Loss
 
 
 def downsample(img, new_shape):
@@ -147,14 +147,14 @@ class PanGan(GanInterface, ABC):
 
     def discriminator_spatial_loss(self, pan, generated):
         averaged = torch.mean(generated, 1, keepdim=True)
-        pred_fake = self.discriminator(averaged)
-        pred_real = self.discriminator(pan)
-        return self.adv_loss(pred_real, pred_fake)
+        pred_fake = self.spatial_discriminator(averaged)
+        pred_real = self.spatial_discriminator(pan)
+        return self.adv_loss(pred_fake, pred_real)
 
     def discriminator_spectral_loss(self, ms, generated):
-        pred_fake = self.discriminator(generated)
-        pred_real = self.discriminator(ms)
-        return self.adv_loss(pred_real, pred_fake)
+        pred_fake = self.spectral_discriminator(generated)
+        pred_real = self.spectral_discriminator(ms)
+        return self.adv_loss(pred_fake, pred_real)
 
     def generator_loss(self, pan, ms, generated):
 
@@ -162,14 +162,17 @@ class PanGan(GanInterface, ABC):
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
 
-        L_rec_spatial = self.mse(details_original, details_generated)
-        L_rec_spectral = self.mse(generated, ms)
+        L_rec_spatial = self.rec_loss(details_original, details_generated)
+        L_rec_spectral = self.rec_loss(generated, ms)
 
-        pred_fake_spectr = self.discriminator(generated)
-        pred_fake_spat = self.discriminator(averaged)
+        pred_fake_spec = self.spectral_discriminator(generated)
+        pred_fake_spat = self.spatial_discriminator(averaged)
 
-        L_adv_spatial = self.adv_loss(pred_fake_spat, torch.zeros_like(averaged))
-        L_adv_spectral = self.adv_loss(pred_fake_spectr, torch.zeros_like(generated))
+        pred_real_spat = self.spatial_discriminator(pan)
+        pred_real_spec = self.spectral_discriminator(ms)
+
+        L_adv_spatial = self.adv_loss(pred_fake_spat, pred_real_spat, True)
+        L_adv_spectral = self.adv_loss(pred_fake_spec, pred_real_spec, True)
 
         L_spatial = self.mu * L_rec_spatial + self.mu * L_adv_spatial
         L_spectral = 1 * L_rec_spectral + 1 * L_adv_spectral

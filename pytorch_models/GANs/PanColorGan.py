@@ -180,7 +180,7 @@ class PanColorGan(GanInterface, ABC):
         pred_fake = self.discriminator(fake_ab)
         pred_real = self.discriminator(real_ab)
 
-        return self.adv_loss(pred_real, pred_fake)
+        return self.adv_loss(pred_fake, pred_real)
 
     def loss_generator(self, ms, pan, gt, generated):
 
@@ -190,7 +190,7 @@ class PanColorGan(GanInterface, ABC):
         pred_fake = self.discriminator(fake_ab)
         pred_real = self.discriminator(real_ab)
 
-        loss_adv = self.adv_loss(pred_fake, pred_real)
+        loss_adv = self.adv_loss(pred_fake, pred_real, True)
         loss_rec = self.rec_loss(generated, gt)
 
         loss_g = (loss_adv * self.weight_gan) + loss_rec * self.lambda_factor
