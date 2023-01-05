@@ -1,3 +1,5 @@
+from enum import Enum
+
 import torch.nn as nn
 import torch
 
@@ -87,3 +89,9 @@ class MinimaxLoss(nn.Module):
             return self.generator_loss(fake)
         else:
             return self.discriminator_loss(fake, real)
+
+
+class AdvLosses(Enum):
+    MINMAX = MinimaxLoss,
+    RAGAN = RaganLoss,
+    LSGAN = LsganLoss

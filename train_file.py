@@ -9,14 +9,16 @@ from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models.GANS import GANS
 from pytorch_models.CNNS import CNNS
+from pytorch_models.adversarial_losses import AdvLosses
 from utils import recompose
 
 
 def create_model(name: str, channels, device="cpu", **kwargs):
+
     name = name.strip().upper()
     try:
         model = GANS[name].value(channels, device)
-        loss_fn = kwargs['loss_fn'] if "loss_fn" in kwargs else None
+        loss_fn = AdvLosses[kwargs['adv_loss_fn'].strip().upper()].value() if "adv_loss_fn" in kwargs else None
         model.define_losses(adv_loss=loss_fn)
         return model
     except KeyError:
@@ -130,6 +132,11 @@ if __name__ == '__main__':
                         nargs="+",
                         default=[64, 64, 512]
                         )
+    parser.add_argument('-adv', '--adv_loss_fn',
+                        help=f'Provide type of adversarial loss. Select one of the followings.\n'
+                             f'\t minmax, lsgan, ragan. If unset, uses default',
+                        type=str
+                        )
 
     args = parser.parse_args()
 
@@ -147,6 +154,7 @@ if __name__ == '__main__':
     source_dataset = args.source_dataset
     index_images = args.index_images
     patch_size = args.patch_size
+    adv_loss_fn = args.adv_loss_fn
     assert len(patch_size) == len(index_images) == len(source_dataset)
 
     # Device Definition
@@ -169,7 +177,6 @@ if __name__ == '__main__':
         DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{train_dataset}"),
         batch_size=64, shuffle=True)
     cnt += 1
-    no_val=True
     if no_val:
         val_dataset = None
         val_dataloader = None
@@ -181,7 +188,7 @@ if __name__ == '__main__':
         cnt += 1
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device)
+    model = create_model(type_model, train_dataloader.dataset.channels, device, **vars(args))
     model.to(device)
 
     output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
