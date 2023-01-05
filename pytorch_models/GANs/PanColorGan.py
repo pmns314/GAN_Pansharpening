@@ -188,12 +188,16 @@ class PanColorGan(GanInterface, ABC):
         real_ab = torch.cat([ms, pan, gt], 1)
 
         pred_fake = self.discriminator(fake_ab)
-        pred_real = self.discriminator(real_ab)
+
+        if self.adv_loss.use_real_data:
+            pred_real = self.discriminator(real_ab)
+        else:
+            pred_real = None
 
         loss_adv = self.adv_loss(pred_fake, pred_real, True)
         loss_rec = self.rec_loss(generated, gt)
 
-        loss_g = (loss_adv * self.weight_gan) + loss_rec * self.lambda_factor
+        loss_g = loss_adv * self.weight_gan + loss_rec * self.lambda_factor
         return loss_g
 
     # ------------------------- Concrete Interface Methods -----------------------------
@@ -338,4 +342,4 @@ class PanColorGan(GanInterface, ABC):
 
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
-        self.adv_loss = adv_loss if adv_loss is not None else Ragan_Loss()
+        self.adv_loss = adv_loss if adv_loss is not None else RaganLoss()

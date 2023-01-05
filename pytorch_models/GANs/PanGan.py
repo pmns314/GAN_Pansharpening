@@ -10,7 +10,7 @@ from torch.nn.functional import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pytorch_models.adversarial_losses import LSGAN_loss, Ragan_Loss
+from pytorch_models.adversarial_losses import *
 
 
 def downsample(img, new_shape):
@@ -162,18 +162,25 @@ class PanGan(GanInterface, ABC):
         details_generated = high_pass(averaged, self.device)
         details_original = high_pass(pan, self.device)
 
+        # Reconstruction Loss
         L_rec_spatial = self.rec_loss(details_original, details_generated)
         L_rec_spectral = self.rec_loss(generated, ms)
 
+        # Adversarial Loss
         pred_fake_spec = self.spectral_discriminator(generated)
         pred_fake_spat = self.spatial_discriminator(averaged)
 
-        pred_real_spat = self.spatial_discriminator(pan)
-        pred_real_spec = self.spectral_discriminator(ms)
+        if self.adv_loss.use_real_data:
+            pred_real_spat = self.spatial_discriminator(pan.detach())
+            pred_real_spec = self.spectral_discriminator(ms.detach())
+        else:
+            pred_real_spat = None
+            pred_real_spec = None
 
         L_adv_spatial = self.adv_loss(pred_fake_spat, pred_real_spat, True)
         L_adv_spectral = self.adv_loss(pred_fake_spec, pred_real_spec, True)
 
+        # Total Loss
         L_spatial = self.mu * L_rec_spatial + self.mu * L_adv_spatial
         L_spectral = 1 * L_rec_spectral + 1 * L_adv_spectral
 
@@ -207,9 +214,10 @@ class PanGan(GanInterface, ABC):
             self.generator.train(False)
             self.spatial_discriminator.zero_grad()
             self.spectral_discriminator.zero_grad()
+            self.optimizer_spatial_disc.zero_grad()
+            self.optimizer_spectral_disc.zero_grad()
 
             # Spatial Discriminator
-            self.optimizer_spatial_disc.zero_grad()
             loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
             loss_spatial.backward()
             self.optimizer_spatial_disc.step()
@@ -218,7 +226,6 @@ class PanGan(GanInterface, ABC):
             loss_d_spat_batch += loss
 
             # Spectral Discriminator
-            self.optimizer_spectral_disc.zero_grad()
             loss_spectral = self.discriminator_spectral_loss(ms, generated_HRMS)
             loss_spectral.backward()
             self.optimizer_spectral_disc.step()
@@ -231,9 +238,9 @@ class PanGan(GanInterface, ABC):
             self.spectral_discriminator.train(False)
             self.generator.train(True)
             self.generator.zero_grad()
+            self.optimizer_gen.zero_grad()
 
             # Compute prediction and loss
-            self.optimizer_gen.zero_grad()
             generated = self.generate_output(pan, ms=ms, evaluation=False)
             loss_generator = self.generator_loss(pan, ms, generated)
 
@@ -332,7 +339,7 @@ class PanGan(GanInterface, ABC):
 
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.MSELoss(reduction='mean')
-        self.adv_loss = adv_loss if adv_loss is not None else LSGAN_loss()
+        self.adv_loss = adv_loss if adv_loss is not None else LsganLoss()
 
 
 if __name__ == '__main__':

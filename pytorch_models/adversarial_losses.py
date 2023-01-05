@@ -2,12 +2,12 @@ import torch.nn as nn
 import torch
 
 
-class Ragan_Loss(nn.Module):
+class RaganLoss(nn.Module):
     def __init__(self):
-        super(Ragan_Loss, self).__init__()
+        super(RaganLoss, self).__init__()
         self.mse = nn.MSELoss(reduction="mean")
         self.ones = None
-
+        self.use_real_data = True
         self.fake_label = 1  # Label for Fake Data
         self.real_label = 0  # Label for Real Data
 
@@ -29,12 +29,12 @@ class Ragan_Loss(nn.Module):
             return self.ragan_loss(real, fake)
 
 
-class LSGAN_loss(nn.Module):
+class LsganLoss(nn.Module):
     def __init__(self):
-        super(LSGAN_loss, self).__init__()
+        super(LsganLoss, self).__init__()
         self.mse = nn.MSELoss(reduction="mean")
         self.ones = None
-
+        self.use_real_data = False
         self.fake_label = 1  # Label for Fake Data
         self.real_label = 0  # Label for Real Data
 
@@ -49,7 +49,7 @@ class LSGAN_loss(nn.Module):
         fake_prob = self.mse(fake, self.ones * self.real_label)  # E[ (D(G(z)) - a)^2 ])
         true_prob = self.mse(real, self.ones * self.fake_label)  # E[ (D(x) - b)^2 ]
         tot_prob = true_prob + fake_prob
-        return torch.mean(-tot_prob)
+        return tot_prob * 0.5
 
     def forward(self, fake, real, is_generator=False):
         if self.ones is None or self.ones.shape != fake.shape:
@@ -65,6 +65,7 @@ class MinimaxLoss(nn.Module):
     def __init__(self):
         super(MinimaxLoss, self).__init__()
         self.EPS = 1e-12
+        self.use_real_data = False
 
     def generator_loss(self, fake):
         # Generator
@@ -81,8 +82,8 @@ class MinimaxLoss(nn.Module):
         tot_prob = true_prob + fake_prob
         return torch.mean(-tot_prob)
 
-    def forward(self, fake, real=None, is_generator=False):
-        if is_generator or self.ones.shape != fake.shape:
+    def forward(self, fake, real, is_generator=False):
+        if is_generator:
             return self.generator_loss(fake)
         else:
             return self.discriminator_loss(fake, real)

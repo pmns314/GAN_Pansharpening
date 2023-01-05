@@ -109,21 +109,22 @@ class NetworkInterface(ABC, nn.Module):
                                                ms=t['ms'].to(self.device),
                                                ms_lr=t['ms_lr'].to(self.device),
                                                evaluation=True)
-                    gen = adjust_image(gen, t['ms_lr'])
-                    gt = adjust_image(t['gt'])
-
-                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                                dim_cut,
-                                                                th_values)
-                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-                    df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                              mode='a', sep=";")
                     try:
+                        gen = adjust_image(gen, t['ms_lr'])
+                        gt = adjust_image(t['gt'])
+
+                        Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                                    dim_cut,
+                                                                    th_values)
+                        df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                        df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                                  mode='a', sep=";")
+
                         saving_image = linear_strech(gen[:, :, (0, 2, 4)])
                         writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
                                          dataformats='HWC')
                     except:
-                        pass
+                        print("error in calculating outputs")
 
             # if triggertimes >= patience:
             #     print("Early Stopping!")

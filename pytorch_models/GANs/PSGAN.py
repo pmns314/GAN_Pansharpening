@@ -162,7 +162,11 @@ class PSGAN(GanInterface, ABC):
         gt = kwargs['gt']
         output = self.generate_output(pan, ms=ms, evaluation=False)
         pred_fake = self.discriminator(torch.cat([ms, output], 1))
-        pred_true = self.discriminator(torch.cat([ms, gt], 1))
+
+        if self.adv_loss.use_real_data:
+            pred_true = self.discriminator(torch.cat([ms, gt], 1))
+        else:
+            pred_true = None
 
         # From Formula
         gen_loss_GAN = self.adv_loss(pred_fake, pred_true, True)  # Inganna il discriminatore
@@ -173,7 +177,7 @@ class PSGAN(GanInterface, ABC):
         return gen_loss
 
     def loss_discriminator(self, ms, gt, output):
-        pred_fake = self.discriminator(torch.cat([ms, output], 1))
+        pred_fake = self.discriminator(torch.cat([ms, output], 1).detach())
         pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
         return self.adv_loss(pred_fake, pred_real)
@@ -202,12 +206,12 @@ class PSGAN(GanInterface, ABC):
             self.discriminator.train(True)
             self.generator.train(False)
             self.discriminator.zero_grad()
+            self.disc_opt.zero_grad()
 
             # Compute prediction and loss
             loss_d = self.loss_discriminator(ms, gt, generated_HRMS)
 
             # Backpropagation
-            self.disc_opt.zero_grad()
             loss_d.backward()
             self.disc_opt.step()
 
@@ -220,12 +224,12 @@ class PSGAN(GanInterface, ABC):
             self.discriminator.train(False)
             self.generator.train(True)
             self.generator.zero_grad()
+            self.gen_opt.zero_grad()
 
             # Compute prediction and loss
             loss_g = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
 
             # Backpropagation
-            self.gen_opt.zero_grad()
             loss_g.backward()
             self.gen_opt.step()
 
