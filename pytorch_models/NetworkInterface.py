@@ -120,9 +120,9 @@ class NetworkInterface(ABC, nn.Module):
                         df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                                   mode='a', sep=";")
 
-                        saving_image = linear_strech(gen[:, :, (0, 2, 4)])
-                        writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
-                                         dataformats='HWC')
+                        # saving_image = linear_strech(gen[:, :, (0, 2, 4)])
+                        # writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
+                        #                  dataformats='HWC')
                     except:
                         print("error in calculating outputs")
 
