@@ -14,13 +14,12 @@ from utils import recompose
 
 
 def create_model(name: str, channels, device="cpu", **kwargs):
-
     name = name.strip().upper()
     try:
         model = GANS[name].value(channels, device)
         loss_fn = kwargs['adv_loss_fn'] if "adv_loss_fn" in kwargs else None
         if loss_fn != None:
-           loss_fn = AdvLosses[loss_fn.strip().upper()].value[0]()
+            loss_fn = AdvLosses[loss_fn.strip().upper()].value[0]()
         model.define_losses(adv_loss=loss_fn)
         return model
     except KeyError:
