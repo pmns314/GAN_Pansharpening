@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
+from pytorch_models.Losses import CharbonnierLoss
 
 
 class BDPN(CnnInterface, ABC):
@@ -86,5 +87,5 @@ class BDPN(CnnInterface, ABC):
         return output
 
     def compile(self, loss_fn=None, optimizer=None):
-        self.loss_fn = loss_fn if loss_fn is not None else charbonnier_loss
+        self.loss_fn = loss_fn if loss_fn is not None else CharbonnierLoss()
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

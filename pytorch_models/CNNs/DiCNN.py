@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
+from pytorch_models.Losses import FrobeniusLoss
 
 
 class DiCNN(CnnInterface, ABC):
@@ -30,5 +31,5 @@ class DiCNN(CnnInterface, ABC):
         return output
 
     def compile(self, loss_fn=None, optimizer=None):
-        self.loss_fn = loss_fn if loss_fn is not None else frobenius_loss
+        self.loss_fn = loss_fn if loss_fn is not None else FrobeniusLoss()
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())
