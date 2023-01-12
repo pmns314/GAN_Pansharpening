@@ -152,7 +152,7 @@ if __name__ == '__main__':
                              f'\t minmax, lsgan, ragan. If unset, uses default',
                         type=str
                         )
-    parser.add_argument('-adv', '--loss_fn',
+    parser.add_argument('-loss', '--loss_fn',
                         help=f'Provide type of reconstruction loss. Select one of the followings.\n'
                              f'\t ... . If unset, uses default',
                         type=str
