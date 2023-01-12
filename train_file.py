@@ -146,9 +146,15 @@ if __name__ == '__main__':
                         nargs="+",
                         default=[64, 64, 512]
                         )
+    # TODO : List  the alternatives
     parser.add_argument('-adv', '--adv_loss_fn',
                         help=f'Provide type of adversarial loss. Select one of the followings.\n'
                              f'\t minmax, lsgan, ragan. If unset, uses default',
+                        type=str
+                        )
+    parser.add_argument('-adv', '--loss_fn',
+                        help=f'Provide type of reconstruction loss. Select one of the followings.\n'
+                             f'\t ... . If unset, uses default',
                         type=str
                         )
 
