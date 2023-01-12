@@ -25,6 +25,7 @@ def create_model(name: str, channels, device="cpu", **kwargs):
         # Reconstruction Loss Definition
         rec_loss = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
         if rec_loss is not None:
+            print(rec_loss)
             rec_loss = Losses[rec_loss].value()
 
         model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
@@ -37,6 +38,7 @@ def create_model(name: str, channels, device="cpu", **kwargs):
         # Reconstruction Loss Definition
         loss_fn = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
         if loss_fn is not None:
+            print(loss_fn)
             loss_fn = Losses[loss_fn].value()
 
         optimizer = kwargs['optimizer'] if "optimizer" in kwargs else None
