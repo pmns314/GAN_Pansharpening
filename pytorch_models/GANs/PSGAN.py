@@ -7,7 +7,7 @@ from torch.nn import LeakyReLU
 
 
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.losses.MinmaxLoss import MinimaxLoss
+from pytorch_models.adversarial_losses import MinmaxLoss
 
 
 class PSGAN(GanInterface, ABC):
@@ -259,16 +259,21 @@ class PSGAN(GanInterface, ABC):
                 gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
-                ms_lr = ms_lr.to(self.device)
+
+                if self.use_ms_lr is False:
+                    multi_spectral = ms
+                else:
+                    multi_spectral = ms_lr.to(self.device)
+
                 if len(pan.shape) == 3:
                     pan = torch.unsqueeze(pan, 0)
 
-                generated = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+                generated = self.generate_output(pan, multi_spectral)
 
                 dloss = self.loss_discriminator(ms, gt, generated)
                 disc_loss += dloss.item()
 
-                gloss = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
+                gloss = self.loss_generator(ms, gt, generated)
                 gen_loss += gloss.item()
 
         return {"Gen loss": gen_loss / len(dataloader),
@@ -307,7 +312,7 @@ class PSGAN(GanInterface, ABC):
 
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
-        self.adv_loss = adv_loss if adv_loss is not None else MinimaxLoss()
+        self.adv_loss = adv_loss if adv_loss is not None else MinmaxLoss()
 
 
 if __name__ == '__main__':
