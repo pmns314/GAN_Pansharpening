@@ -3,6 +3,8 @@ from enum import Enum
 import torch.nn as nn
 import torch
 
+from quality_indexes_toolbox.q2n import q2n
+
 
 class RaganLoss(nn.Module):
     def __init__(self):
@@ -97,6 +99,15 @@ class MinimaxLoss(nn.Module):
             return self.generator_loss(fake)
         else:
             return self.discriminator_loss(fake, real)
+
+
+class Q2nLoss(nn.Module):
+    def __init__(self):
+        super(Q2nLoss, self).__init__()
+        self.Q_blocks = 32
+
+    def forward(self, fake, real):
+        return q2n(fake, real, self.Q_blocks, self.Q_blocks)
 
 
 class AdvLosses(Enum):

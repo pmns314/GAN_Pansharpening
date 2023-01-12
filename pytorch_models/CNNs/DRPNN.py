@@ -1,10 +1,5 @@
-import h5py
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from torch import nn
-from torch.optim import Adam
-from torch.utils.data import DataLoader
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
@@ -67,14 +62,6 @@ class DRPNN(CnnInterface):
 
         rs = self.conv2_final(rs)
         return rs
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
 
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')

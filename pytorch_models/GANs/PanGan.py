@@ -1,15 +1,10 @@
 from abc import ABC
 
-import torch
-from numpy import log2
-from torch import nn, optim
-
-from constants import EPS
-from pytorch_models.GANs.GanInterface import GanInterface
-from torch.nn.functional import interpolate
 import numpy as np
-import matplotlib.pyplot as plt
+from torch import optim
+from torch.nn.functional import interpolate
 
+from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import *
 
 
@@ -206,7 +201,7 @@ class PanGan(GanInterface, ABC):
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(pan, ms=ms)
+                generated_HRMS = self.generate_output(pan, ms)
 
             # ------------------- Training Discriminators ----------------------------
             self.spatial_discriminator.train(True)
@@ -241,7 +236,7 @@ class PanGan(GanInterface, ABC):
             self.optimizer_gen.zero_grad()
 
             # Compute prediction and loss
-            generated = self.generate_output(pan, ms=ms, evaluation=False)
+            generated = self.generate_output(pan, ms, evaluation=False)
             loss_generator = self.generator_loss(pan, ms, generated)
 
             # Backpropagation
@@ -276,7 +271,7 @@ class PanGan(GanInterface, ABC):
 
                 if len(pan.shape) != len(ms.shape):
                     pan = torch.unsqueeze(pan, 0)
-                generated_HRMS = self.generate_output(pan, ms=ms)
+                generated_HRMS = self.generate_output(pan, ms)
 
                 d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
                 loss_d_spat_batch += d_spat_loss.item()
@@ -321,13 +316,6 @@ class PanGan(GanInterface, ABC):
         self.best_losses = [trained_model['gen_best_loss'],
                             trained_model['spat_disc_best_loss'],
                             trained_model['spec_disc_best_loss']]
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        if evaluation:
-            self.generator.eval()
-            with torch.no_grad():
-                return self.generator(pan, kwargs['ms'])
-        return self.generator(pan, kwargs['ms'])
 
     def set_optimizers_lr(self, lr):
         for g in self.optimizer_gen.param_groups:

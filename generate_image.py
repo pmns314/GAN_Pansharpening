@@ -17,7 +17,6 @@ from utils import *
 
 def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
     model_path1 = f"{model_path}/{satellite}/{model_type}/{model_name}/{model_file}"
-
     test_set_path = f"{dataset_path}/FR3/Test/{satellite}/test_{index_test}_512.h5"
 
     if os.path.exists(test_set_path):
@@ -50,6 +49,7 @@ def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
         if show_image is True:
             view_image(np.concatenate([gt, gen], 1))
             plt.show()
+
         print(f"Saving {model_name}_test_{index_test}.{data_out_format}")
         if not os.path.exists(f"{result_folder}/{satellite}"):
             os.makedirs(f"{result_folder}/{satellite}")
@@ -124,18 +124,18 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     data_out_format = "mat"
-    index_test = 1
-    satellite = "W3"
-    model_type = "PanColorGan"
-
-    model_name = "pancolorgan_v3.0"
-    gen_image(model_name, index_test, True, "model.pth")
-    exit(0)
-    for model_name in os.listdir(f"{model_path}/{satellite}/{model_type}"):
-        if model_name == "test":
-            continue
-        try:
-            gen_image(model_name, index_test)
-        except RuntimeError as e:
-            print(e)
-            print(model_name)
+    index_test = 2
+    satellite = "W4"
+    model_type = "PanGan"
+    model_name = "apnn_v3.a"
+    # gen_image(model_name, index_test, True, "model.pth")
+    # exit(0)
+    for index_test in [1, 2, 3]:
+        for model_name in os.listdir(f"{model_path}/{satellite}/{model_type}"):
+            if model_name == "test":
+                continue
+            try:
+                gen_image(model_name, index_test)
+            except RuntimeError as e:
+                print(e)
+                print(model_name)

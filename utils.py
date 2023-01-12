@@ -86,7 +86,7 @@ def adjust_image(img, ms_lr=None):
     ms_lr = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
     ms_lr = recompose(ms_lr)
     ms_lr = np.squeeze(ms_lr) * 2048.0
-    mgen = np.mean(img, (0, 1))+ 1e-12
+    mgen = np.mean(img, (0, 1)) + 1e-12
     mgt = np.mean(ms_lr, (0, 1))
     img = (img / mgen) * mgt
     return np.round(img)
@@ -190,6 +190,10 @@ def linear_strech(data, calculate_limits=True):
 
 
 def view_image(data, calculate_limits=True):
-    xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+    channels = data.shape[2]
+    if channels == 8:
+        xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+    else:
+        xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
     plt.figure()
     plt.imshow((xx[:, :, ::-1]))

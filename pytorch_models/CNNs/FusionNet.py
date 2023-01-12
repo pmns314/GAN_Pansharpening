@@ -47,14 +47,6 @@ class FusionNet(CnnInterface, ABC):
         out = torch.add(rs, ms)
         return out
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
-
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

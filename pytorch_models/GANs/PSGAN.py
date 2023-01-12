@@ -156,12 +156,9 @@ class PSGAN(GanInterface, ABC):
             out = self.sigmoid(out)
             return out
 
-    def loss_generator(self, **kwargs):
-        ms = kwargs['ms']
-        pan = kwargs['pan']
-        gt = kwargs['gt']
-        output = self.generate_output(pan, ms=ms, evaluation=False)
-        pred_fake = self.discriminator(torch.cat([ms, output], 1))
+    def loss_generator(self, ms, gt, generated):
+
+        pred_fake = self.discriminator(torch.cat([ms, generated], 1))
 
         if self.adv_loss.use_real_data:
             pred_true = self.discriminator(torch.cat([ms, gt], 1))
@@ -170,14 +167,14 @@ class PSGAN(GanInterface, ABC):
 
         # From Formula
         gen_loss_GAN = self.adv_loss(pred_fake, pred_true, True)  # Inganna il discriminatore
-        gen_loss_L1 = self.rec_loss(gt, output)
+        gen_loss_L1 = self.rec_loss(gt, generated)
 
         gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
         return gen_loss
 
-    def loss_discriminator(self, ms, gt, output):
-        pred_fake = self.discriminator(torch.cat([ms, output], 1).detach())
+    def loss_discriminator(self, ms, gt, generated):
+        pred_fake = self.discriminator(torch.cat([ms, generated], 1).detach())
         pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
         return self.adv_loss(pred_fake, pred_real)
@@ -194,13 +191,17 @@ class PSGAN(GanInterface, ABC):
             gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            ms_lr = ms_lr.to(self.device)
+            if self.use_ms_lr is False:
+                multi_spectral = ms
+            else:
+                multi_spectral = ms_lr.to(self.device)
+
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+                generated_HRMS = self.generate_output(pan, multi_spectral)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
@@ -227,7 +228,8 @@ class PSGAN(GanInterface, ABC):
             self.gen_opt.zero_grad()
 
             # Compute prediction and loss
-            loss_g = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
+            generated = self.generate_output(pan, multi_spectral, evaluation=False)
+            loss_g = self.loss_generator(ms, gt, generated)
 
             # Backpropagation
             loss_g.backward()
@@ -296,14 +298,6 @@ class PSGAN(GanInterface, ABC):
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
         self.best_epoch = trained_model['best_epoch']
         self.tot_epochs = trained_model['tot_epochs']
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.generator.eval()
-            with torch.no_grad():
-                return self.generator(pan, ms)
-        return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):
         for g in self.gen_opt.param_groups:

@@ -1,8 +1,5 @@
-import os
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
@@ -65,14 +62,6 @@ class PanNet(CnnInterface):
 
         output = self.conv3(rs)  # Bsx8x64x64
         return output
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
 
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')

@@ -1,20 +1,25 @@
-import os
-import shutil
 from abc import ABC
-
-import numpy as np
 import torch
-from torch import nn, optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from dataset.DatasetPytorch import DatasetPytorch
-from constants import ROOT_DIR
+from torch import nn
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
 class APNN(CnnInterface, ABC):
+    """ Implementation of the A-PNN network"""
+
     def __init__(self, channels, device="cpu", name="APNN"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'APNN'
+        """
         super(APNN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
@@ -27,6 +32,15 @@ class APNN(CnnInterface, ABC):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, pan, ms):
+        """ Forwards the input data through the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image
+        ms : tensor
+            the multi spectral image
+        """
         inputs = torch.cat([ms, pan], 1)
         rs = self.conv1(inputs)
         rs = self.relu(rs)
@@ -38,15 +52,6 @@ class APNN(CnnInterface, ABC):
         out = ms + out
         return out
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
-
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.L1Loss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())
-

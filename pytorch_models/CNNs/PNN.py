@@ -25,14 +25,6 @@ class PNN(CnnInterface, ABC):
         out = self.conv3(rs)
         return out
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
-
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.L1Loss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

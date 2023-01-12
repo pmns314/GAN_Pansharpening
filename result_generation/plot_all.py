@@ -26,22 +26,27 @@ if __name__ == '__main__':
 
     satellite = args.satellite
     result_folder = args.results_path
-    index_test = 3
+    index_test = 1
     imgs = []
     to_show = []
     names = []
+    satellite = "W2"
+    force_model = None
+    main_title = "W2_Miam_Urb"
 
-    force_model = "PSGAN"
-    main_title = "PSGAN"
-
-    # names = ["img 3 FR", "img 3 RR", "img 1 RR"]
-    # to_show = ["pangan_v2.0",
-    #            "pangan_v2.1",
-    #            "pangan_v2.2",
-    #            "pangan_v2.3"
-    #            "pangan_v2.0"]
-    # imgs = [[] for _ in range(len(names))]
-    # assert len(names) == len(to_show) == len(imgs)
+    names = ["apnn", "PanGan", "PanGan TF", "PanColorGan", "PanColorGan TF",
+             "PSGAN", "PSGAN TF",
+             "PSGAN con GT"]
+    to_show = ["apnn_v2.b",
+               "pangan_v2.6",
+               "pangan_v3.7",
+               "pancolorgan_v2.5",
+               "pancolorgan_v3.4",
+               "psgan_v3.a",
+               "psgan_v3.9",
+               ]
+    imgs = [[] for _ in range(len(names))]
+    assert len(names) == len(to_show) == len(imgs)
 
     gt = io.imread(f"{result_folder}/{satellite}/gt_{index_test}.tif")
     gt = np.array(gt).astype("float32")
@@ -79,10 +84,10 @@ if __name__ == '__main__':
                                                         th_values)
 
             if len(to_show) > 0:
-                new_str = f"{names[index]}\nQ2n:{Q2n:.4f} SAM:{SAM:.4f}"
+                new_str = f"{names[index]} Q2n:{Q2n:.4f} SAM:{SAM:.4f}"
                 names[index] = new_str
             else:
-                new_str = f"{img_name[:-11]}\nQ2n:{Q2n:.4f} SAM:{SAM:.4f}"
+                new_str = f"{img_name[:-11]} Q2n:{Q2n:.4f} SAM:{SAM:.4f}"
                 names.append(new_str)
                 index += 1
             print(new_str)
@@ -90,19 +95,22 @@ if __name__ == '__main__':
     num_rows = int(np.ceil(np.sqrt(len(imgs))))
     num_cols = num_rows - 1 if len(imgs) <= num_rows ** 2 - num_rows else num_rows
 
-    lin_stretched = linear_strech(np.concatenate(imgs, 1)[:, :, (0, 2, 4)])
-    cnt = 1
-    plt.figure()
-    dim_img = gt.shape[0]
-    for i in range(len(imgs)):
-        plt.subplot(num_cols, num_rows, cnt)
-        img_to_show = lin_stretched[:, dim_img * i:dim_img * i + dim_img, :]
-        plt.imshow(img_to_show[:, :, ::-1])
-        plt.title(names[i])
-        plt.axis('off')
-        cnt += 1
+    for img in imgs:
+        assert img.shape == gt.shape
 
-    plt.suptitle(main_title)
+    # lin_stretched = linear_strech(np.concatenate(imgs, 1)[:, :, (0, 2, 4)])
+    # cnt = 1
+    # plt.figure()
+    # dim_img = gt.shape[0]
+    # for i in range(len(imgs)):
+    #     plt.subplot(num_cols, num_rows, cnt)
+    #     img_to_show = lin_stretched[:, dim_img * i:dim_img * i + dim_img, :]
+    #     plt.imshow(img_to_show[:, :, ::-1])
+    #     plt.title(names[i])
+    #     plt.axis('off')
+    #     cnt += 1
+    #
+    # plt.suptitle(main_title)
 
     ##################################################
     cnt = 1
@@ -111,13 +119,11 @@ if __name__ == '__main__':
     for i in range(len(imgs)):
         plt.subplot(num_cols, num_rows, cnt)
         img_to_show = linear_strech(imgs[i][:, :, (0, 2, 4)], i == 0)
-        #img_to_show = lin_stretched[:, dim_img * i:dim_img * i + dim_img, :]
         plt.imshow(img_to_show[:, :, ::-1])
         plt.title(names[i])
         plt.axis('off')
         cnt += 1
 
     plt.suptitle(main_title)
-
 
     plt.show()

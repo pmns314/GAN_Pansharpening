@@ -1,15 +1,8 @@
-import os
-import shutil
 from abc import ABC
 
-import numpy as np
 import torch
-from torch import nn, optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from dataset.DatasetPytorch import DatasetPytorch
-from constants import ROOT_DIR
+from torch import nn
+
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
@@ -78,14 +71,6 @@ class MSDCNN(CnnInterface, ABC):
         out = torch.add(deep_f, shallow_f)
         out = self.relu(out)
         return out
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
 
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')

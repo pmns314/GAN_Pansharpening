@@ -1,51 +1,116 @@
 from abc import ABC, abstractmethod
-
 import pandas as pd
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-
 from constants import *
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from utils import linear_strech, adjust_image
+from utils import adjust_image
 
 
 class NetworkInterface(ABC, nn.Module):
+    """ Common Interface for all the networks of the framework """
+
     def __init__(self, device, name):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        device : str
+            the device onto which train the network (either cpu or a cuda visible device)
+        name : str
+            the name of the network
+        """
+
         super().__init__()
         self._model_name = name
         self.best_losses: list = NotImplemented  # Must be defined by subclasses
         self.best_epoch = 0
         self.tot_epochs = 0
         self.device = device
+        self.use_ms_lr = False
         self.to(device)
 
     @property
     def name(self):
+        """ Returns the name of the network"""
         return self._model_name
 
     # ------------------ Abstract Methods -------------------------
     @abstractmethod
     def train_step(self, dataloader):
+        """ Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        """
         pass
 
     @abstractmethod
     def validation_step(self, dataloader):
+        """ Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        """
         pass
 
     @abstractmethod
     def save_model(self, path):
+        """ Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        """
         pass
 
     @abstractmethod
     def load_model(self, path, weights_only=False):
+        """ Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        """
         pass
 
     @abstractmethod
-    def generate_output(self, pan, evaluation=True, **kwargs):
+    def generate_output(self, pan, ms, evaluation=True):
+        """
+        Generates the output image of the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image fed to the network
+        ms : tensor
+            the multi spectral image fed to the network
+        evaluation: bool, optional
+            True if the network must be switched into evaluation mode, False otherwise (default is True)
+
+        """
         pass
 
     @abstractmethod
     def set_optimizers_lr(self, lr):
+        """ Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        """
         pass
 
     # ------------------------- Concrete Methods ------------------------------
@@ -53,6 +118,34 @@ class NetworkInterface(ABC, nn.Module):
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
                     tests=None):
+        """
+        Method for fitting the model.
+
+        For each epoch, the following operations are carried out:
+            1. Compute the Losses of Training Step ( and the validation step, if any).
+            2. Update the Tensorboard Log.
+            3. Update the Best losses of the network.
+
+            4. If checkpoint epoch:
+                1. Save model as checkpoint.
+                2. Evaluate Network for each of the provided tests saving results in csv file.
+        Finally, it evaluates the best model and prints the output.
+
+        Parameters
+        ----------
+        epochs : int
+            number of training epochs
+        output_path : str
+            model saving path
+        chk_path : str
+            checkpoints saving path
+        train_dataloader : torch.utils.data.DataLoader
+            Data loader of the Training Data
+        val_dataloader : torch.utils.data.DataLoader
+            Data loader of Validation Data
+        tests : dict, optional
+            Dictionary of test data
+        """
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
@@ -100,14 +193,14 @@ class NetworkInterface(ABC, nn.Module):
                 # Save Checkpoints
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
-                # Generation Indexes
+                # Generation Evaluation Indexes
                 for idx_test in range(len(tests)):
                     t = tests[idx_test]
                     df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
 
                     gen = self.generate_output(pan=t['pan'].to(self.device),
-                                               ms=t['ms'].to(self.device),
-                                               ms_lr=t['ms_lr'].to(self.device),
+                                               ms=t['ms'].to(self.device) if self.use_ms_lr is False else t['ms_lr'].to(
+                                                   self.device),
                                                evaluation=True)
                     try:
                         gen = adjust_image(gen, t['ms_lr'])
@@ -119,10 +212,6 @@ class NetworkInterface(ABC, nn.Module):
                         df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
                         df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                                   mode='a', sep=";")
-
-                        # saving_image = linear_strech(gen[:, :, (0, 2, 4)])
-                        # writer.add_image(f'gen_img_test_{idx_test}', saving_image, self.tot_epochs,
-                        #                  dataformats='HWC')
                     except:
                         print("error in calculating outputs")
 
@@ -144,8 +233,8 @@ class NetworkInterface(ABC, nn.Module):
 
         t = tests[-1]
         gen = self.generate_output(pan=t['pan'].to(self.device),
-                                   ms=t['ms'].to(self.device),
-                                   ms_lr=t['ms_lr'].to(self.device),
+                                   ms=t['ms'].to(self.device) if self.use_ms_lr is False else t['ms_lr'].to(
+                                       self.device),
                                    evaluation=True)
         gen = adjust_image(gen, t['ms_lr'])
         gt = adjust_image(t['gt'])
@@ -159,6 +248,14 @@ class NetworkInterface(ABC, nn.Module):
               f" ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")
 
     def test_model(self, dataloader):
+        """
+        Tests the model calling the validation step on the input data
+
+        Parameters
+        ---------
+        dataloader : torch.utils.data.DataLoader
+            Data loader of Testing Data
+        """
         results: dict = self.validation_step(dataloader)
         print(f"Evaluation on Test Set: \n ")
         for k in results.keys():

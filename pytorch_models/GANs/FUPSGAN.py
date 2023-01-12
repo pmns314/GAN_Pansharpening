@@ -14,6 +14,7 @@ from pytorch_models.GANs.PSGAN import PSGAN
 class FUPSGAN(PSGAN):
     def __init__(self, channels, device='cpu', name="FUPSGAN"):
         super().__init__(channels, device=device, name=name)
+        self.use_ms_lr = True
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
@@ -119,30 +120,5 @@ class FUPSGAN(PSGAN):
             out = self.relu(out)
             return out
 
-    def loss_generator(self, **kwargs):
-        pan = kwargs['pan']
-        ms = kwargs['ms']
-        ms_lr = kwargs['ms_lr']
-        gt = kwargs['gt']
-        outputs = self.generate_output(pan, ms_lr, evaluation=False)
-        predict_fake = self.discriminator(ms, outputs)
-        # From Code
-        # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
-        # gen_loss_L1 = tf.reduce_mean(tf.math.abs(gt - outputs))
-        # gen_loss = gen_loss_GAN * self.alpha + gen_loss_L1 * self.beta
 
-        # From Formula
-        gen_loss_GAN = torch.mean(-torch.log(predict_fake + EPS))  # Inganna il discriminatore
-        gen_loss_L1 = torch.mean(torch.abs(gt - outputs))  # Avvicina la risposta del generatore alla ground truth
-        gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
-
-        return gen_loss
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms_lr = kwargs['ms_lr']
-        if evaluation:
-            self.generator.eval()
-            with torch.no_grad():
-                return self.generator(pan, ms_lr)
-        return self.generator(pan, ms_lr)
 

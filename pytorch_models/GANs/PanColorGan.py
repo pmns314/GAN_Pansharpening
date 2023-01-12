@@ -209,9 +209,6 @@ class PanColorGan(GanInterface, ABC):
         for batch, data in enumerate(dataloader):
             pan, ms, ms_lr, gt = data
 
-            gt = gt.to(self.device)
-            pan = pan.to(self.device)
-            ms = ms.to(self.device)
             ms_lr = ms_lr.to(self.device)
 
             # -------------- Data Manipolation
@@ -226,7 +223,7 @@ class PanColorGan(GanInterface, ABC):
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(ms_lr_gray, ms=ms_lr_up)
+                generated_HRMS = self.generate_output(ms_lr_gray, ms_lr_up)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
@@ -252,7 +249,7 @@ class PanColorGan(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
-            generated = self.generate_output(ms_lr_gray, ms=ms_lr_up, evaluation=False)
+            generated = self.generate_output(ms_lr_gray, ms_lr_up, evaluation=False)
             loss_g = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
 
             # Backpropagation
@@ -290,11 +287,11 @@ class PanColorGan(GanInterface, ABC):
                 # Convert MS_LR to Grayscale
                 ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
 
-                generated = self.generate_output(ms_lr_gray, ms=ms_lr_up)
+                generated = self.generate_output(ms_lr_gray, ms_lr_up)
                 dloss = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated)
                 disc_loss += dloss.item()
 
-                generated = self.generate_output(ms_lr_gray, ms=ms_lr_up)
+                # generated = self.generate_output(ms_lr_gray, ms_lr_up)
                 gloss = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
                 gen_loss += gloss.item()
 

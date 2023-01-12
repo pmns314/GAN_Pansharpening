@@ -39,6 +39,7 @@ class BDPN(CnnInterface, ABC):
         super(BDPN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
+        self.use_ms_lr = True
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=internal_channels, kernel_size=(3, 3), stride=(1, 1),
                                padding=(1, 1), bias=True)
         backbone1 = []
@@ -94,14 +95,6 @@ class BDPN(CnnInterface, ABC):
         output = torch.add(pan_feature_level1, ms_feature_up2)  # Nx8x64x64
 
         return output
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms_lr = kwargs['ms_lr']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms_lr)
-        return self(pan, ms_lr)
 
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else charbonnier_loss

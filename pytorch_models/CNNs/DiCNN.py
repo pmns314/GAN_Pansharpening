@@ -35,14 +35,6 @@ class DiCNN(CnnInterface, ABC):
         output = torch.add(output, ms)
         return output
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
-
     def compile(self, loss_fn=None, optimizer=None):
         self.loss_fn = loss_fn if loss_fn is not None else frobenius_loss
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())
