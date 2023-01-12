@@ -1,33 +1,44 @@
 import argparse
 import shutil
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANS import GANS
 from pytorch_models.CNNS import CNNS
-from pytorch_models.adversarial_losses import AdvLosses
-from utils import recompose
+from pytorch_models.GANS import GANS
+from pytorch_models.AdvLosses import AdvLosses
+from pytorch_models.Losses import Losses
 
 
 def create_model(name: str, channels, device="cpu", **kwargs):
     name = name.strip().upper()
     try:
         model = GANS[name].value(channels, device)
-        loss_fn = kwargs['adv_loss_fn'] if "adv_loss_fn" in kwargs else None
-        if loss_fn != None:
-            loss_fn = AdvLosses[loss_fn.strip().upper()].value[0]()
-        model.define_losses(adv_loss=loss_fn)
+
+        # Adversarial Loss Definition
+        adv_loss = kwargs['adv_loss_fn'].strip().upper() if "adv_loss_fn" in kwargs else None
+        if adv_loss is not None:
+            adv_loss = AdvLosses[adv_loss].value()
+
+        # Reconstruction Loss Definition
+        rec_loss = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
+        if rec_loss is not None:
+            rec_loss = Losses[rec_loss].value()
+
+        model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
         return model
     except KeyError:
         pass
 
     try:
         model = CNNS[name].value(channels, device)
-        loss_fn = kwargs['loss_fn'] if "loss_fn" in kwargs else None
+        # Reconstruction Loss Definition
+        loss_fn = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
+        if loss_fn is not None:
+            loss_fn = Losses[loss_fn].value()
+
         optimizer = kwargs['optimizer'] if "optimizer" in kwargs else None
         model.compile(loss_fn, optimizer)
         return model
@@ -155,7 +166,7 @@ if __name__ == '__main__':
     source_dataset = args.source_dataset
     index_images = args.index_images
     patch_size = args.patch_size
-    adv_loss_fn = args.adv_loss_fn
+
     assert len(patch_size) == len(index_images) == len(source_dataset)
 
     # Device Definition

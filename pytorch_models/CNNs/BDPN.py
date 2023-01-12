@@ -6,17 +6,6 @@ from torch import nn
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
-def charbonnier_loss(y_true, y_pred):
-    epsilon = 1e-6
-    x = y_true - y_pred
-
-    # loss = sqrt(x**2 + eps**2)
-    loss = torch.sqrt(torch.square(x) + epsilon)
-    # Mean over batch
-    loss = torch.mean(torch.mean(loss, [1, 2, 3]))
-    return loss
-
-
 class BDPN(CnnInterface, ABC):
     class ResBlock(nn.Module):
         def __init__(self, channel):

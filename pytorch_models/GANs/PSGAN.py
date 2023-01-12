@@ -5,9 +5,9 @@ import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
 
-from constants import EPS
+
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.adversarial_losses import MinimaxLoss
+from pytorch_models.losses.MinmaxLoss import MinimaxLoss
 
 
 class PSGAN(GanInterface, ABC):

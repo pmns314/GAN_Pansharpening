@@ -6,12 +6,6 @@ from torch import nn
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
-def frobenius_loss(y_true, y_pred):
-    tensor = y_pred - y_true
-    norm = torch.norm(tensor, p="fro")
-    return torch.mean(torch.square(norm))
-
-
 class DiCNN(CnnInterface, ABC):
 
     def __init__(self, channels, device="cpu", internal_channels=64, name="DiCNN"):
