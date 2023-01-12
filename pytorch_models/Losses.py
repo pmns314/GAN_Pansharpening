@@ -2,6 +2,7 @@ from enum import Enum
 import torch
 
 from quality_indexes_toolbox.q2n import q2n
+from utils import adjust_image
 
 
 class CharbonnierLoss(torch.nn.Module):
@@ -35,7 +36,9 @@ class Q2nLoss(torch.nn.Module):
         self.Qblocks_size = Qblocks_size
 
     def forward(self, y_true, y_pred):
-        Q2n_index = q2n(y_true, y_pred, self.Qblocks_size, self.Qblocks_size)
+        gen = adjust_image(y_pred)
+        gt = adjust_image(y_true)
+        Q2n_index = q2n(gt, gen, self.Qblocks_size, self.Qblocks_size)
         return -Q2n_index
 
 
