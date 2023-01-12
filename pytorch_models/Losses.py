@@ -1,6 +1,8 @@
 from enum import Enum
 import torch
 
+from quality_indexes_toolbox.q2n import q2n
+
 
 class CharbonnierLoss(torch.nn.Module):
     def __init__(self):
@@ -27,8 +29,19 @@ class FrobeniusLoss(torch.nn.Module):
         return torch.mean(torch.square(norm))
 
 
+class Q2nLoss(torch.nn.Module):
+    def __init__(self, Qblocks_size=32):
+        super(Q2nLoss, self).__init__()
+        self.Qblocks_size = Qblocks_size
+
+    def forward(self, y_true, y_pred):
+        Q2n_index = q2n(y_true, y_pred, self.Qblocks_size, self.Qblocks_size)
+        return -Q2n_index
+
+
 class Losses(Enum):
     MAE = torch.nn.L1Loss
     MSE = torch.nn.MSELoss
     CHARBONNIER = CharbonnierLoss
     FROBENIUS = FrobeniusLoss
+    Q2NLOSS = Q2nLoss
