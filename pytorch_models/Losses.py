@@ -1,8 +1,6 @@
 from enum import Enum
 import torch
-
-from quality_indexes_toolbox.q2n import q2n
-from utils import adjust_image
+from pytorch_msssim import ssim, ms_ssim
 
 
 class CharbonnierLoss(torch.nn.Module):
@@ -30,16 +28,28 @@ class FrobeniusLoss(torch.nn.Module):
         return torch.mean(torch.square(norm))
 
 
-class Q2nLoss(torch.nn.Module):
+class SSIMLoss(torch.nn.Module):
     def __init__(self, Qblocks_size=32):
-        super(Q2nLoss, self).__init__()
+        super(SSIMLoss, self).__init__()
         self.Qblocks_size = Qblocks_size
 
     def forward(self, y_true, y_pred):
-        gen = adjust_image(y_pred)
-        gt = adjust_image(y_true)
-        Q2n_index = q2n(gt, gen, self.Qblocks_size, self.Qblocks_size)
-        return -Q2n_index
+        y_pred = y_pred * 2048.0
+        y_true = y_true * 2048.0
+
+        return -ssim(y_pred, y_true)
+
+
+class MSSSIMLoss(torch.nn.Module):
+    def __init__(self, Qblocks_size=32):
+        super(MSSSIMLoss, self).__init__()
+        self.Qblocks_size = Qblocks_size
+
+    def forward(self, y_true, y_pred):
+        y_pred = y_pred * 2048.0
+        y_true = y_true * 2048.0
+
+        return -ms_ssim(y_pred, y_true)
 
 
 class Losses(Enum):
@@ -47,4 +57,5 @@ class Losses(Enum):
     MSE = torch.nn.MSELoss
     CHARBONNIER = CharbonnierLoss
     FROBENIUS = FrobeniusLoss
-    Q2NLOSS = Q2nLoss
+    SSIM = SSIMLoss
+    MSSSIM = MSSSIMLoss

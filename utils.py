@@ -73,7 +73,7 @@ def recompose(img):
         out[start_row:stop_row, start_col:stop_col, :] = img[i, :, :, :]
     return out
 
-
+from skimage.metrics import structural_similarity as ssim
 def adjust_image(img, ms_lr=None):
     img = torch.permute(img, (0, 2, 3, 1)).detach().cpu().numpy()
     img = recompose(img)
