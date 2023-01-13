@@ -1,6 +1,6 @@
 from enum import Enum
 import torch
-from pytorch_msssim import ssim, ms_ssim
+from pytorch_msssim import ssim
 
 
 class CharbonnierLoss(torch.nn.Module):
@@ -37,19 +37,8 @@ class SSIMLoss(torch.nn.Module):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
 
-        return -ssim(y_pred, y_true)
+        return 1-ssim(y_pred, y_true)
 
-
-class MSSSIMLoss(torch.nn.Module):
-    def __init__(self, Qblocks_size=32):
-        super(MSSSIMLoss, self).__init__()
-        self.Qblocks_size = Qblocks_size
-
-    def forward(self, y_true, y_pred):
-        y_pred = y_pred * 2048.0
-        y_true = y_true * 2048.0
-
-        return -ms_ssim(y_pred, y_true)
 
 
 class Losses(Enum):
@@ -58,4 +47,4 @@ class Losses(Enum):
     CHARBONNIER = CharbonnierLoss
     FROBENIUS = FrobeniusLoss
     SSIM = SSIMLoss
-    MSSSIM = MSSSIMLoss
+

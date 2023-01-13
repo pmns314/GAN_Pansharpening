@@ -207,23 +207,17 @@ class PanColorGan(GanInterface, ABC):
         loss_g_batch = 0
         loss_d_batch = 0
         for batch, data in enumerate(dataloader):
-            pan, ms, ms_lr, gt = data
+            _, ms, _, gt = data
 
-            ms_lr = ms_lr.to(self.device)
+            gt = gt.to(self.device)
+            ms = ms.to(self.device)
 
-            # -------------- Data Manipolation
-
-            # Downsample MS_LR
-            size = list(ms_lr.shape)
-            ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1 / 4, mode='bicubic', align_corners=False)
-            # Upsample MS_LR_LR
-            ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
-            # Convert MS_LR to Grayscale
-            ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
+            # Convert Original MS_LR to Grayscale
+            ms_lr_gray = torch.mean(gt, 1, keepdim=True)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(ms_lr_gray, ms_lr_up)
+                generated_HRMS = self.generate_output(ms_lr_gray, ms)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
@@ -231,7 +225,7 @@ class PanColorGan(GanInterface, ABC):
             self.discriminator.zero_grad()
 
             # Compute prediction and loss
-            loss_d = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated_HRMS)
+            loss_d = self.loss_discriminator(ms, ms_lr_gray, gt, generated_HRMS)
 
             # Backpropagation
             self.disc_opt.zero_grad()
@@ -249,8 +243,8 @@ class PanColorGan(GanInterface, ABC):
             self.generator.zero_grad()
 
             # Compute prediction and loss
-            generated = self.generate_output(ms_lr_gray, ms_lr_up, evaluation=False)
-            loss_g = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
+            generated = self.generate_output(ms_lr_gray, ms, evaluation=False)
+            loss_g = self.loss_generator(ms, ms_lr_gray, gt, generated)
 
             # Backpropagation
             self.gen_opt.zero_grad()
@@ -322,14 +316,6 @@ class PanColorGan(GanInterface, ABC):
         self.tot_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.generator.eval()
-            with torch.no_grad():
-                return self.generator(pan, ms)
-        return self.generator(pan, ms)
 
     def set_optimizers_lr(self, lr):
         for g in self.gen_opt.param_groups:

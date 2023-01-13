@@ -18,12 +18,12 @@ def create_model(name: str, channels, device="cpu", **kwargs):
         model = GANS[name].value(channels, device)
 
         # Adversarial Loss Definition
-        adv_loss = kwargs['adv_loss_fn'].strip().upper() if "adv_loss_fn" in kwargs else None
+        adv_loss = None if "adv_loss_fn" not in kwargs else kwargs['adv_loss_fn'].strip().upper()
         if adv_loss is not None:
             adv_loss = AdvLosses[adv_loss].value()
 
         # Reconstruction Loss Definition
-        rec_loss = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
+        rec_loss = None if "loss_fn" not in kwargs else kwargs['loss_fn'].strip().upper()
         if rec_loss is not None:
             print(rec_loss)
             rec_loss = Losses[rec_loss].value()
