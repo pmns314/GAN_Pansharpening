@@ -18,33 +18,33 @@ def create_model(name: str, channels, device="cpu", **kwargs):
         model = GANS[name].value(channels, device)
 
         # Adversarial Loss Definition
-        adv_loss = None if "adv_loss_fn" not in kwargs else kwargs['adv_loss_fn'].strip().upper()
+        adv_loss = None if kwargs['adv_loss_fn'] is None else kwargs['adv_loss_fn'].strip().upper()
         if adv_loss is not None:
             adv_loss = AdvLosses[adv_loss].value()
 
         # Reconstruction Loss Definition
-        rec_loss = None if "loss_fn" not in kwargs else kwargs['loss_fn'].strip().upper()
+        rec_loss = None if  kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
         if rec_loss is not None:
             print(rec_loss)
             rec_loss = Losses[rec_loss].value()
 
         model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
         return model
-    except KeyError:
+    except KeyError as e:
         pass
 
     try:
         model = CNNS[name].value(channels, device)
         # Reconstruction Loss Definition
-        loss_fn = kwargs['loss_fn'].strip().upper() if "loss_fn" in kwargs else None
+        loss_fn = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
         if loss_fn is not None:
             print(loss_fn)
             loss_fn = Losses[loss_fn].value()
 
-        optimizer = kwargs['optimizer'] if "optimizer" in kwargs else None
+        optimizer = None if kwargs['optimizer'] is None else "optimizer"
         model.compile(loss_fn, optimizer)
         return model
-    except KeyError:
+    except KeyError as e:
         pass
 
     raise KeyError("Model not defined!")
