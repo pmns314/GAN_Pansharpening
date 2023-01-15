@@ -94,12 +94,18 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if forcing GPU Max Memory allowed'
                         )
+    parser.add_argument('-num', '--num_test',
+                        default=1,
+                        help='Path of the output folder',
+                        type=int
+                        )
 
     args = parser.parse_args()
 
     model_name = args.name_model
     model_type = args.type_model
     satellite = args.satellite
+    index_test = args.num_test
     dataset_path = args.dataset_path
     result_folder = args.output_path
     model_path = args.model_path
@@ -109,10 +115,10 @@ if __name__ == '__main__':
 
     data_out_format = "mat"
 
-    index_test = 2
-    satellite = "W2"
-    model_type = "PanGan"
-    model_name = "pangan_v2.6"
+    # index_test = 2
+    # satellite = "W2"
+    # model_type = "PanGan"
+    # model_name = "pangan_v2.6"
 
     test_set_path = f"{dataset_path}/FR3/Test/{satellite}/test_{index_test}_512.h5"
     test_dataloader = DataLoader(DatasetPytorch(test_set_path),
