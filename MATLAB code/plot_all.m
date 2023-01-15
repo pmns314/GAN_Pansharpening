@@ -7,24 +7,28 @@ th_values = 0;
 ratio = 4.0;
 t = zeros(2,3);
 %%
-satellite = "W3/";
+
 result_folder = "../results/GANs/";
 
 imgs = [];
 to_show = [];
 names = ["GT","apnn", "PanGan", "PanGan TL", "PanColorGan", "PanColorGan TL",...
              "PSGAN", "PSGAN TL"];
-    to_show = ["apnn_v2.5",...
-               "pangan_v3.5",...
-               "pangan_v3.6",...
-               "pancolorgan_v2.2",...
-               "pancolorgan_v3.1",...
-               "psgan_v3.1",...
-               "psgan_v3.5",...
+
+channels=4;
+satellite = "W4/";
+index_test = 2;
+img_test = "W4_Mexi_Urb";
+    to_show = ["apnn_v3.a",...
+               "pangan_v3.h",...
+               "pangan_v3.m",...
+               "pancolorgan_v3.b",...
+               "pancolorgan_v3.c",...
+               "psgan_v3.h",...
+               "psgan_v3.l",...
                ];
 force_model = "None";
-main_title = "W3_Muni_Urb";
-index_test = 3;
+main_title = img_test;
 MatrixResults = zeros(numel(to_show),5);
 names_cpy = names;
 % names = {"GT", "FR con GT"};
@@ -34,13 +38,15 @@ names_cpy = names;
 % result = textscan( list, '%s', 'delimiter', '\n' );
 % fileList = result{1}
 
-imgs = zeros(length(names), 512,512,8);
+imgs = zeros(length(names), 512,512,channels);
 %assert length(names) == length(to_show) == length(imgs)
 index = 1;
-gt = imread(strcat(result_folder, satellite, "gt_",string(index_test),".tif"));
-imgs(index,:,:,:)= gt;
+load(strcat("../data/FR/", satellite, "/",main_title));
+%
+gt = double(I_GT);
 gt = double(gt);
-mgt = mean(gt, [1,2]);
+imgs(1,:,:,:) = gt;
+mgt = mean(I_MS_LR, [1,2]);
 [Q_avg, SAM, ERGAS, SCC, Q2n] = indexes_evaluation(gt, gt,...
             ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,th_values);
         MatrixResults(index, :) = [Q2n, Q_avg, SAM, ERGAS, SCC];
@@ -69,7 +75,7 @@ for k =3:numel(D)
         end
         end_img_name = extractBetween(img_name, 1, strlength(img_name)-11);
         end_img_name =end_img_name{1};
-        if length(to_show) > 0
+        if ~isempty(to_show)
             if ~(any(to_show == end_img_name))
                 continue
             else
@@ -88,12 +94,13 @@ for k =3:numel(D)
         gen = double(gen);
         mgen = mean(gen, [1,2]);
         gen = (gen./mgen).*mgt;
+        gen = double(round(gen));
         imgs(index,:,:,:) = gen;
         [Q_avg, SAM, ERGAS, SCC, Q2n] = indexes_evaluation(gen, gt,...
             ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,th_values);
         MatrixResults(index, :) = [Q2n, Q_avg, SAM, ERGAS, SCC];
         %print(names[index],Q2n, Q_avg, SAM,ERGAS)
-        if length(to_show) > 0
+        if ~isempty(to_show)
             img_title = sprintf("%s Q2n:%.4f SAM:%.4f",names(index), Q2n, SAM);
             names(index) = img_title;
         else
@@ -143,7 +150,7 @@ end
 % end
 
 f = figure();
-f.WindowState = 'maximized';
+%f.WindowState = 'maximized';
 sgtitle(replace(main_title, "_", " "))
 cnt = 1;
 for i=1:num_imgs
@@ -151,14 +158,14 @@ for i=1:num_imgs
     img_to_show = reshape(imgs(i,:,:,:), [sz_imgs(2), sz_imgs(3), sz_imgs(4)]);
     [img_to_show, t]= linear_stretch(img_to_show, i==1, t);
     imshow(img_to_show(:,:,3:-1:1))
-    title(names(i))
+    subtitle(names(i))
     axis('off')
     cnt = cnt+ 1;
 end
 
 %%
 table_results = array2table(MatrixResults, 'VariableNames', {'Q', 'Q_avg', 'SAM', 'ERGAS', 'SCC'}, 'RowNames',names_cpy);
-original_res = readtable("../results/alg_results_"+main_title+".xlsx", "ReadRowNames",true);
+original_res = readtable("../results/alg_results_"+img_test+".xlsx", "ReadRowNames",true);
 total_results = [original_res;table_results(2:end,:)]
-disp("Saving in " + main_title + ".xlsx file")
-writetable(total_results, main_title+".xlsx",'UseExcel',true,'WriteRowNames',true);
+disp("Saving in " + img_test + ".xlsx file")
+writetable(total_results, img_test+".xlsx",'UseExcel',true,'WriteRowNames',true);

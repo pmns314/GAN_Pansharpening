@@ -1,14 +1,16 @@
-clc, close all
-load("C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-Pansharpening\data\FR\W3\" + ...
-     "W3_Muni_Urb.mat")
-load("C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-Pansharpening\results\" + ...
-    "GANs\" + ...
-    "PSGAN\" + ...
-    "psganrr_test_3.mat")
+clear, clc, close all
+load("C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-Pansharpening\data\FR\" + ...
+     "GE\" + ...
+     "GE_Lond_Urb.mat")
+filename=("C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-Pansharpening\results\" + ...
+    "GANs\GE\" + ...
+    "PanColorGan\" + ...
+    "pancolorgan_v3.6_test_1.mat");
 
+load(filename);
 
-yy = compose_from_patches(gen_decomposed).*2048;
-gt = compose_from_patches(gt_decomposed).*2048;
+gt = I_GT ;
+gen = double(gen);
 %%
 s = size(I_GT);
 cut_num = s(1)/2;
@@ -22,10 +24,12 @@ location1                = [50 70 10 30];  %default: data6: [10 50 1 60]; data7:
 location2                = [20 38 10 50]; 
 [Q_avg, SAM, ERGAS, SCC, Q] = ...
     indexes_evaluation(...
-    yy,gt,ratio,L,Qblocks_size, ...
-    flag_cut_bounds,dim_cut,thvalues)
-fprintf("Q2n=%.3f Q_avg=%.3f SCC=%.3f SAM=%.3f  ERGAS=%.3f \n", Q, Q_avg, SCC, SAM, ERGAS)
-
-showImage8_zoomin(gt,printEPS,1,flag_cut_bounds,dim_cut,thvalues,L, location1, location2);
-showImage8_zoomin(yy,printEPS,1,flag_cut_bounds,dim_cut,thvalues,L, location1, location2);
+    gen,gt,ratio,L,Qblocks_size, ...
+    flag_cut_bounds,dim_cut,thvalues);
+fprintf("Q2n=%.4f Q_avg=%.4f SCC=%.4f SAM=%.4f  ERGAS=%.4f \n", Q, Q_avg, SCC, SAM, ERGAS)
+fprintf("%.4f %.4f %.4f %.4f %.4f \n", Q, Q_avg, SAM, ERGAS, SCC)
+fprintf("Differenza assoluta medie per canale\n")
+disp(reshape(abs(mean(gen, [1,2]) - mean(gt, [1,2])), [1,4]))
+showImage4_zoomin(gt,printEPS,1,flag_cut_bounds,dim_cut,thvalues,L, location1, location2);
+showImage4_zoomin(gen,printEPS,1,flag_cut_bounds,dim_cut,thvalues,L, location1, location2);
 disp("end")
