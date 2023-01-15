@@ -85,15 +85,6 @@ if __name__ == '__main__':
                         help='Path of the output folder',
                         type=str
                         )
-    parser.add_argument('-o', '--output_path',
-                        default=f"{ROOT_DIR}/results/GANs",
-                        help='Path of the output folder',
-                        type=str
-                        )
-    parser.add_argument('-f', '--force',
-                        action='store_true',
-                        help='Boolean indicating if forcing GPU Max Memory allowed'
-                        )
     parser.add_argument('-num', '--num_test',
                         default=1,
                         help='Path of the output folder',
@@ -107,7 +98,6 @@ if __name__ == '__main__':
     satellite = args.satellite
     index_test = args.num_test
     dataset_path = args.dataset_path
-    result_folder = args.output_path
     model_path = args.model_path
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
