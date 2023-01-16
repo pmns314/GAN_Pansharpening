@@ -31,11 +31,12 @@ def gen_image(show_image=False, model_file="model.pth"):
     gen = model.generate_output(pan.to(device), evaluation=True, ms=ms.to(device))
     # From NxCxHxW to NxHxWxC
     gen = adjust_image(gen, ms_lr)
-    gt = adjust_image(gt)
-
-    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
-                                                th_values)
-    print(f"Q2n: {Q2n :.4f}\t Q_avg: {Q_avg:.4f}\t ERGAS: {ERGAS:.4f}\t SAM: {SAM:.4f}")
+    print(f"Saving image from {model_file}")
+    # gt = adjust_image(gt)
+    #
+    # Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds, dim_cut,
+    #                                             th_values)
+    # print(f"Q2n: {Q2n :.4f}\t Q_avg: {Q_avg:.4f}\t ERGAS: {ERGAS:.4f}\t SAM: {SAM:.4f}")
 
     if show_image is True:
         view_image(np.concatenate([gt, gen], 1))
@@ -52,7 +53,7 @@ def gen_image(show_image=False, model_file="model.pth"):
     # imageio.v3.imwrite(filename, gen)
     # gen = np.transpose(gen, (2, 0, 1))
     if data_out_format == "mat":
-        savemat(f"../{folder_path}/checkpoints_output/{filename}", dict(gen=gen))
+        savemat(f"{folder_path}/checkpoints_output/{filename}", dict(gen=gen))
     else:
         io.imsave(filename, gen, check_contrast=False)
 
@@ -116,6 +117,6 @@ if __name__ == '__main__':
                                  shuffle=False)
     folder_path = f"{model_path}/{satellite}/{model_type}/{model_name}"
     model = create_model(model_type, test_dataloader.dataset.channels, device=device)
-    for file in os.listdir(f"../{folder_path}/checkpoints"):
+    for file in os.listdir(f"{folder_path}/checkpoints"):
         gen_image(False, file)
 
