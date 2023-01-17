@@ -1,9 +1,11 @@
 import copy
 from math import sqrt
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
+
+from pytorch_models import *
 
 
 def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
@@ -12,10 +14,6 @@ def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
 
 def calc_padding_conv2d(input_size, kernel, stride, output_size):
     return (((output_size - 1) * stride) + kernel - input_size) / 2
-
-
-if __name__ == '__main__':
-    print(calc_padding_conv2d(64, 3, 2, 32))
 
 
 def create_patches(img, dim_patch, stride):
@@ -73,7 +71,7 @@ def recompose(img):
         out[start_row:stop_row, start_col:stop_col, :] = img[i, :, :, :]
     return out
 
-from skimage.metrics import structural_similarity as ssim
+
 def adjust_image(img, ms_lr=None):
     img = torch.permute(img, (0, 2, 3, 1)).detach().cpu().numpy()
     img = recompose(img)
@@ -92,17 +90,6 @@ def adjust_image(img, ms_lr=None):
     return np.round(img)
 
 
-def norm_min_max_channels(data, channels):
-    for im in range(data.shape[0]):
-        for i in range(channels):
-            x = data[im, :, :, i]
-            ma = np.max(x)
-            mi = np.min(x)
-            x = (x - mi) / (ma - mi)
-            data[im, :, :, i] = x
-    return data
-
-
 def norm_min_max(data):
     data = copy.deepcopy(data)
     for im in range(data.shape[0]):
@@ -114,51 +101,21 @@ def norm_min_max(data):
     return data
 
 
-def norm_linalg(data):
-    return data / np.linalg.norm(data, keepdims=True)
-
-
 def norm_mean(data):
     data = copy.deepcopy(data)
-    if len(data.shape) == 4:
-        # Keras
-        means = np.mean(data, (0, 1, 2))
-        stds = np.std(data, (0, 1, 2))
-        data = (data - means) / stds
-    else:
-        # Pytorch
-        for l in range(data.shape[0]):
-            x = data[l, :, :]
-            x = (x - torch.mean(x, 0)) / torch.std(x, 0)
-            data[l, :, :] = x
+
+    # Pytorch
+    for l in range(data.shape[0]):
+        x = data[l, :, :]
+        x = (x - torch.mean(x, 0)) / torch.std(x, 0)
+        data[l, :, :] = x
+
     return data
-
-
-def inv_norm_mean(original, data):
-    m = original.mean()
-    std = original.std()
-    return (data * std) + m
 
 
 def norm_max_val(data):
     return data / 2048
 
-
-import cv2
-
-# [N,M,~] = size(ImageToView);
-# NM = N*M;
-# for i=1:3
-#     b = reshape(double(uint16(ImageToView(:,:,i))),NM,1);
-#     [hb,levelb] = hist(b,max(b)-min(b));
-#     chb = cumsum(hb);
-#     t(1)=ceil(levelb(find(chb>NM*tol(i,1), 1 )));
-#     t(2)=ceil(levelb(find(chb<NM*tol(i,2), 1, 'last' )));
-#     b(b<t(1))=t(1);
-#     b(b>t(2))=t(2);
-#     b = (b-t(1))/(t(2)-t(1));
-#     ImageToView(:,:,i) = reshape(b,N,M);
-# end
 
 tol1 = [104, 103, 33]
 tol2 = [215, 664, 941]
@@ -197,3 +154,71 @@ def view_image(data, calculate_limits=True):
         xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
     plt.figure()
     plt.imshow((xx[:, :, ::-1]))
+
+
+def create_model(network_type: str, channels: int, device: str = "cpu", evaluation=False, **kwargs):
+    """ Creates the model network
+
+    Parameters
+    ----------
+    network_type : str
+        type of the network. It must match one of the available networks (case-insensitive) otherwise raises KeyError
+    channels : int
+        number of channels of the data the network will handle
+    device : str
+        the device onto which train the network (either cpu or a cuda visible device)
+    evaluation : bool
+        True if the networks must be defined for evaluation False otherwise.
+        If True, definition doesn't need loss and optimizer
+    """
+    network_type = network_type.strip().upper()
+    try:
+        model = GANS[network_type].value(channels, device)
+
+        if not evaluation:
+            # Adversarial Loss Definition
+            adv_loss = None if kwargs['adv_loss_fn'] is None else kwargs['adv_loss_fn'].strip().upper()
+            if adv_loss is not None:
+                adv_loss = AdvLosses[adv_loss].value()
+
+            # Reconstruction Loss Definition
+            rec_loss = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
+            if rec_loss is not None:
+                print(rec_loss)
+                rec_loss = Losses[rec_loss].value()
+
+            model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
+        return model
+    except KeyError:
+        pass
+
+    try:
+        model = CNNS[network_type].value(channels, device)
+
+        if not evaluation:
+            # Reconstruction Loss Definition
+            loss_fn = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
+            if loss_fn is not None:
+                loss_fn = Losses[loss_fn].value()
+
+            # Optimizer definition
+            optimizer = None if kwargs['optimizer'] is None else kwargs['optimizer'].strip().upper()
+            if optimizer is not None:
+                optimizer = Optimizers[optimizer].value(model.parameters(), lr=kwargs['lr'])
+
+            model.compile(loss_fn, optimizer)
+        else:
+            model.compile()
+
+        return model
+    except KeyError:
+        pass
+
+    raise KeyError(f"Model not defined!\n\n"
+                   f"Use one of the followings:\n"
+                   f"GANS: \t{[e.name for e in GANS]}\n"
+                   f"CNN: \t{[e.name for e in CNNS]}\n"
+                   f"Losses: \t{[e.name for e in Losses]}\n"
+                   f"Adversarial Losses: \t{[e.name for e in AdvLosses]}\n"
+                   f"Optimizers: \t{[e.name for e in Optimizers]}\n"
+                   )

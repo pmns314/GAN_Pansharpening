@@ -1,6 +1,9 @@
 from enum import Enum
+
 import torch
-from pytorch_msssim import ssim
+from torchmetrics.functional import error_relative_global_dimensionless_synthesis as ergas
+from torchmetrics.functional import spectral_angle_mapper as sam
+from torchmetrics.functional import structural_similarity_index_measure as ssim
 
 
 class CharbonnierLoss(torch.nn.Module):
@@ -29,16 +32,36 @@ class FrobeniusLoss(torch.nn.Module):
 
 
 class SSIMLoss(torch.nn.Module):
-    def __init__(self, Qblocks_size=32):
+    def __init__(self):
         super(SSIMLoss, self).__init__()
-        self.Qblocks_size = Qblocks_size
 
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
 
-        return 1-ssim(y_pred, y_true)
+        return 1 - ssim(y_pred, y_true)
 
+
+class SAMLoss(torch.nn.Module):
+    def __init__(self):
+        super(SAMLoss, self).__init__()
+
+    def forward(self, y_true, y_pred):
+        y_pred = y_pred * 2048.0
+        y_true = y_true * 2048.0
+
+        return sam(y_pred, y_true)
+
+
+class ERGASLoss(torch.nn.Module):
+    def __init__(self):
+        super(ERGASLoss, self).__init__()
+
+    def forward(self, y_true, y_pred):
+        y_pred = y_pred * 2048.0
+        y_true = y_true * 2048.0
+
+        return ergas(y_pred, y_true)
 
 
 class Losses(Enum):
@@ -47,4 +70,5 @@ class Losses(Enum):
     CHARBONNIER = CharbonnierLoss
     FROBENIUS = FrobeniusLoss
     SSIM = SSIMLoss
-
+    SAM = SAMLoss
+    ERGAS = ERGASLoss

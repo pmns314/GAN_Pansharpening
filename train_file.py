@@ -1,58 +1,26 @@
 import argparse
 import shutil
 
-import torch
 from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.CNNS import CNNS
-from pytorch_models.GANS import GANS
-from pytorch_models.AdvLosses import AdvLosses
-from pytorch_models.Losses import Losses
+from pytorch_models import *
+from utils import create_model
 
 
-def create_model(name: str, channels, device="cpu", **kwargs):
-    name = name.strip().upper()
-    try:
-        model = GANS[name].value(channels, device)
+def create_test_dict(data_path: str, filename: str):
+    """ Creates the dictionary of data for testing the network during the training
 
-        # Adversarial Loss Definition
-        adv_loss = None if kwargs['adv_loss_fn'] is None else kwargs['adv_loss_fn'].strip().upper()
-        if adv_loss is not None:
-            adv_loss = AdvLosses[adv_loss].value()
-
-        # Reconstruction Loss Definition
-        rec_loss = None if  kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
-        if rec_loss is not None:
-            print(rec_loss)
-            rec_loss = Losses[rec_loss].value()
-
-        model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
-        return model
-    except KeyError as e:
-        pass
-
-    try:
-        model = CNNS[name].value(channels, device)
-        # Reconstruction Loss Definition
-        loss_fn = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
-        if loss_fn is not None:
-            print(loss_fn)
-            loss_fn = Losses[loss_fn].value()
-
-        optimizer = None if kwargs['optimizer'] is None else "optimizer"
-        model.compile(loss_fn, optimizer)
-        return model
-    except KeyError as e:
-        pass
-
-    raise KeyError("Model not defined!")
-
-
-def create_test_dict(path, filename):
+    Parameters
+    ---------
+    data_path : str
+        path of the dataset to user for testing
+    filename : str
+        name of the .csv file used to store the results
+    """
     test_dict = {}
-    test_dataloader1 = DataLoader(DatasetPytorch(path), batch_size=64, shuffle=False)
+    test_dataloader1 = DataLoader(DatasetPytorch(data_path), batch_size=64, shuffle=False)
     pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
     if len(pan.shape) == 3:
         pan = torch.unsqueeze(pan, 0)
@@ -77,7 +45,7 @@ if __name__ == '__main__':
                         help=f'Provide type of the model. Select one of the followings.\n'
                              f'\tGANs Choices: {[e.name for e in GANS]}\n'
                              f'\tCNNs Choices: {[e.name for e in CNNS]}\n'
-                             f'Defaults to PSGAN',
+                             f'Defaults to APNN',
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
@@ -91,7 +59,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-e', '--epochs',
-                        default=2,
+                        default=1000,
                         help='Provide number of epochs. Defaults to 1000',
                         type=int
                         )
@@ -127,7 +95,6 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if avoid using the validation set'
                         )
-
     parser.add_argument('--source_dataset',
                         help='Choose from Train, Train&Val, Train&Val&Test and Test',
                         type=str,
@@ -146,13 +113,17 @@ if __name__ == '__main__':
                         nargs="+",
                         default=[64, 64, 512]
                         )
-    # TODO : List  the alternatives
     parser.add_argument('-adv', '--adv_loss_fn',
                         help=f'Provide type of adversarial loss. Select one of the followings.\n'
-                             f'\t minmax, lsgan, ragan. If unset, uses default',
+                             f'\t {[e.name for e in AdvLosses]} If unset, uses default',
                         type=str
                         )
     parser.add_argument('-loss', '--loss_fn',
+                        help=f'Provide type of reconstruction loss. Select one of the followings.\n'
+                             f'\t {[e.name for e in Losses]} . If unset, uses default',
+                        type=str
+                        )
+    parser.add_argument('-opt', '--optimizer',
                         help=f'Provide type of reconstruction loss. Select one of the followings.\n'
                              f'\t ... . If unset, uses default',
                         type=str

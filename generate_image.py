@@ -1,21 +1,33 @@
 """ Loads the model, generates the high resolution image and saves it a .mat file"""
 import argparse
 
-import numpy as np
 from scipy.io import savemat
-
 from skimage import io as io
-
 from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from train_file import create_model
 from utils import *
 
 
-def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
+def gen_image(model_type, model_name, index_test, show_image=False, model_file="model.pth"):
+    """ Generate the fused image
+
+    Parameters
+    ----------
+    model_type : str
+        type of the model to use.
+        It must match one of the available networks (case-insensitive) otherwise raises KeyError
+    model_name : str
+        name of the model to use
+    index_test : int
+        index of the testing image data tu use for fusion
+    show_image : bool
+        if True, the result image is shown
+    model_file : str
+        name of file storing the weights of the network
+    """
     model_path1 = f"{model_path}/{satellite}/{model_type}/{model_name}/{model_file}"
     test_set_path = f"{dataset_path}/FR3/Test/{satellite}/test_{index_test}_512.h5"
 
@@ -24,7 +36,7 @@ def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
                                      batch_size=64,
                                      shuffle=False)
 
-        model = create_model(model_type, test_dataloader.dataset.channels, device=device)
+        model = create_model(model_type, test_dataloader.dataset.channels, device=device, evaluation=True)
 
         # Load Pre trained Model
         model.load_model(model_path1, weights_only=True)
@@ -35,7 +47,8 @@ def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
         if len(pan.shape) == 3:
             pan = torch.unsqueeze(pan, 0)
 
-        gen = model.generate_output(pan.to(device), evaluation=True, ms=ms.to(device), ms_lr=ms_lr.to(device))
+        gen = model.generate_output(pan.to(device), evaluation=True,
+                                    ms=ms.to(device) if model.use_ms_lr is False else ms_lr.to(device))
         # From NxCxHxW to NxHxWxC
         gen = adjust_image(gen, ms_lr)
         gt = adjust_image(gt)
@@ -64,9 +77,7 @@ def gen_image(model_name, index_test, show_image=False, model_file="model.pth"):
         filename = f"{result_folder}/{satellite}/{model_type}/{model_name}_test_{index_test}.{data_out_format}"
         if os.path.exists(filename):
             os.remove(filename)
-        # import imageio
-        # imageio.v3.imwrite(filename, gen)
-        # gen = np.transpose(gen, (2, 0, 1))
+
         if data_out_format == "mat":
             savemat(filename, dict(gen=gen))
         else:
@@ -124,18 +135,18 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     data_out_format = "mat"
-    index_test = 2
-    satellite = "W4"
-    model_type = "PanGan"
-    model_name = "apnn_v3.a"
-    # gen_image(model_name, index_test, True, "model.pth")
-    # exit(0)
+    index_test = 3
+    satellite = "W3"
+    model_type = "APNN"
+    model_name = "apnn_v0.0"
+    gen_image(model_type, model_name, index_test, True, "model.pth")
+    exit(0)
     for index_test in [1, 2, 3]:
         for model_name in os.listdir(f"{model_path}/{satellite}/{model_type}"):
             if model_name == "test":
                 continue
             try:
-                gen_image(model_name, index_test)
+                gen_image(model_type, model_name, index_test)
             except RuntimeError as e:
                 print(e)
                 print(model_name)
