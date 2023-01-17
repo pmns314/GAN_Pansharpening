@@ -4,11 +4,12 @@ import argparse
 from scipy.io import savemat
 from skimage import io as io
 from torch.utils.data import DataLoader
-
+import torch
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from utils import *
+from util2 import *
 
 
 def gen_image(model_type, model_name, index_test, show_image=False, model_file="model.pth"):

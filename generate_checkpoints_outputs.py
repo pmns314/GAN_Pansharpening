@@ -7,7 +7,11 @@ from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from utils import *
+from util2 import *
+import numpy as np
+import matplotlib.pyplot as plt
+
+from utils import view_image, adjust_image
 
 
 def gen_image(show_image=False, model_file="model.pth"):

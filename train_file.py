@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from pytorch_models import *
-from utils import create_model
+from util2 import create_model
 
 
 def create_test_dict(data_path: str, filename: str):
