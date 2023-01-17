@@ -7,7 +7,6 @@ from .PanGan import PanGan
 from .PanColorGan import PanColorGan
 
 
-
 class GANS(Enum):
     """ GAN networks implemented in the framework"""
     PSGAN = PSGAN

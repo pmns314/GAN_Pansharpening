@@ -5,8 +5,6 @@ from .RaganLoss import RaganLoss
 from .LsganLoss import LsganLoss
 
 
-
-
 class AdvLosses(Enum):
     MINMAX = MinmaxLoss
     RAGAN = RaganLoss

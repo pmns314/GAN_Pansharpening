@@ -15,6 +15,7 @@ class RaganLoss(nn.Module):
 
         # L_RaGAN(x1, x2) = loss( D(x1) - mean( D(x2) )
         loss_fake = self.mse(x1 - torch.mean(x2), self.ones * self.fake_label)
+        # D : Fake - mean(real) , Fake_label
         loss_real = self.mse(x2 - torch.mean(x1), self.ones * self.real_label)
 
         return (loss_real + loss_fake) / 2

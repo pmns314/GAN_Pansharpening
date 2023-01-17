@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.adversarial_losses import *
+from pytorch_models.adversarial_losses import RaganLoss
 
 
 class PanColorGan(GanInterface, ABC):

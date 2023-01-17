@@ -1,13 +1,7 @@
-import os
-import shutil
-from abc import ABC
-
-import numpy as np
-import pandas as pd
 import torch
-from torch import nn, optim
+from torch import nn
 from torch.nn import LeakyReLU
-from constants import EPS
+
 from pytorch_models.GANs.PSGAN import PSGAN
 
 
@@ -119,6 +113,3 @@ class FUPSGAN(PSGAN):
             out = self.final_part(conc3)
             out = self.relu(out)
             return out
-
-
-

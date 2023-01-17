@@ -3,7 +3,6 @@ from math import sqrt
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 
 from pytorch_models import *
 

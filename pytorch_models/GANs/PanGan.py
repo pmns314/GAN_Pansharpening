@@ -7,7 +7,7 @@ from torch import optim
 from torch.nn.functional import interpolate
 
 from pytorch_models.GANs.GanInterface import GanInterface
-from pytorch_models.adversarial_losses import *
+from pytorch_models.adversarial_losses import LsganLoss
 
 
 def downsample(img, new_shape):
