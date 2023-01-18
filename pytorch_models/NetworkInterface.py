@@ -193,36 +193,37 @@ class NetworkInterface(ABC, nn.Module):
 
             # -------------------------------
             # Stopping Criteria
-            gen = self.generate_output(pan=ea_test['pan'].to(self.device),
-                                       ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test['ms_lr'].to(
-                                           self.device),
-                                       evaluation=True)
+            if epoch % 10 == 0:
+                gen = self.generate_output(pan=ea_test['pan'].to(self.device),
+                                           ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test['ms_lr'].to(
+                                               self.device),
+                                           evaluation=True)
 
-            gen = adjust_image(gen, ea_test['ms_lr'])
-            gt = adjust_image(ea_test['gt'])
+                gen = adjust_image(gen, ea_test['ms_lr'])
+                gt = adjust_image(ea_test['gt'])
 
-            Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                        dim_cut,
-                                                        th_values)
-            Q_incr = Q2n/best_q - 1
-            Q_avg_incr = Q2n/best_q_avg - 1
-            SAM_incr = SAM/best_sam - 1
-            ERGAS_incr = ERGAS/best_ergas - 1
+                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                            dim_cut,
+                                                            th_values)
+                Q_incr = Q2n/best_q - 1
+                Q_avg_incr = Q2n/best_q_avg - 1
+                SAM_incr = SAM/best_sam - 1
+                ERGAS_incr = ERGAS/best_ergas - 1
 
-            tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
-            df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
-            df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-            df.to_csv(ea_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                      mode='a', sep=";")
-            if tot_incr > 0.001:
-                self.save_model(f"{output_path}/model.pth")
-                waiting = 0
-            else:
-                waiting += 1
+                tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
+                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                df.to_csv(ea_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                          mode='a', sep=";")
+                if tot_incr > 0.001:
+                    self.save_model(f"{output_path}/model.pth")
+                    waiting = 0
+                else:
+                    waiting += 1
 
-            if waiting == 50:
-                print(f"Stopping at epoch : {epoch}")
-                break
+                if waiting == 10:
+                    print(f"Stopping at epoch : {epoch}")
+                    break
             # -------------------------------
 
             if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
