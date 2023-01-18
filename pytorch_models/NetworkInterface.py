@@ -117,7 +117,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    tests=None):
+                    tests=None, ea_test=None):
         """
         Method for fitting the model.
 
@@ -149,7 +149,9 @@ class NetworkInterface(ABC, nn.Module):
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
-
+        best_q = best_q_avg = 0
+        best_sam = best_ergas = 1000
+        waiting = 0
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
         ending_epoch = self.tot_epochs + epochs
@@ -181,13 +183,44 @@ class NetworkInterface(ABC, nn.Module):
             if losses[0] < self.best_losses[0]:
                 self.best_losses[0] = losses[0]
                 self.best_epoch = self.tot_epochs
-                self.save_model(f"{output_path}/model.pth")
+                # self.save_model(f"{output_path}/model.pth")
                 print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
 
             # This is ignored for CNNs
             for i in range(1, len(losses)):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
+
+            # -------------------------------
+            # Stopping Criteria
+            gen = self.generate_output(pan=ea_test['pan'].to(self.device),
+                                       ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test['ms_lr'].to(
+                                           self.device),
+                                       evaluation=True)
+
+            gen = adjust_image(gen, ea_test['ms_lr'])
+            gt = adjust_image(ea_test['gt'])
+
+            Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                        dim_cut,
+                                                        th_values)
+            Q_incr = Q2n/best_q - 1
+            Q_avg_incr = Q2n/best_q_avg - 1
+            SAM_incr = SAM/best_sam - 1
+            ERGAS_incr = ERGAS/best_ergas - 1
+
+            tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+
+            if tot_incr > 0.001:
+                self.save_model(f"{output_path}/model.pth")
+                waiting = 0
+            else:
+                waiting += 1
+
+            if waiting == 50:
+                print(f"Stopping at epoch : {epoch}")
+                break
+            # -------------------------------
 
             if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
                 # Save Checkpoints

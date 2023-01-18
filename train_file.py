@@ -219,11 +219,13 @@ if __name__ == '__main__':
         create_test_dict(f"{dataset_path}/FR3/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
                          f"{output_path}/test_FR.csv"))
 
+    early_stopping_dict = create_test_dict(f"{dataset_path}/RR3/Test/{satellite}/test_{index_images[0]}_128.h5",
+                                           f"{output_path}/res_RR.csv")
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
-                      tests)
+                      tests, early_stopping_dict)
 
     # Report
     with open(f"{output_path}/report.txt", "w") as f:
