@@ -210,7 +210,10 @@ class NetworkInterface(ABC, nn.Module):
             ERGAS_incr = ERGAS/best_ergas - 1
 
             tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
-
+            df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
+            df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+            df.to_csv(ea_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                      mode='a', sep=";")
             if tot_incr > 0.001:
                 self.save_model(f"{output_path}/model.pth")
                 waiting = 0
