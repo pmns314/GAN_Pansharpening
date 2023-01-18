@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+
 import pandas as pd
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
+
 from constants import *
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 from utils import adjust_image
@@ -149,7 +151,7 @@ class NetworkInterface(ABC, nn.Module):
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
-        best_q = best_q_avg = 0
+        best_q = best_q_avg = .0001
         best_sam = best_ergas = 1000
         waiting = 0
         # Training
@@ -195,7 +197,8 @@ class NetworkInterface(ABC, nn.Module):
             # Stopping Criteria
             if epoch % 10 == 0:
                 gen = self.generate_output(pan=ea_test['pan'].to(self.device),
-                                           ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test['ms_lr'].to(
+                                           ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test[
+                                               'ms_lr'].to(
                                                self.device),
                                            evaluation=True)
 
@@ -205,14 +208,22 @@ class NetworkInterface(ABC, nn.Module):
                 Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                             dim_cut,
                                                             th_values)
-                Q_incr = Q2n/best_q - 1
-                Q_avg_incr = Q2n/best_q_avg - 1
-                SAM_incr = SAM/best_sam - 1
-                ERGAS_incr = ERGAS/best_ergas - 1
+                Q_incr = Q2n / best_q - 1
+                Q_avg_incr = Q_avg / best_q_avg - 1
+                SAM_incr = SAM / best_sam - 1
+                ERGAS_incr = ERGAS / best_ergas - 1
 
                 tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
-                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
-                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+
+                best_q = best_q if best_q > Q2n else Q2n
+                best_q_avg = best_q_avg if best_q_avg > Q_avg else Q_avg
+                best_sam = best_sam if best_sam < SAM else SAM
+                best_ergas = best_ergas if best_q < ERGAS else ERGAS
+
+                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM",
+                                           "Q_incr", "Q_avg_incr", "SAM_incr", "ERGAS_incr", "tot_incr"])
+                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - SAM_incr, - ERGAS_incr,
+                             tot_incr]
                 df.to_csv(ea_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                           mode='a', sep=";")
                 if tot_incr > 0.001:
