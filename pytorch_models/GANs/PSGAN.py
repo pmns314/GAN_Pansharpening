@@ -161,7 +161,7 @@ class PSGAN(GanInterface, ABC):
         pred_fake = self.discriminator(torch.cat([ms, generated], 1))
 
         if self.adv_loss.use_real_data:
-            pred_true = self.discriminator(torch.cat([ms, gt], 1))
+            pred_true = self.discriminator(torch.cat([ms, gt], 1).detach())
         else:
             pred_true = None
 

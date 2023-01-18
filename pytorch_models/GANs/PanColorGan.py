@@ -177,7 +177,7 @@ class PanColorGan(GanInterface, ABC):
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
 
-        pred_fake = self.discriminator(fake_ab)
+        pred_fake = self.discriminator(fake_ab.detach())
         pred_real = self.discriminator(real_ab)
 
         return self.adv_loss(pred_fake, pred_real)
