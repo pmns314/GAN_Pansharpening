@@ -27,7 +27,7 @@ class LsganLoss(nn.Module):
         fake_prob = self.mse(fake, self.ones * self.real_label)  # E[ (D(G(z)) - a)^2 ])
         true_prob = self.mse(real, self.ones * self.fake_label)  # E[ (D(x) - b)^2 ]
         tot_prob = true_prob + fake_prob
-        return tot_prob * 0.5
+        return tot_prob / 2
 
     def forward(self, fake, real, is_generator=False):
         if self.ones is None or self.ones.shape != fake.shape:

@@ -3,7 +3,7 @@ from math import sqrt
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import torch
 
 def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
     return (-output_size + (input_size - 1) * stride + kernel) / 2
