@@ -32,7 +32,7 @@ class NetworkInterface(ABC, nn.Module):
         self.use_ms_lr = False
         self.best_q = self.best_q_avg = .0001
         self.best_sam = self.best_ergas = 1000
-        self.patience = 10
+        self.patience = 5
         self.step = 10
         self.to(device)
 
@@ -123,7 +123,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    FR_test=None, RR_test=None):
+                    stopping_test=None, FR_test=None):
         """
         Method for fitting the model.
 
@@ -197,16 +197,16 @@ class NetworkInterface(ABC, nn.Module):
 
             # -------------------------------
             # Step Analysis
-            if epoch == 0 or epoch+1 % self.step == 0:
+            if epoch == 0 or (epoch+1) % self.step == 0:
 
                 # RR Evaluation
-                gen = self.generate_output(pan=RR_test['pan'].to(self.device),
-                                           ms=RR_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                           RR_test['ms_lr'].to(self.device),
+                gen = self.generate_output(pan=stopping_test['pan'].to(self.device),
+                                           ms=stopping_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                           stopping_test['ms_lr'].to(self.device),
                                            evaluation=True)
 
-                gen = adjust_image(gen, RR_test['ms_lr'])
-                gt = adjust_image(RR_test['gt'])
+                gen = adjust_image(gen, stopping_test['ms_lr'])
+                gt = adjust_image(stopping_test['gt'])
 
                 Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                             dim_cut,
@@ -229,18 +229,18 @@ class NetworkInterface(ABC, nn.Module):
                                            "Q_incr", "Q_avg_incr", "SAM_incr", "ERGAS_incr", "tot_incr"])
                 df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - SAM_incr, - ERGAS_incr,
                              tot_incr]
-                df.to_csv(RR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                df.to_csv(stopping_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                           mode='a', sep=";")
 
                 # FR Evaluation
                 if FR_test is not None:
-                    gen = self.generate_output(pan=RR_test['pan'].to(self.device),
-                                               ms=RR_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                               RR_test['ms_lr'].to(self.device),
+                    gen = self.generate_output(pan=FR_test['pan'].to(self.device),
+                                               ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                               FR_test['ms_lr'].to(self.device),
                                                evaluation=True)
 
-                    gen = adjust_image(gen, RR_test['ms_lr'])
-                    gt = adjust_image(RR_test['gt'])
+                    gen = adjust_image(gen, FR_test['ms_lr'])
+                    gt = adjust_image(FR_test['gt'])
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                                 dim_cut,
@@ -249,7 +249,7 @@ class NetworkInterface(ABC, nn.Module):
                     # Saving FR Result
                     df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
                     df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-                    df.to_csv(RR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                    df.to_csv(FR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
 
                 # Stopping Criteria
