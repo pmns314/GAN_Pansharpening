@@ -139,7 +139,7 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
     base_path = args.base_path
-    source_dataset = args.source_dataset.strip().lower()
+    source_dataset = args.source_dataset.strip()
     index_image = args.index_image
     patch_size = args.patch_size
 
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     # Data Loading
     cnt = 0
-    prefix = "train" if source_dataset is not "test" else "test"
+    prefix = "train" if source_dataset != "Test" else "test"
     train_dataset = f"{prefix}_{index_image}_{patch_size}.h5"
     train_dataloader = DataLoader(
         DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}"),
