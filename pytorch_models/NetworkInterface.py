@@ -186,7 +186,6 @@ class NetworkInterface(ABC, nn.Module):
             # If CNN, that's the only loss; if GAN, that's the loss of the generator
             if losses[0] < self.best_losses[0]:
                 self.best_losses[0] = losses[0]
-                self.best_epoch = self.tot_epochs
                 # self.save_model(f"{output_path}/model.pth")
                 print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
 
@@ -197,7 +196,7 @@ class NetworkInterface(ABC, nn.Module):
 
             # -------------------------------
             # Step Analysis
-            if epoch == 0 or (epoch+1) % self.step == 0:
+            if epoch == 0 or (epoch + 1) % self.step == 0:
 
                 # RR Evaluation
                 gen = self.generate_output(pan=stopping_test['pan'].to(self.device),
@@ -217,17 +216,24 @@ class NetworkInterface(ABC, nn.Module):
                 SAM_incr = SAM / self.best_sam - 1
                 ERGAS_incr = ERGAS / self.best_ergas - 1
 
-                tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
 
-                self.best_q = self.best_q if self.best_q > Q2n else Q2n
-                self.best_q_avg = self.best_q_avg if self.best_q_avg > Q_avg else Q_avg
-                self.best_sam = self.best_sam if self.best_sam < SAM else SAM
-                self.best_ergas = self.best_ergas if self.best_ergas < ERGAS else ERGAS
+                # Stopping Criteria
+                if tot_incr > 0.0005:
+                    self.save_model(f"{output_path}/model.pth")
+                    self.best_q = Q2n
+                    self.best_q_avg = Q_avg
+                    self.best_sam = SAM
+                    self.best_ergas = ERGAS
+                    self.best_epoch = self.tot_epochs
+                    waiting = 0
+                else:
+                    waiting += 1
 
                 # Saving RR Result
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM",
-                                           "Q_incr", "Q_avg_incr", "SAM_incr", "ERGAS_incr", "tot_incr"])
-                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - SAM_incr, - ERGAS_incr,
+                                           "Q_incr", "Q_avg_incr", "ERGAS_incr", "SAM_incr", "tot_incr"])
+                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - ERGAS_incr, - SAM_incr,
                              tot_incr]
                 df.to_csv(stopping_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                           mode='a', sep=";")
@@ -251,13 +257,6 @@ class NetworkInterface(ABC, nn.Module):
                     df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
                     df.to_csv(FR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
-
-                # Stopping Criteria
-                if tot_incr > 0.001:
-                    self.save_model(f"{output_path}/model.pth")
-                    waiting = 0
-                else:
-                    waiting += 1
 
                 if waiting == self.patience:
                     print(f"Stopping at epoch : {epoch}")
