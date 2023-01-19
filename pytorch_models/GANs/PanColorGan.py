@@ -302,7 +302,8 @@ class PanColorGan(GanInterface, ABC):
             'gen_best_loss': self.best_losses[0],
             'disc_best_loss': self.best_losses[1],
             'tot_epochs': self.tot_epochs,
-            'best_epoch': self.best_epoch
+            'best_epoch': self.best_epoch,
+            'metrics': [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
         }, f"{path}")
 
     def load_model(self, path, weights_only=False):
@@ -316,6 +317,10 @@ class PanColorGan(GanInterface, ABC):
         self.tot_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model['metrics']
+        except KeyError:
+            pass
 
     def set_optimizers_lr(self, lr):
         for g in self.gen_opt.param_groups:

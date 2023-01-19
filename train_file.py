@@ -98,20 +98,17 @@ if __name__ == '__main__':
     parser.add_argument('--source_dataset',
                         help='Choose from Train, Train&Val, Train&Val&Test and Test',
                         type=str,
-                        nargs="+",
-                        default=["Train", "Test", "Test"]
+                        default="Train"
                         )
-    parser.add_argument('--index_images',
+    parser.add_argument('--index_image',
                         help='Indexes',
                         type=int,
-                        nargs="+",
-                        default=[1, 1, 1]
+                        default=1
                         )
     parser.add_argument('--patch_size',
                         help='Set Patch Sizes',
                         type=int,
-                        nargs="+",
-                        default=[64, 64, 512]
+                        default=64
                         )
     parser.add_argument('-adv', '--adv_loss_fn',
                         help=f'Provide type of adversarial loss. Select one of the followings.\n'
@@ -142,11 +139,9 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
     base_path = args.base_path
-    source_dataset = args.source_dataset
-    index_images = args.index_images
+    source_dataset = args.source_dataset.strip().lower()
+    index_image = args.index_image
     patch_size = args.patch_size
-
-    assert len(patch_size) == len(index_images) == len(source_dataset)
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -158,23 +153,28 @@ if __name__ == '__main__':
         total_memory = torch.cuda.mem_get_info()[1]
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
-    dataset_settings = list(zip(source_dataset, index_images, patch_size))
+    # dataset_settings = list(zip(source_dataset, index_images, patch_size))
     data_resolution = "RR3" if use_rr else "FR3"
 
     # Data Loading
     cnt = 0
-    train_dataset = f"train_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+    prefix = "train" if source_dataset is not "test" else "test"
+    train_dataset = f"{prefix}_{index_image}_{patch_size}.h5"
     train_dataloader = DataLoader(
-        DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{train_dataset}"),
+        DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}"),
         batch_size=64, shuffle=True)
     cnt += 1
+
+    if prefix == "test":
+        no_val = True
+
     if no_val:
         val_dataset = None
         val_dataloader = None
     else:
-        val_dataset = f"val_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
+        val_dataset = f"val_{index_image}_{patch_size}.h5"
         val_dataloader = DataLoader(
-            DatasetPytorch(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{val_dataset}"),
+            DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}"),
             batch_size=64, shuffle=False)
         cnt += 1
 
@@ -206,35 +206,23 @@ if __name__ == '__main__':
 
     model.set_optimizers_lr(lr)
 
-    # Setting up index evaluation
-    tests = []
-    for cnt in range(cnt, len(dataset_settings) - 1):
-        test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
-        tests.append(
-            create_test_dict(f"{dataset_path}/{data_resolution}/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
-                             f"{output_path}/test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.csv"))
-    cnt += 1
-    test_dataset1 = f"test_{dataset_settings[cnt][1]}_{dataset_settings[cnt][2]}.h5"
-    tests.append(
-        create_test_dict(f"{dataset_path}/FR3/{dataset_settings[cnt][0]}/{satellite}/{test_dataset1}",
-                         f"{output_path}/test_FR.csv"))
+    RR_test_dict = create_test_dict(f"{dataset_path}/RR3/Test/{satellite}/test_{index_image}_128.h5",
+                                    f"{output_path}/test_RR.csv")
 
-    early_stopping_dict = create_test_dict(f"{dataset_path}/RR3/Test/{satellite}/test_{index_images[0]}_128.h5",
-                                           f"{output_path}/res_RR.csv")
+    FR_test_dict = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_{index_image}_512.h5",
+                                    f"{output_path}/test_FR.csv")
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
                       train_dataloader, val_dataloader,
-                      tests, early_stopping_dict)
+                      RR_test_dict if use_rr else FR_test_dict,
+                      FR_test_dict if use_rr else None)
 
     # Report
     with open(f"{output_path}/report.txt", "w") as f:
         f.write(f"Network Type : {type_model}\n")
         f.write(f"Datasets Used: \n")
         f.write(f"\tSatellite: {satellite} \n")
-        for ds in dataset_settings:
-            f.write(f"\t{ds[0]} - Image: {ds[1]} - Patch Size: {ds[2]}\n")
-
         if use_rr:
             f.write(f"\nTrained at Reduced Resolution.\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")

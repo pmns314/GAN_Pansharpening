@@ -300,7 +300,8 @@ class PanGan(GanInterface, ABC):
                     'spat_disc_best_loss': self.best_losses[1],
                     'spec_disc_best_loss': self.best_losses[2],
                     'best_epoch': self.best_epoch,
-                    'tot_epochs': self.tot_epochs
+                    'tot_epochs': self.tot_epochs,
+                    'metrics': [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
                     }, f"{path}")
 
     def load_model(self, path, weights_only=False):
@@ -318,6 +319,10 @@ class PanGan(GanInterface, ABC):
         self.best_losses = [trained_model['gen_best_loss'],
                             trained_model['spat_disc_best_loss'],
                             trained_model['spec_disc_best_loss']]
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model['metrics']
+        except KeyError:
+            pass
 
     def set_optimizers_lr(self, lr):
         for g in self.optimizer_gen.param_groups:

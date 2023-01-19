@@ -30,6 +30,10 @@ class NetworkInterface(ABC, nn.Module):
         self.tot_epochs = 0
         self.device = device
         self.use_ms_lr = False
+        self.best_q = self.best_q_avg = .0001
+        self.best_sam = self.best_ergas = 1000
+        self.patience = 10
+        self.step = 10
         self.to(device)
 
     @property
@@ -119,7 +123,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    tests=None, ea_test=None):
+                    FR_test=None, RR_test=None):
         """
         Method for fitting the model.
 
@@ -151,8 +155,6 @@ class NetworkInterface(ABC, nn.Module):
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
-        best_q = best_q_avg = .0001
-        best_sam = best_ergas = 1000
         waiting = 0
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
@@ -194,80 +196,77 @@ class NetworkInterface(ABC, nn.Module):
                     self.best_losses[i] = losses[i]
 
             # -------------------------------
-            # Stopping Criteria
-            if epoch % 10 == 0:
-                gen = self.generate_output(pan=ea_test['pan'].to(self.device),
-                                           ms=ea_test['ms'].to(self.device) if self.use_ms_lr is False else ea_test[
-                                               'ms_lr'].to(
-                                               self.device),
+            # Step Analysis
+            if epoch == 0 or epoch+1 % self.step == 0:
+
+                # RR Evaluation
+                gen = self.generate_output(pan=RR_test['pan'].to(self.device),
+                                           ms=RR_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                           RR_test['ms_lr'].to(self.device),
                                            evaluation=True)
 
-                gen = adjust_image(gen, ea_test['ms_lr'])
-                gt = adjust_image(ea_test['gt'])
+                gen = adjust_image(gen, RR_test['ms_lr'])
+                gt = adjust_image(RR_test['gt'])
 
                 Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                             dim_cut,
                                                             th_values)
-                Q_incr = Q2n / best_q - 1
-                Q_avg_incr = Q_avg / best_q_avg - 1
-                SAM_incr = SAM / best_sam - 1
-                ERGAS_incr = ERGAS / best_ergas - 1
+                # Increment Calculation
+                Q_incr = Q2n / self.best_q - 1
+                Q_avg_incr = Q_avg / self.best_q_avg - 1
+                SAM_incr = SAM / self.best_sam - 1
+                ERGAS_incr = ERGAS / self.best_ergas - 1
 
                 tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
 
-                best_q = best_q if best_q > Q2n else Q2n
-                best_q_avg = best_q_avg if best_q_avg > Q_avg else Q_avg
-                best_sam = best_sam if best_sam < SAM else SAM
-                best_ergas = best_ergas if best_q < ERGAS else ERGAS
+                self.best_q = self.best_q if self.best_q > Q2n else Q2n
+                self.best_q_avg = self.best_q_avg if self.best_q_avg > Q_avg else Q_avg
+                self.best_sam = self.best_sam if self.best_sam < SAM else SAM
+                self.best_ergas = self.best_ergas if self.best_ergas < ERGAS else ERGAS
 
+                # Saving RR Result
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM",
                                            "Q_incr", "Q_avg_incr", "SAM_incr", "ERGAS_incr", "tot_incr"])
                 df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - SAM_incr, - ERGAS_incr,
                              tot_incr]
-                df.to_csv(ea_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                df.to_csv(RR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                           mode='a', sep=";")
+
+                # FR Evaluation
+                if FR_test is not None:
+                    gen = self.generate_output(pan=RR_test['pan'].to(self.device),
+                                               ms=RR_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                               RR_test['ms_lr'].to(self.device),
+                                               evaluation=True)
+
+                    gen = adjust_image(gen, RR_test['ms_lr'])
+                    gt = adjust_image(RR_test['gt'])
+
+                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                                dim_cut,
+                                                                th_values)
+
+                    # Saving FR Result
+                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                    df.to_csv(RR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                              mode='a', sep=";")
+
+                # Stopping Criteria
                 if tot_incr > 0.001:
                     self.save_model(f"{output_path}/model.pth")
                     waiting = 0
                 else:
                     waiting += 1
 
-                if waiting == 10:
+                if waiting == self.patience:
                     print(f"Stopping at epoch : {epoch}")
                     break
             # -------------------------------
 
+            # Save Checkpoints
             if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
-                # Save Checkpoints
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
-
-                # Generation Evaluation Indexes
-                for idx_test in range(len(tests)):
-                    t = tests[idx_test]
-                    df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
-
-                    gen = self.generate_output(pan=t['pan'].to(self.device),
-                                               ms=t['ms'].to(self.device) if self.use_ms_lr is False else t['ms_lr'].to(
-                                                   self.device),
-                                               evaluation=True)
-                    try:
-                        gen = adjust_image(gen, t['ms_lr'])
-                        gt = adjust_image(t['gt'])
-
-                        Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                                    dim_cut,
-                                                                    th_values)
-                        df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-                        df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                                  mode='a', sep=";")
-                    except:
-                        print("error in calculating outputs")
-
-            # if triggertimes >= patience:
-            #     print("Early Stopping!")
-            #     break
-            # scheduler_d.step(best_vloss_d)
-            # scheduler_g.step(best_vloss_g)
 
         # Update number of trained epochs
         last_tot = self.tot_epochs
@@ -279,13 +278,12 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
-        t = tests[-1]
-        gen = self.generate_output(pan=t['pan'].to(self.device),
-                                   ms=t['ms'].to(self.device) if self.use_ms_lr is False else t['ms_lr'].to(
-                                       self.device),
+        gen = self.generate_output(pan=FR_test['pan'].to(self.device),
+                                   ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                   FR_test['ms_lr'].to(self.device),
                                    evaluation=True)
-        gen = adjust_image(gen, t['ms_lr'])
-        gt = adjust_image(t['gt'])
+        gen = adjust_image(gen, FR_test['ms_lr'])
+        gt = adjust_image(FR_test['gt'])
 
         Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                     dim_cut,

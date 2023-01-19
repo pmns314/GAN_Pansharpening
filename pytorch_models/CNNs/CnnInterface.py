@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 import numpy as np
 import torch
+
 from pytorch_models.NetworkInterface import NetworkInterface
 
 
@@ -146,7 +147,8 @@ class CnnInterface(NetworkInterface):
             'loss_fn': self.loss_fn,
             'best_losses': self.best_losses,
             'best_epoch': self.best_epoch,
-            'tot_epochs': self.tot_epochs
+            'tot_epochs': self.tot_epochs,
+            'metrics': [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
         }, path)
 
     def load_model(self, path, weights_only=False):
@@ -169,10 +171,16 @@ class CnnInterface(NetworkInterface):
         self.loss_fn = trained_model['loss_fn']
         self.tot_epochs = trained_model['tot_epochs']
         self.best_epoch = trained_model['best_epoch']
+
         try:
             self.best_losses = trained_model['best_losses']
         except KeyError:
             self.best_losses = [trained_model['best_loss']]
+
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model['metrics']
+        except KeyError:
+            pass
 
     def set_optimizers_lr(self, lr):
         """ Sets the learning rate of the optimizers
