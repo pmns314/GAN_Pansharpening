@@ -11,6 +11,7 @@ class LsganLoss(nn.Module):
         self.soft_labes = use_soft_labels
         self.fake_label = 1  # Label for Fake Data
         self.real_label = 0  # Label for Real Data
+        self.apply_activation = True
 
     def generate_soft_labels(self):
         self.fake_label = torch.distributions.uniform.Uniform(.7, 1.2).sample([1, 1])

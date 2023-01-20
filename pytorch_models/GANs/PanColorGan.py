@@ -167,11 +167,16 @@ class PanColorGan(GanInterface, ABC):
 
                 nn.Conv2d(256, 1, kernel_size=(4, 4), stride=(1, 1), padding=(2, 2)),
 
-                nn.Sigmoid()
+
             )
+            self.act = nn.Sigmoid()
+            self.apply_activation = True
 
         def forward(self, input_tensor):
-            return self.net(input_tensor)
+            out = self.net(input_tensor)
+            if self.apply_activation:
+                out = self.act(out)
+            return out
 
     def loss_discriminator(self, ms, pan, gt, generated):
         fake_ab = torch.cat([ms, pan, generated], 1)
@@ -331,3 +336,4 @@ class PanColorGan(GanInterface, ABC):
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
         self.adv_loss = adv_loss if adv_loss is not None else RaganLoss()
+        self.discriminator.apply_activation = self.adv_loss.apply_activation

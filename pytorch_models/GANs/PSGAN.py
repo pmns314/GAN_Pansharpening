@@ -149,11 +149,13 @@ class PSGAN(GanInterface, ABC):
             self.out_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(3, 3), stride=(1, 1),
                                       padding='same', padding_mode=pad_mode, bias=True)
             self.sigmoid = nn.Sigmoid()
+            self.apply_activation = True
 
         def forward(self, inputs):
             out = self.backbone(inputs)
             out = self.out_conv(out)
-            out = self.sigmoid(out)
+            if self.apply_activation:
+                out = self.sigmoid(out)
             return out
 
     def loss_generator(self, ms, gt, generated):
@@ -318,6 +320,7 @@ class PSGAN(GanInterface, ABC):
     def define_losses(self, rec_loss=None, adv_loss=None):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
         self.adv_loss = adv_loss if adv_loss is not None else MinmaxLoss()
+        self.discriminator.apply_activation = self.adv_loss.apply_activation
 
 
 if __name__ == '__main__':

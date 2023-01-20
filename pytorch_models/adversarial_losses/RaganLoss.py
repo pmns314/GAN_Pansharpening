@@ -10,8 +10,9 @@ class RaganLoss(nn.Module):
         self.ones = None
         self.use_real_data = True
         self.fake_label = 1  # Label for Fake Data
-        self.real_label = 0  # Label for Real Data
+        self.real_label = -1  # Label for Real Data
         self.head = True
+        self.apply_activation = False
 
     def ragan_loss(self, x1, x2, log=False):
 

@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 
@@ -8,6 +7,7 @@ class MinmaxLoss(nn.Module):
         super(MinmaxLoss, self).__init__()
         self.EPS = 1e-12
         self.use_real_data = False
+        self.apply_activation = True
 
     def generator_loss(self, fake):
         # Generator
