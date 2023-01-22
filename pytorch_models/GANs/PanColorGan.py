@@ -182,7 +182,7 @@ class PanColorGan(GanInterface, ABC):
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
 
-        pred_fake = self.discriminator(fake_ab.detach())
+        pred_fake = self.discriminator(fake_ab)
         pred_real = self.discriminator(real_ab)
 
         return self.adv_loss(pred_fake, pred_real)
@@ -212,14 +212,19 @@ class PanColorGan(GanInterface, ABC):
         loss_g_batch = 0
         loss_d_batch = 0
         for batch, data in enumerate(dataloader):
-            pan, ms, _, gt = data
+            pan, ms, ms_lr, gt = data
 
-            pan = pan.to(self.device)
-            gt = gt.to(self.device)
-            ms = ms.to(self.device)
+            # pan = pan.to(self.device)
+            # gt = gt.to(self.device)
+            # ms = ms.to(self.device)
+            gt = ms_lr.to(self.device)
 
-            # Convert Original MS_LR to Grayscale
-            # ms_lr_gray = torch.mean(gt, 1, keepdim=True)
+            # Downsample MS_LR
+            ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+            # Upsample MS_LR_LR
+            ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
+            # Convert MS_LR to Grayscale
+            pan = torch.mean(gt, 1, keepdim=True)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
