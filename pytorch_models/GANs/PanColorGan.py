@@ -267,6 +267,10 @@ class PanColorGan(GanInterface, ABC):
 
             loss_g_batch += loss
 
+        try:
+            self.rec_loss.reset()
+        except:
+            pass
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Disc loss": loss_d_batch / len(dataloader)
                 }

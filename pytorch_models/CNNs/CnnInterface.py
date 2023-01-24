@@ -76,6 +76,10 @@ class CnnInterface(NetworkInterface):
             torch.cuda.empty_cache()
 
             loss_batch += loss
+        try:
+            self.loss_fn.reset()
+        except:
+            pass
         return {"Loss": loss_batch / len(dataloader)}
 
     def validation_step(self, dataloader):

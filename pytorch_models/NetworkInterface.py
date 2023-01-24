@@ -216,7 +216,8 @@ class NetworkInterface(ABC, nn.Module):
                 SAM_incr = SAM / self.best_sam - 1
                 ERGAS_incr = ERGAS / self.best_ergas - 1
 
-                tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
+                tot_incr = Q_incr
+                #tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
 
                 # Stopping Criteria
                 if tot_incr > 0.0005:

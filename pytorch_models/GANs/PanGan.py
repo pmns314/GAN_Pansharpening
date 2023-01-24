@@ -250,6 +250,10 @@ class PanGan(GanInterface, ABC):
 
             loss_g_batch += loss
 
+        try:
+            self.rec_loss.reset()
+        except:
+            pass
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Spat Disc loss": loss_d_spat_batch / len(dataloader),
                 "Spec Disc loss": loss_d_spec_batch / len(dataloader)
