@@ -89,3 +89,4 @@ class Losses(Enum):
     SSIM = SSIMLoss
     SAM = SAMLoss
     ERGAS = ERGASLoss
+    Q = QLoss
