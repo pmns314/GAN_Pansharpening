@@ -114,7 +114,10 @@ class CnnInterface(NetworkInterface):
                 running_vloss += vloss.item()
 
         avg_vloss = running_vloss / (i + 1)
-
+        try:
+            self.loss_fn.reset()
+        except:
+            pass
         return {"Loss": avg_vloss}
 
     def generate_output(self, pan, ms, evaluation=True):

@@ -287,23 +287,27 @@ class PanColorGan(GanInterface, ABC):
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                ms_lr = ms_lr.to(self.device)
+                gt = ms_lr.to(self.device)
 
                 # Downsample MS_LR
-                ms_lr_down = nn.functional.interpolate(ms_lr, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+                ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
-                ms_lr_up = nn.functional.interpolate(ms_lr_down, scale_factor=4, mode='bicubic', align_corners=False)
+                ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
                 # Convert MS_LR to Grayscale
-                ms_lr_gray = torch.mean(ms_lr, 1, keepdim=True)
+                pan = torch.mean(gt, 1, keepdim=True)
 
-                generated = self.generate_output(ms_lr_gray, ms_lr_up)
-                dloss = self.loss_discriminator(ms_lr_up, ms_lr_gray, ms_lr, generated)
+                generated = self.generate_output(pan, ms)
+                dloss = self.loss_discriminator(ms, pan, gt, generated)
                 disc_loss += dloss.item()
 
                 # generated = self.generate_output(ms_lr_gray, ms_lr_up)
-                gloss = self.loss_generator(ms_lr_up, ms_lr_gray, ms_lr, generated)
+                gloss = self.loss_generator(ms, pan, gt, generated)
                 gen_loss += gloss.item()
 
+        try:
+            self.loss_fn.reset()
+        except:
+            pass
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
                 }

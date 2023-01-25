@@ -281,7 +281,10 @@ class PSGAN(GanInterface, ABC):
 
                 gloss = self.loss_generator(ms, gt, generated)
                 gen_loss += gloss.item()
-
+        try:
+            self.loss_fn.reset()
+        except:
+            pass
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
                 }

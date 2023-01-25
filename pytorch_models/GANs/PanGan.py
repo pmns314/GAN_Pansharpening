@@ -287,7 +287,10 @@ class PanGan(GanInterface, ABC):
 
                 gloss = self.generator_loss(pan, ms, generated_HRMS)
                 loss_g_batch += gloss.item()
-
+        try:
+            self.loss_fn.reset()
+        except:
+            pass
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Spat Disc loss": loss_d_spat_batch / len(dataloader),
                 "Spec Disc loss": loss_d_spec_batch / len(dataloader)
