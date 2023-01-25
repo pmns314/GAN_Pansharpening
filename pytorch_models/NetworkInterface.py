@@ -278,6 +278,8 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
+        if FR_test is None:
+            FR_test = stopping_test
         gen = self.generate_output(pan=FR_test['pan'].to(self.device),
                                    ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
                                    FR_test['ms_lr'].to(self.device),
