@@ -123,7 +123,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    stopping_test=None, FR_test=None):
+                    stopping_test=None, FR_test=None, save_checkpoints=False):
         """
         Method for fitting the model.
 
@@ -184,10 +184,14 @@ class NetworkInterface(ABC, nn.Module):
             # Updates the best losses
             # Saves the model if the loss in position 0 improved.
             # If CNN, that's the only loss; if GAN, that's the loss of the generator
-            if losses[0] < self.best_losses[0]:
+            if losses[0] - self.best_losses[0] > 0.0005:
                 self.best_losses[0] = losses[0]
-                # self.save_model(f"{output_path}/model.pth")
+                self.best_epoch = self.tot_epochs
+                self.save_model(f"{output_path}/model.pth")
                 print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
+                waiting = 0
+            else:
+                waiting += 1
 
             # This is ignored for CNNs
             for i in range(1, len(losses)):
@@ -217,19 +221,19 @@ class NetworkInterface(ABC, nn.Module):
                 ERGAS_incr = ERGAS / self.best_ergas - 1
 
                 tot_incr = Q_incr
-                #tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
+                # tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
 
                 # Stopping Criteria
-                if tot_incr > 0.0005:
-                    self.save_model(f"{output_path}/model.pth")
-                    self.best_q = Q2n
-                    self.best_q_avg = Q_avg
-                    self.best_sam = SAM
-                    self.best_ergas = ERGAS
-                    self.best_epoch = self.tot_epochs
-                    waiting = 0
-                else:
-                    waiting += 1
+                # if tot_incr > 0.0005:
+                #     # self.save_model(f"{output_path}/model.pth")
+                self.best_q = Q2n
+                self.best_q_avg = Q_avg
+                self.best_sam = SAM
+                self.best_ergas = ERGAS
+                #
+                #     waiting = 0
+                # else:
+                #     waiting += 1
 
                 # Saving RR Result
                 df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM",
@@ -259,13 +263,13 @@ class NetworkInterface(ABC, nn.Module):
                     df.to_csv(FR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
 
-                if waiting == self.patience:
-                    print(f"Stopping at epoch : {epoch}")
-                    break
+            if waiting == self.patience:
+                print(f"Stopping at epoch : {epoch}")
+                break
             # -------------------------------
 
             # Save Checkpoints
-            if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
+            if self.tot_epochs in TO_SAVE or epoch == epochs - 1 and save_checkpoints:
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
         # Update number of trained epochs
