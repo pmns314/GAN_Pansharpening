@@ -113,6 +113,11 @@ if __name__ == '__main__':
                         help='Path of the output folder',
                         type=str
                         )
+    parser.add_argument('-i', '--index_test',
+                        default=1,
+                        help='Index of the testing image',
+                        type=int
+                        )
     parser.add_argument('-o', '--output_path',
                         default=f"{ROOT_DIR}/results/GANs",
                         help='Path of the output folder',
@@ -131,15 +136,16 @@ if __name__ == '__main__':
     dataset_path = args.dataset_path
     result_folder = args.output_path
     model_path = args.model_path
+    index_tes = args.index_test
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
     data_out_format = "mat"
-    index_test = 3
-    satellite = "W3"
-    model_type = "PanColorGan"
-    model_name = "pancolorgan_q"
+    # index_test = 3
+    # satellite = "W3"
+    # model_type = "PanColorGan"
+    # model_name = "pancolorgan_q"
     gen_image(model_type, model_name, index_test, True, "model.pth")
     exit(0)
     for index_test in [1, 2, 3]:

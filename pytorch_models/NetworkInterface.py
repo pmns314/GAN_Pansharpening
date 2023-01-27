@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pandas as pd
+import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
@@ -32,8 +33,9 @@ class NetworkInterface(ABC, nn.Module):
         self.use_ms_lr = False
         self.best_q = self.best_q_avg = .0001
         self.best_sam = self.best_ergas = 1000
-        self.patience = 5
+        self.patience = 50
         self.step = 10
+        self.waiting = 0
         self.to(device)
 
     @property
@@ -123,7 +125,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    stopping_test=None, FR_test=None, save_checkpoints=False):
+                    tests=None, save_checkpoints=False):
         """
         Method for fitting the model.
 
@@ -155,7 +157,7 @@ class NetworkInterface(ABC, nn.Module):
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
-        waiting = 0
+
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
         ending_epoch = self.tot_epochs + epochs
@@ -167,7 +169,7 @@ class NetworkInterface(ABC, nn.Module):
             train_losses = self.train_step(train_dataloader)
             if val_dataloader is not None:
                 # Compute Losses on Validation Set if exists
-                val_losses = self.validation_step(val_dataloader)
+                val_losses, indexes = self.validation_step(val_dataloader)
                 for k in train_losses.keys():
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
@@ -184,94 +186,65 @@ class NetworkInterface(ABC, nn.Module):
             # Updates the best losses
             # Saves the model if the loss in position 0 improved.
             # If CNN, that's the only loss; if GAN, that's the loss of the generator
-            if losses[0] - self.best_losses[0] > 0.0005:
-                self.best_losses[0] = losses[0]
-                self.best_epoch = self.tot_epochs
-                self.save_model(f"{output_path}/model.pth")
-                print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
-                waiting = 0
-            else:
-                waiting += 1
+            # if losses[0] - self.best_losses[0] > 0.0005:
+            #     self.best_losses[0] = losses[0]
+            #     self.best_epoch = self.tot_epochs
+            #     self.save_model(f"{output_path}/model.pth")
+            #     print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
 
             # This is ignored for CNNs
             for i in range(1, len(losses)):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
+            Q2n, Q_avg, ERGAS, SAM = indexes
+
+            # Increment Calculation
+            Q_incr = Q2n / self.best_q - 1
+            Q_avg_incr = Q_avg / self.best_q_avg - 1
+            SAM_incr = SAM / self.best_sam - 1
+            ERGAS_incr = ERGAS / self.best_ergas - 1
+
+            tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+
+            if tot_incr > 0.0005:
+                self.best_losses[0] = losses[0]
+                self.best_epoch = self.tot_epochs
+                self.save_model(f"{output_path}/model.pth")
+                print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
+            else:
+                self.waiting += 1
             # -------------------------------
-            # Step Analysis
+            # Test Analysis
             if epoch == 0 or (epoch + 1) % self.step == 0:
-
-                # RR Evaluation
-                gen = self.generate_output(pan=stopping_test['pan'].to(self.device),
-                                           ms=stopping_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                           stopping_test['ms_lr'].to(self.device),
-                                           evaluation=True)
-
-                gen = adjust_image(gen, stopping_test['ms_lr'])
-                gt = adjust_image(stopping_test['gt'])
-
-                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                            dim_cut,
-                                                            th_values)
-                # Increment Calculation
-                Q_incr = Q2n / self.best_q - 1
-                Q_avg_incr = Q_avg / self.best_q_avg - 1
-                SAM_incr = SAM / self.best_sam - 1
-                ERGAS_incr = ERGAS / self.best_ergas - 1
-
-                tot_incr = Q_incr
-                # tot_incr = 10 * Q_incr + Q_avg_incr - 5 * SAM_incr - ERGAS_incr
-
-                # Stopping Criteria
-                # if tot_incr > 0.0005:
-                #     # self.save_model(f"{output_path}/model.pth")
-                self.best_q = Q2n
-                self.best_q_avg = Q_avg
-                self.best_sam = SAM
-                self.best_ergas = ERGAS
-                #
-                #     waiting = 0
-                # else:
-                #     waiting += 1
-
-                # Saving RR Result
-                df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM",
-                                           "Q_incr", "Q_avg_incr", "ERGAS_incr", "SAM_incr", "tot_incr"])
-                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM, Q_incr, Q_avg_incr, - ERGAS_incr, - SAM_incr,
-                             tot_incr]
-                df.to_csv(stopping_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
-                          mode='a', sep=";")
-
-                # FR Evaluation
-                if FR_test is not None:
-                    gen = self.generate_output(pan=FR_test['pan'].to(self.device),
-                                               ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                               FR_test['ms_lr'].to(self.device),
+                for t in tests:
+                    gen = self.generate_output(pan=t['pan'].to(self.device),
+                                               ms=t['ms'].to(self.device) if self.use_ms_lr is False else
+                                               t['ms_lr'].to(self.device),
                                                evaluation=True)
 
-                    gen = adjust_image(gen, FR_test['ms_lr'])
-                    gt = adjust_image(FR_test['gt'])
+                    gen = adjust_image(gen, t['ms_lr'])
+                    gt = adjust_image(t['gt'])
 
                     Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
                                                                 dim_cut,
                                                                 th_values)
 
-                    # Saving FR Result
+                    # Saving RR Result
                     df = pd.DataFrame(columns=["Epochs", "Q2n", "Q_avg", "ERGAS", "SAM"])
                     df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
-                    df.to_csv(FR_test['filename'], index=False, header=True if self.tot_epochs == 1 else False,
+                    df.to_csv(t['filename'], index=False, header=True if self.tot_epochs == 1 else False,
                               mode='a', sep=";")
 
-            if waiting == self.patience:
-                print(f"Stopping at epoch : {epoch}")
-                break
             # -------------------------------
 
             # Save Checkpoints
             if self.tot_epochs in TO_SAVE or epoch == epochs - 1 and save_checkpoints:
                 self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
+            if self.waiting == self.patience:
+                print(f"Stopping at epoch : {self.tot_epochs}")
+                break
         # Update number of trained epochs
         last_tot = self.tot_epochs
         self.load_model(f"{output_path}/model.pth")

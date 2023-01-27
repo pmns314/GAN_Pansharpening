@@ -4,6 +4,8 @@ import numpy as np
 import torch
 
 from pytorch_models.NetworkInterface import NetworkInterface
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from utils import adjust_image
 
 
 class CnnInterface(NetworkInterface):
@@ -93,6 +95,11 @@ class CnnInterface(NetworkInterface):
         self.train(False)
         self.eval()
         running_vloss = 0.0
+
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
         i = 0
         with torch.no_grad():
             for i, data in enumerate(dataloader):
@@ -113,12 +120,26 @@ class CnnInterface(NetworkInterface):
                 vloss = self.loss_fn(voutputs, gt)
                 running_vloss += vloss.item()
 
+                # Compute indexes
+                gt = adjust_image(gt)
+                gen = adjust_image(gen)
+                indexes = indexes_evaluation(gt, gen, 4, 11, 63, False, None, True)
+                running_q2n += indexes[0]
+                running_q += indexes[1]
+                running_ergas += indexes[2]
+                running_sam += indexes[3]
+
+
         avg_vloss = running_vloss / (i + 1)
+        q2n_tot = running_q2n / (i + 1)
+        q_tot = running_q / (i + 1)
+        ergas_tot = running_ergas / (i + 1)
+        sam_tot = running_sam / (i + 1)
         try:
             self.loss_fn.reset()
         except:
             pass
-        return {"Loss": avg_vloss}
+        return {"Loss": avg_vloss}, [q2n_tot, q_tot, ergas_tot, sam_tot]
 
     def generate_output(self, pan, ms, evaluation=True):
         """
