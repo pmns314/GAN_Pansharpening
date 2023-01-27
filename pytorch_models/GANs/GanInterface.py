@@ -35,7 +35,7 @@ class GanInterface(NetworkInterface):
         pass
 
     @abstractmethod
-    def validation_step(self, dataloader):
+    def validation_step(self, dataloader, evaluate_indexes=False):
         """ Defines the operations to be carried out during the validation step
 
         Parameters

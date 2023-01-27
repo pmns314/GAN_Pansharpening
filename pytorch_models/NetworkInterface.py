@@ -33,7 +33,7 @@ class NetworkInterface(ABC, nn.Module):
         self.use_ms_lr = False
         self.best_q = self.best_q_avg = .0001
         self.best_sam = self.best_ergas = 1000
-        self.patience = 50
+        self.patience = 5
         self.step = 10
         self.waiting = 0
         self.to(device)
@@ -56,7 +56,7 @@ class NetworkInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def validation_step(self, dataloader):
+    def validation_step(self, dataloader, evaluate_indexes=False):
         """ Defines the operations to be carried out during the validation step
 
         Parameters
@@ -157,7 +157,7 @@ class NetworkInterface(ABC, nn.Module):
 
         # TensorBoard
         writer = SummaryWriter(output_path + "/log")
-
+        indexes = None
         # Training
         print(f"Training started for {output_path} at epoch {self.tot_epochs + 1}")
         ending_epoch = self.tot_epochs + epochs
@@ -169,11 +169,19 @@ class NetworkInterface(ABC, nn.Module):
             train_losses = self.train_step(train_dataloader)
             if val_dataloader is not None:
                 # Compute Losses on Validation Set if exists
-                val_losses, indexes = self.validation_step(val_dataloader)
+                if epoch == 0 or (epoch + 1) % self.step == 0:
+                    val_losses, indexes = self.validation_step(val_dataloader, True)
+                else:
+                    val_losses, _ = self.validation_step(val_dataloader, False)
                 for k in train_losses.keys():
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
                                        self.tot_epochs)
+                    if indexes is not None:
+                        writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
+                        writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
+                        writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
+                        writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
                 losses = list(val_losses.values())
             else:
                 # Otherwise keeps track only of train losses
@@ -197,23 +205,24 @@ class NetworkInterface(ABC, nn.Module):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
-            Q2n, Q_avg, ERGAS, SAM = indexes
+            if indexes is not None:
+                Q2n, Q_avg, ERGAS, SAM = indexes
 
-            # Increment Calculation
-            Q_incr = Q2n / self.best_q - 1
-            Q_avg_incr = Q_avg / self.best_q_avg - 1
-            SAM_incr = SAM / self.best_sam - 1
-            ERGAS_incr = ERGAS / self.best_ergas - 1
+                # Increment Calculation
+                Q_incr = Q2n / self.best_q - 1
+                Q_avg_incr = Q_avg / self.best_q_avg - 1
+                SAM_incr = SAM / self.best_sam - 1
+                ERGAS_incr = ERGAS / self.best_ergas - 1
 
-            tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
 
-            if tot_incr > 0.0005:
-                self.best_losses[0] = losses[0]
-                self.best_epoch = self.tot_epochs
-                self.save_model(f"{output_path}/model.pth")
-                print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
-            else:
-                self.waiting += 1
+                if tot_incr > 0.0005:
+                    self.best_losses[0] = losses[0]
+                    self.best_epoch = self.tot_epochs
+                    self.save_model(f"{output_path}/model.pth")
+                    print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
+                else:
+                    self.waiting += 1
             # -------------------------------
             # Test Analysis
             if epoch == 0 or (epoch + 1) % self.step == 0:
@@ -255,8 +264,7 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
-        if FR_test is None:
-            FR_test = stopping_test
+        FR_test = tests[-1]
         gen = self.generate_output(pan=FR_test['pan'].to(self.device),
                                    ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
                                    FR_test['ms_lr'].to(self.device),

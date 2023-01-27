@@ -5,7 +5,6 @@ import torch
 
 from pytorch_models.NetworkInterface import NetworkInterface
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from utils import adjust_image
 
 
 class CnnInterface(NetworkInterface):
@@ -84,7 +83,7 @@ class CnnInterface(NetworkInterface):
             pass
         return {"Loss": loss_batch / len(dataloader)}
 
-    def validation_step(self, dataloader):
+    def validation_step(self, dataloader, evaluate_indexes=False):
         """ Defines the operations to be carried out during the validation step
 
         Parameters
@@ -121,14 +120,17 @@ class CnnInterface(NetworkInterface):
                 running_vloss += vloss.item()
 
                 # Compute indexes
-                gt = adjust_image(gt)
-                gen = adjust_image(gen)
-                indexes = indexes_evaluation(gt, gen, 4, 11, 63, False, None, True)
-                running_q2n += indexes[0]
-                running_q += indexes[1]
-                running_ergas += indexes[2]
-                running_sam += indexes[3]
-
+                if evaluate_indexes:
+                    voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                    for i in range(voutputs.shape[0]):
+                        gt = gt_all[i, :, :, :]
+                        gen = voutputs[i, :, :, :]
+                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                        running_q2n += indexes[0]
+                        running_q += indexes[1]
+                        running_ergas += indexes[2]
+                        running_sam += indexes[3]
 
         avg_vloss = running_vloss / (i + 1)
         q2n_tot = running_q2n / (i + 1)
