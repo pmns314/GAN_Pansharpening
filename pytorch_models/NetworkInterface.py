@@ -173,6 +173,7 @@ class NetworkInterface(ABC, nn.Module):
                     val_losses, indexes = self.validation_step(val_dataloader, True)
                 else:
                     val_losses, _ = self.validation_step(val_dataloader, False)
+                    indexes = None
                 for k in train_losses.keys():
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
@@ -214,13 +215,19 @@ class NetworkInterface(ABC, nn.Module):
                 SAM_incr = SAM / self.best_sam - 1
                 ERGAS_incr = ERGAS / self.best_ergas - 1
 
-                tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
-
+                # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                tot_incr = Q_incr
                 if tot_incr > 0.0005:
                     self.best_losses[0] = losses[0]
                     self.best_epoch = self.tot_epochs
                     self.save_model(f"{output_path}/model.pth")
-                    print(f"New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}")
+                    self.best_q = Q2n
+                    self.best_q_avg = Q_avg
+                    self.best_sam = SAM
+                    self.best_ergas = ERGAS
+                    print(f"New Best Loss {self.best_losses[0]:.4f} at epoch {self.best_epoch}")
+                    print(f"New Best Q {self.best_q:.4f} at epoch {self.best_epoch}")
+                    self.waiting = 0
                 else:
                     self.waiting += 1
             # -------------------------------
@@ -248,12 +255,15 @@ class NetworkInterface(ABC, nn.Module):
             # -------------------------------
 
             # Save Checkpoints
-            if self.tot_epochs in TO_SAVE or epoch == epochs - 1 and save_checkpoints:
-                self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
+            if save_checkpoints:
+                if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
+                    self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
 
             if self.waiting == self.patience:
                 print(f"Stopping at epoch : {self.tot_epochs}")
                 break
+
+        self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
         # Update number of trained epochs
         last_tot = self.tot_epochs
         self.load_model(f"{output_path}/model.pth")

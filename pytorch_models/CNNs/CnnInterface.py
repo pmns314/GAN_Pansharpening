@@ -121,22 +121,28 @@ class CnnInterface(NetworkInterface):
 
                 # Compute indexes
                 if evaluate_indexes:
+                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
                     voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
                     gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
-                    for i in range(voutputs.shape[0]):
-                        gt = gt_all[i, :, :, :]
-                        gen = voutputs[i, :, :, :]
+                    num_elem_batch = voutputs.shape[0]
+                    for k in range(num_elem_batch):
+                        gt = gt_all[k, :, :, :]
+                        gen = voutputs[k, :, :, :]
                         indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
-                        running_q2n += indexes[0]
-                        running_q += indexes[1]
-                        running_ergas += indexes[2]
-                        running_sam += indexes[3]
+                        batch_q2n += indexes[0]
+                        batch_q += indexes[1]
+                        batch_ergas += indexes[2]
+                        batch_sam += indexes[3]
+                    running_q += batch_q / num_elem_batch
+                    running_q2n += batch_q2n / num_elem_batch
+                    running_sam += batch_sam / num_elem_batch
+                    running_ergas += batch_ergas / num_elem_batch
 
-        avg_vloss = running_vloss / (i + 1)
-        q2n_tot = running_q2n / (i + 1)
-        q_tot = running_q / (i + 1)
-        ergas_tot = running_ergas / (i + 1)
-        sam_tot = running_sam / (i + 1)
+        avg_vloss = running_vloss / len(dataloader)
+        q2n_tot = running_q2n / len(dataloader)
+        q_tot = running_q / len(dataloader)
+        ergas_tot = running_ergas / len(dataloader)
+        sam_tot = running_sam / len(dataloader)
         try:
             self.loss_fn.reset()
         except:
