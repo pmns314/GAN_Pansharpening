@@ -142,10 +142,10 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     data_out_format = "mat"
-    # index_test = 3
-    # satellite = "W3"
-    # model_type = "PanColorGan"
-    # model_name = "pancolorgan_q"
+    index_test = 3
+    satellite = "W3"
+    model_type = "PSGAN"
+    model_name = "psgan_v9.1.1"
     gen_image(model_type, model_name, index_test, True, "model.pth")
     exit(0)
     for index_test in [1, 2, 3]:

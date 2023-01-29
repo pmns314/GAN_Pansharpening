@@ -33,8 +33,8 @@ class NetworkInterface(ABC, nn.Module):
         self.use_ms_lr = False
         self.best_q = self.best_q_avg = .0001
         self.best_sam = self.best_ergas = 1000
-        self.patience = 5
         self.step = 10
+        self.patience = 50//self.step
         self.waiting = 0
         self.to(device)
 
@@ -125,7 +125,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    tests=None, save_checkpoints=False):
+                    tests=None, save_checkpoints=True):
         """
         Method for fitting the model.
 
@@ -217,7 +217,7 @@ class NetworkInterface(ABC, nn.Module):
 
                 # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
                 tot_incr = Q_incr
-                if tot_incr > 0.0005:
+                if tot_incr > 0.0001:
                     self.best_losses[0] = losses[0]
                     self.best_epoch = self.tot_epochs
                     self.save_model(f"{output_path}/model.pth")

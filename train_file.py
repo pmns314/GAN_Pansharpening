@@ -1,7 +1,7 @@
 import argparse
 import shutil
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
@@ -98,6 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--source_dataset',
                         help='Choose from Train, Train&Val, Train&Val&Test and Test',
                         type=str,
+                        narg="+",
                         default="Train"
                         )
     parser.add_argument('--index_image',
@@ -159,10 +160,12 @@ if __name__ == '__main__':
     # Data Loading
     cnt = 0
     prefix = "train" if source_dataset != "Test" else "test"
-    train_dataset = f"{prefix}_{index_image}_{patch_size}.h5"
-    train_dataloader = DataLoader(
-        DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}"),
-        batch_size=64, shuffle=True)
+    train_dataset = f"train_{index_image}_{patch_size}.h5"
+    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
+    train_dataset = f"train_{index_image}_{patch_size}.h5"
+    train_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
+    train_data_all = ConcatDataset([train_data1, train_data2])
+    train_dataloader = DataLoader(train_data_all, batch_size=64, shuffle=False)
     cnt += 1
 
     if prefix == "test":
@@ -173,9 +176,11 @@ if __name__ == '__main__':
         val_dataloader = None
     else:
         val_dataset = f"val_{index_image}_{patch_size}.h5"
-        val_dataloader = DataLoader(
-            DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}"),
-            batch_size=64, shuffle=False)
+        val_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
+        val_dataset = f"val_{index_image}_{patch_size}.h5"
+        val_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
+        val_data_all = ConcatDataset([val_data1, val_data2])
+        val_dataloader = DataLoader(val_data_all,batch_size=64, shuffle=False)
         cnt += 1
 
     # Model Creation
@@ -206,17 +211,21 @@ if __name__ == '__main__':
 
     model.set_optimizers_lr(lr)
 
-    RR_test_dict = create_test_dict(f"{dataset_path}/RR3/Test/{satellite}/test_{index_image}_128.h5",
+
+    RR_test_dict = create_test_dict(f"{dataset_path}/RR3/Test/{satellite}/test_3_128.h5",
                                     f"{output_path}/test_RR.csv")
 
-    FR_test_dict = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_{index_image}_512.h5",
-                                    f"{output_path}/test_FR.csv")
+    FR_test_dict1 = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_1_512.h5",
+                                    f"{output_path}/test_1_FR.csv")
+    FR_test_dict2 = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_2_512.h5",
+                                    f"{output_path}/test_2_FR.csv")
+    FR_test_dict3 = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_3_512.h5",
+                                    f"{output_path}/test_3_FR.csv")
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, val_dataloader,
-                      RR_test_dict if use_rr else FR_test_dict,
-                      FR_test_dict if use_rr else None)
+                      train_dataloader, val_dataloader,[FR_test_dict1, FR_test_dict2,FR_test_dict3])
+
 
     # Report
     with open(f"{output_path}/report.txt", "w") as f:
