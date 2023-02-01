@@ -125,7 +125,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    tests=None, save_checkpoints=True):
+                    tests=None, save_checkpoints=True, rr_test=None):
         """
         Method for fitting the model.
 
@@ -170,7 +170,7 @@ class NetworkInterface(ABC, nn.Module):
             if val_dataloader is not None:
                 # Compute Losses on Validation Set if exists
                 if epoch == 0 or (epoch + 1) % self.step == 0:
-                    val_losses, indexes = self.validation_step(val_dataloader, True)
+                    val_losses, indexes = self.validation_step(val_dataloader, False)
                 else:
                     val_losses, _ = self.validation_step(val_dataloader, False)
                     indexes = None
@@ -178,6 +178,7 @@ class NetworkInterface(ABC, nn.Module):
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
                                        self.tot_epochs)
+                    indexes = None
                     if indexes is not None:
                         writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
                         writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
@@ -205,6 +206,19 @@ class NetworkInterface(ABC, nn.Module):
             for i in range(1, len(losses)):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
+
+            if rr_test is not None and (epoch == 0 or (epoch + 1) % self.step == 0):
+                gen = self.generate_output(pan=rr_test['pan'].to(self.device),
+                                           ms=rr_test['ms'].to(self.device) if self.use_ms_lr is False else
+                                           rr_test['ms_lr'].to(self.device),
+                                           evaluation=True)
+
+                gen = adjust_image(gen, rr_test['ms_lr'])
+                gt = adjust_image(rr_test['gt'])
+
+                indexes = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                            dim_cut,
+                                                            th_values)
 
             if indexes is not None:
                 Q2n, Q_avg, ERGAS, SAM = indexes
