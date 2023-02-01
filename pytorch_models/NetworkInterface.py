@@ -217,7 +217,7 @@ class NetworkInterface(ABC, nn.Module):
 
                 # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
                 tot_incr = Q_incr
-                if tot_incr > 0.0001:
+                if tot_incr > 0.00001:
                     self.best_losses[0] = losses[0]
                     self.best_epoch = self.tot_epochs
                     self.save_model(f"{output_path}/model.pth")

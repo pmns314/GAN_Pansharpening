@@ -67,3 +67,27 @@ def create_model(network_type: str, channels: int, device: str = "cpu", evaluati
                    f"Adversarial Losses: \t{[e.name for e in AdvLosses]}\n"
                    f"Optimizers: \t{[e.name for e in Optimizers]}\n"
                    )
+
+
+if __name__ == '__main__':
+    from tbparse import SummaryReader
+
+    fold = "pytorch_models/trained_models/W3/APNN/apnn_v9.3/"
+    log_dir = fold + "log"
+    reader = SummaryReader(log_dir)
+    df = reader.scalars
+
+    q2n_df = df[df['tag'] == "Q2n/Val"]
+    q2n_df.to_csv(fold + 'Q2n.csv')
+    Q_avg_df = df[df['tag'] == "Q/Val"]
+    Q_avg_df.to_csv(fold + 'Q_avg.csv')
+    SAM_df = df[df['tag'] == "SAM/Val"]
+    SAM_df.to_csv(fold + 'SAM.csv')
+    ERGAS_df = df[df['tag'] == "ERGAS/Val"]
+    ERGAS_df.to_csv(fold + 'ERGAS.csv')
+
+    loss_df = df[df['tag'] == "Loss"][::2]
+    loss_df.to_csv(fold + 'loss_train.csv')
+
+    loss_df = df[df['tag'] == "Loss"][1::2]
+    loss_df.to_csv(fold + 'loss_val.csv')

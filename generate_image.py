@@ -144,8 +144,8 @@ if __name__ == '__main__':
     data_out_format = "mat"
     index_test = 3
     satellite = "W3"
-    model_type = "PSGAN"
-    model_name = "psgan_v9.1.1"
+    model_type = "APNN"
+    model_name = "apnn_v9.2_val_mix"
     gen_image(model_type, model_name, index_test, True, "model.pth")
     exit(0)
     for index_test in [1, 2, 3]:
@@ -157,3 +157,4 @@ if __name__ == '__main__':
             except RuntimeError as e:
                 print(e)
                 print(model_name)
+
