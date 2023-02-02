@@ -8,7 +8,7 @@ from torch.nn.functional import interpolate
 
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import LsganLoss
-
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 
 def downsample(img, new_shape):
     return interpolate(img, new_shape, mode='bilinear', antialias=True)
@@ -259,7 +259,7 @@ class PanGan(GanInterface, ABC):
                 "Spec Disc loss": loss_d_spec_batch / len(dataloader)
                 }
 
-    def validation_step(self, dataloader):
+    def validation_step(self, dataloader,  evaluate_indexes=False):
         self.eval()
         self.spatial_discriminator.eval()
         self.spectral_discriminator.eval()
@@ -268,12 +268,19 @@ class PanGan(GanInterface, ABC):
         loss_g_batch = 0
         loss_d_spec_batch = 0
         loss_d_spat_batch = 0
+
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
+
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
+                gt = gt.to(self.device)
 
                 if len(pan.shape) != len(ms.shape):
                     pan = torch.unsqueeze(pan, 0)
@@ -287,6 +294,29 @@ class PanGan(GanInterface, ABC):
 
                 gloss = self.generator_loss(pan, ms, generated_HRMS)
                 loss_g_batch += gloss.item()
+                # Compute indexes
+                if evaluate_indexes:
+                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
+                    voutputs = torch.permute(generated_HRMS, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                    num_elem_batch = voutputs.shape[0]
+                    for k in range(num_elem_batch):
+                        gt = gt_all[k, :, :, :]
+                        gen = voutputs[k, :, :, :]
+                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                        batch_q2n += indexes[0]
+                        batch_q += indexes[1]
+                        batch_ergas += indexes[2]
+                        batch_sam += indexes[3]
+                    running_q += batch_q / num_elem_batch
+                    running_q2n += batch_q2n / num_elem_batch
+                    running_sam += batch_sam / num_elem_batch
+                    running_ergas += batch_ergas / num_elem_batch
+
+            q2n_tot = running_q2n / len(dataloader)
+            q_tot = running_q / len(dataloader)
+            ergas_tot = running_ergas / len(dataloader)
+            sam_tot = running_sam / len(dataloader)
         try:
             self.loss_fn.reset()
         except:
@@ -294,7 +324,7 @@ class PanGan(GanInterface, ABC):
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Spat Disc loss": loss_d_spat_batch / len(dataloader),
                 "Spec Disc loss": loss_d_spec_batch / len(dataloader)
-                }
+                }, [q2n_tot, q_tot, ergas_tot, sam_tot]
 
     def save_model(self, path):
         torch.save({'gen_state_dict': self.generator.state_dict(),

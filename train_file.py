@@ -1,7 +1,7 @@
 import argparse
 import shutil
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
@@ -161,10 +161,22 @@ if __name__ == '__main__':
     prefix = "train" if source_dataset != "Test" else "test"
     train_dataset = f"train_{index_image}_{patch_size}.h5"
     train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
-    # train_dataset = f"train_{index_image}_{patch_size}.h5"
-    # train_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
-    # train_data_all = ConcatDataset([train_data1, train_data2])
-    train_dataloader = DataLoader(train_data1, batch_size=64, shuffle=False)
+    train_dataset = f"train_{index_image}_{patch_size}.h5"
+    train_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
+    train_dataset = f"train_1_{patch_size}.h5"
+    train_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{train_dataset}")
+    train_dataset = f"train_2_{patch_size}.h5"
+    train_data4 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{train_dataset}")
+
+    x = 1
+    if x == 1:
+        train_data_all = train_data1
+    elif x == 2:
+        train_data_all = ConcatDataset([train_data1, train_data2])
+    else:
+        train_data_all = ConcatDataset([train_data1, train_data2, train_data3, train_data4])
+
+    train_dataloader = DataLoader(train_data_all, batch_size=64, shuffle=False)
     cnt += 1
 
     if prefix == "test":
@@ -176,14 +188,24 @@ if __name__ == '__main__':
     else:
         val_dataset = f"val_{index_image}_{patch_size}.h5"
         val_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
-        # val_dataset = f"val_{index_image}_{patch_size}.h5"
-        # val_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
-        # val_data_all = ConcatDataset([val_data1, val_data2])
-        val_dataloader = DataLoader(val_data1, batch_size=64, shuffle=False)
+        val_dataset = f"val_{index_image}_{patch_size}.h5"
+        val_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
+        val_dataset = f"val_1_{patch_size}.h5"
+        val_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{val_dataset}")
+        val_dataset = f"val_2_{patch_size}.h5"
+        val_data4 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{val_dataset}")
+
+        if x == 1:
+            val_data_all = val_data1
+        elif x == 2:
+            val_data_all = ConcatDataset([val_data1, val_data2])
+        else:
+            val_data_all = ConcatDataset([val_data1, val_data2, val_data3, val_data4])
+        val_dataloader = DataLoader(val_data_all, batch_size=64, shuffle=False)
         cnt += 1
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device, **vars(args))
+    model = create_model(type_model, 8, device, **vars(args))
     model.to(device)
 
     output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
@@ -196,8 +218,10 @@ if __name__ == '__main__':
         latest_checkpoint = max([int((e.split("_")[1]).split(".")[0]) for e in os.listdir(chk_path)])
         model.load_model(f"{output_path}/model.pth")
         best_losses = model.best_losses
+        best_q = model.best_q
         model.load_model(f"{chk_path}/checkpoint_{latest_checkpoint}.pth")
         model.best_losses = best_losses
+        model.best_q = best_q
     else:
         if base_path is not None:
             print(f"Using weights from {base_path}")
@@ -219,10 +243,14 @@ if __name__ == '__main__':
                                      f"{output_path}/test_2_FR.csv")
     FR_test_dict3 = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_3_512.h5",
                                      f"{output_path}/test_3_FR.csv")
+    FR_test_dict4 = create_test_dict(f"{dataset_path}/FR3/Test/W2/test_1_512.h5",
+                                     f"{output_path}/test_1_FR_W2.csv")
+    FR_test_dict5 = create_test_dict(f"{dataset_path}/FR3/Test/W2/test_2_512.h5",
+                                     f"{output_path}/test_2_FR_W2.csv")
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, val_dataloader, [FR_test_dict1, FR_test_dict2, FR_test_dict3],
+                      train_dataloader, val_dataloader, [FR_test_dict1, FR_test_dict2, FR_test_dict3, FR_test_dict4, FR_test_dict5],
                       rr_test=RR_test_dict)
 
     # Report

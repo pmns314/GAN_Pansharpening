@@ -6,6 +6,7 @@ from torch import nn
 
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import RaganLoss
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 
 
 class PanColorGan(GanInterface, ABC):
@@ -167,7 +168,6 @@ class PanColorGan(GanInterface, ABC):
 
                 nn.Conv2d(256, 1, kernel_size=(4, 4), stride=(1, 1), padding=(2, 2)),
 
-
             )
             self.act = nn.Sigmoid()
             self.apply_activation = True
@@ -275,14 +275,17 @@ class PanColorGan(GanInterface, ABC):
                 "Disc loss": loss_d_batch / len(dataloader)
                 }
 
-    def validation_step(self, dataloader):
+    def validation_step(self, dataloader, evaluate_indexes=False):
         self.eval()
         self.discriminator.eval()
         self.generator.eval()
 
         gen_loss = 0.0
         disc_loss = 0.0
-
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
@@ -303,6 +306,29 @@ class PanColorGan(GanInterface, ABC):
                 # generated = self.generate_output(ms_lr_gray, ms_lr_up)
                 gloss = self.loss_generator(ms, pan, gt, generated)
                 gen_loss += gloss.item()
+                # Compute indexes
+                if evaluate_indexes:
+                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
+                    voutputs = torch.permute(generated, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                    num_elem_batch = voutputs.shape[0]
+                    for k in range(num_elem_batch):
+                        gt = gt_all[k, :, :, :]
+                        gen = voutputs[k, :, :, :]
+                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                        batch_q2n += indexes[0]
+                        batch_q += indexes[1]
+                        batch_ergas += indexes[2]
+                        batch_sam += indexes[3]
+                    running_q += batch_q / num_elem_batch
+                    running_q2n += batch_q2n / num_elem_batch
+                    running_sam += batch_sam / num_elem_batch
+                    running_ergas += batch_ergas / num_elem_batch
+
+            q2n_tot = running_q2n / len(dataloader)
+            q_tot = running_q / len(dataloader)
+            ergas_tot = running_ergas / len(dataloader)
+            sam_tot = running_sam / len(dataloader)
 
         try:
             self.loss_fn.reset()
@@ -310,7 +336,7 @@ class PanColorGan(GanInterface, ABC):
             pass
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
-                }
+                }, [q2n_tot, q_tot, ergas_tot, sam_tot]
 
     def save_model(self, path):
         torch.save({

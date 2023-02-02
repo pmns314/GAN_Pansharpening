@@ -170,7 +170,7 @@ class NetworkInterface(ABC, nn.Module):
             if val_dataloader is not None:
                 # Compute Losses on Validation Set if exists
                 if epoch == 0 or (epoch + 1) % self.step == 0:
-                    val_losses, indexes = self.validation_step(val_dataloader, False)
+                    val_losses, indexes = self.validation_step(val_dataloader, True)
                 else:
                     val_losses, _ = self.validation_step(val_dataloader, False)
                     indexes = None
@@ -178,7 +178,6 @@ class NetworkInterface(ABC, nn.Module):
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
                                        self.tot_epochs)
-                    indexes = None
                     if indexes is not None:
                         writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
                         writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
@@ -207,18 +206,18 @@ class NetworkInterface(ABC, nn.Module):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
-            if rr_test is not None and (epoch == 0 or (epoch + 1) % self.step == 0):
-                gen = self.generate_output(pan=rr_test['pan'].to(self.device),
-                                           ms=rr_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                           rr_test['ms_lr'].to(self.device),
-                                           evaluation=True)
-
-                gen = adjust_image(gen, rr_test['ms_lr'])
-                gt = adjust_image(rr_test['gt'])
-
-                indexes = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                            dim_cut,
-                                                            th_values)
+            # if rr_test is not None and (epoch == 0 or (epoch + 1) % self.step == 0):
+            #     gen = self.generate_output(pan=rr_test['pan'].to(self.device),
+            #                                ms=rr_test['ms'].to(self.device) if self.use_ms_lr is False else
+            #                                rr_test['ms_lr'].to(self.device),
+            #                                evaluation=True)
+            #
+            #     gen = adjust_image(gen, rr_test['ms_lr'])
+            #     gt = adjust_image(rr_test['gt'])
+            #
+            #     indexes = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+            #                                                 dim_cut,
+            #                                                 th_values)
 
             if indexes is not None:
                 Q2n, Q_avg, ERGAS, SAM = indexes
@@ -275,7 +274,7 @@ class NetworkInterface(ABC, nn.Module):
 
             if self.waiting == self.patience:
                 print(f"Stopping at epoch : {self.tot_epochs}")
-                break
+                # break
 
         self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
         # Update number of trained epochs
@@ -288,7 +287,7 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
 
-        FR_test = tests[-1]
+        FR_test = tests[2]
         gen = self.generate_output(pan=FR_test['pan'].to(self.device),
                                    ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
                                    FR_test['ms_lr'].to(self.device),
