@@ -171,6 +171,7 @@ class NetworkInterface(ABC, nn.Module):
                 # Compute Losses on Validation Set if exists
                 if epoch == 0 or (epoch + 1) % self.step == 0:
                     val_losses, indexes = self.validation_step(val_dataloader, True)
+                    print(indexes)
                 else:
                     val_losses, _ = self.validation_step(val_dataloader, False)
                     indexes = None

@@ -77,7 +77,7 @@ class QLoss(torch.nn.Module):
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
-        return (1 - self.q(y_pred, y_true)) +  self.mae(y_pred, y_true)
+        return (1 - self.q(y_pred, y_true)) + self.mae(y_pred, y_true)
 
 
 class Losses(Enum):

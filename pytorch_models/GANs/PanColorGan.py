@@ -7,6 +7,7 @@ from torch import nn
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import RaganLoss
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from constants import *
 
 
 class PanColorGan(GanInterface, ABC):
@@ -290,16 +291,17 @@ class PanColorGan(GanInterface, ABC):
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = ms_lr.to(self.device)
-
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
                 # Downsample MS_LR
-                ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+                # ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
-                ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
+                # ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
                 # Convert MS_LR to Grayscale
-                pan = torch.mean(gt, 1, keepdim=True)
+                # pan = torch.mean(gt, 1, keepdim=True)
 
-                generated = self.generate_output(pan, ms)
+                generated = self.generate_output(pan, ms, evaluation=True)
                 dloss = self.loss_discriminator(ms, pan, gt, generated)
                 disc_loss += dloss.item()
 
@@ -315,7 +317,8 @@ class PanColorGan(GanInterface, ABC):
                     for k in range(num_elem_batch):
                         gt = gt_all[k, :, :, :]
                         gen = voutputs[k, :, :, :]
-                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                        indexes = indexes_evaluation(gt, gen, ratio, L, 8, 0, dim_cut,
+                                                     th_values)
                         batch_q2n += indexes[0]
                         batch_q += indexes[1]
                         batch_ergas += indexes[2]
