@@ -154,27 +154,31 @@ if __name__ == '__main__':
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
     # dataset_settings = list(zip(source_dataset, index_images, patch_size))
-    data_resolution = "RR3" if use_rr else "FR3"
+    data_resolution = "FR_K"
 
     # Data Loading
     cnt = 0
     prefix = "train" if source_dataset != "Test" else "test"
-    train_dataset = f"train_{index_image}_{patch_size}.h5"
-    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
-    train_dataset = f"train_{index_image}_{patch_size}.h5"
-    train_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
-    train_dataset = f"train_1_{patch_size}.h5"
-    train_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{train_dataset}")
-    train_dataset = f"train_2_{patch_size}.h5"
-    train_data4 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{train_dataset}")
+    train_dataset = f"train_1_0_64.h5"
+    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_dataset = f"train_1_1_64.h5"
+    train_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_dataset = f"train_2_0_64.h5"
+    train_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_dataset = f"train_2_1_64.h5"
+    train_data4 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_dataset = f"train_3_0_64.h5"
+    train_data5 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_dataset = f"train_3_1_64.h5"
+    train_data6 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
 
-    x = 1
+    x = 6
     if x == 1:
         train_data_all = train_data1
     elif x == 2:
         train_data_all = ConcatDataset([train_data1, train_data2])
     else:
-        train_data_all = ConcatDataset([train_data1, train_data2, train_data3, train_data4])
+        train_data_all = ConcatDataset([train_data1, train_data2, train_data3, train_data4, train_data5, train_data6])
 
     train_dataloader = DataLoader(train_data_all, batch_size=64, shuffle=False)
     cnt += 1
@@ -186,21 +190,19 @@ if __name__ == '__main__':
         val_dataset = None
         val_dataloader = None
     else:
-        val_dataset = f"val_{index_image}_{patch_size}.h5"
-        val_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
-        val_dataset = f"val_{index_image}_{patch_size}.h5"
-        val_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
-        val_dataset = f"val_1_{patch_size}.h5"
-        val_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{val_dataset}")
-        val_dataset = f"val_2_{patch_size}.h5"
-        val_data4 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W2/{val_dataset}")
+        val_dataset = f"train_1_2_64.h5"
+        val_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{val_dataset}")
+        val_dataset = f"train_2_2_64.h5"
+        val_data2 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{val_dataset}")
+        val_dataset = f"train_3_2_64.h5"
+        val_data3 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{val_dataset}")
 
         if x == 1:
             val_data_all = val_data1
         elif x == 2:
             val_data_all = ConcatDataset([val_data1, val_data2])
         else:
-            val_data_all = ConcatDataset([val_data1, val_data2, val_data3, val_data4])
+            val_data_all = ConcatDataset([val_data1, val_data2, val_data3])
         val_dataloader = DataLoader(val_data_all, batch_size=64, shuffle=False)
         cnt += 1
 
@@ -243,15 +245,19 @@ if __name__ == '__main__':
                                      f"{output_path}/test_2_FR.csv")
     FR_test_dict3 = create_test_dict(f"{dataset_path}/FR3/Test/{satellite}/test_3_512.h5",
                                      f"{output_path}/test_3_FR.csv")
-    FR_test_dict4 = create_test_dict(f"{dataset_path}/FR3/Test/W2/test_1_512.h5",
-                                     f"{output_path}/test_1_FR_W2.csv")
-    FR_test_dict5 = create_test_dict(f"{dataset_path}/FR3/Test/W2/test_2_512.h5",
-                                     f"{output_path}/test_2_FR_W2.csv")
+
+    FR_test_dict4 = create_test_dict(f"{dataset_path}/{data_resolution}/W3/test_1_3_64.h5",
+                                     f"{output_path}/test_img_1_quad_3.csv")
+    FR_test_dict5 = create_test_dict(f"{dataset_path}/{data_resolution}/W3/test_2_3_64.h5",
+                                     f"{output_path}/test_img_2_quad_3.csv")
+    FR_test_dict6 = create_test_dict(f"{dataset_path}/{data_resolution}/W3/test_3_3_64.h5",
+                                    f"{output_path}/test_img_3_quad_3.csv")
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, val_dataloader, [FR_test_dict1, FR_test_dict2, FR_test_dict3, FR_test_dict4, FR_test_dict5],
-                      rr_test=RR_test_dict)
+                      train_dataloader, val_dataloader, [FR_test_dict1, FR_test_dict2, FR_test_dict3,
+                                                         FR_test_dict4, FR_test_dict5, FR_test_dict6],
+                      rr_test=None)
 
     # Report
     with open(f"{output_path}/report.txt", "w") as f:

@@ -179,11 +179,11 @@ class NetworkInterface(ABC, nn.Module):
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
                                        self.tot_epochs)
-                    if indexes is not None:
-                        writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
-                        writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
-                        writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
-                        writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
+                if indexes is not None:
+                    writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
+                    writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
+                    writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
+                    writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
                 losses = list(val_losses.values())
             else:
                 # Otherwise keeps track only of train losses

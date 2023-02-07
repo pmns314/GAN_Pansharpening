@@ -72,7 +72,7 @@ def create_model(network_type: str, channels: int, device: str = "cpu", evaluati
 if __name__ == '__main__':
     from tbparse import SummaryReader
 
-    fold = "pytorch_models/trained_models/W3/APNN/apnn_v9.3/"
+    fold = "pytorch_models/trained_models/W3/PSGAN/psgan_1_2_w2/"
     log_dir = fold + "log"
     reader = SummaryReader(log_dir)
     df = reader.scalars
@@ -86,8 +86,8 @@ if __name__ == '__main__':
     ERGAS_df = df[df['tag'] == "ERGAS/Val"]
     ERGAS_df.to_csv(fold + 'ERGAS.csv')
 
-    loss_df = df[df['tag'] == "Loss"][::2]
+    loss_df = df[df['tag'] == 'Gen loss'][::2]
     loss_df.to_csv(fold + 'loss_train.csv')
 
-    loss_df = df[df['tag'] == "Loss"][1::2]
+    loss_df = df[df['tag'] == 'Gen loss'][1::2]
     loss_df.to_csv(fold + 'loss_val.csv')
