@@ -180,7 +180,7 @@ if __name__ == '__main__':
     else:
         train_data_all = ConcatDataset([train_data1, train_data2, train_data3, train_data4, train_data5, train_data6])
 
-    train_dataloader = DataLoader(train_data_all, batch_size=64, shuffle=False)
+    train_dataloader = DataLoader(train_data_all, batch_size=64, shuffle=True)
     cnt += 1
 
     if prefix == "test":

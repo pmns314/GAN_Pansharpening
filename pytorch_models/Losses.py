@@ -31,16 +31,19 @@ class FrobeniusLoss(torch.nn.Module):
         norm = torch.norm(tensor, p="fro")
         return torch.mean(torch.square(norm))
 
-
+from pytorch_msssim import ssim as mssim
 class SSIMLoss(torch.nn.Module):
     def __init__(self):
         super(SSIMLoss, self).__init__()
+        self.mae = torch.nn.L1Loss()
 
+    def reset():
+        pass
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
 
-        return 1 - ssim(y_pred, y_true)
+        return (1 - mssim(y_pred, y_true, size_average=True)) + self.mae(y_pred, y_true)
 
 
 class SAMLoss(torch.nn.Module):

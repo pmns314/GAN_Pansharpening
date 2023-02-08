@@ -1,3 +1,5 @@
+import os
+
 from pytorch_models import *
 
 
@@ -71,23 +73,28 @@ def create_model(network_type: str, channels: int, device: str = "cpu", evaluati
 
 if __name__ == '__main__':
     from tbparse import SummaryReader
+    import os
+    base_path = "pytorch_models/trained_models/kfold/"
+    for net in os.listdir(base_path):
+        print(net)
+        fold = f"pytorch_models/trained_models/kfold/{net}/"
 
-    fold = "pytorch_models/trained_models/W3/PSGAN/psgan_1_2_w2/"
-    log_dir = fold + "log"
-    reader = SummaryReader(log_dir)
-    df = reader.scalars
+        log_dir = fold + "log"
+        reader = SummaryReader(log_dir)
+        df = reader.scalars
 
-    q2n_df = df[df['tag'] == "Q2n/Val"]
-    q2n_df.to_csv(fold + 'Q2n.csv')
-    Q_avg_df = df[df['tag'] == "Q/Val"]
-    Q_avg_df.to_csv(fold + 'Q_avg.csv')
-    SAM_df = df[df['tag'] == "SAM/Val"]
-    SAM_df.to_csv(fold + 'SAM.csv')
-    ERGAS_df = df[df['tag'] == "ERGAS/Val"]
-    ERGAS_df.to_csv(fold + 'ERGAS.csv')
+        q2n_df = df[df['tag'] == "Q2n/Val"]
+        q2n_df.to_csv(fold + 'Q2n.csv')
+        Q_avg_df = df[df['tag'] == "Q/Val"]
+        Q_avg_df.to_csv(fold + 'Q_avg.csv')
+        SAM_df = df[df['tag'] == "SAM/Val"]
+        SAM_df.to_csv(fold + 'SAM.csv')
+        ERGAS_df = df[df['tag'] == "ERGAS/Val"]
+        ERGAS_df.to_csv(fold + 'ERGAS.csv')
 
-    loss_df = df[df['tag'] == 'Gen loss'][::2]
-    loss_df.to_csv(fold + 'loss_train.csv')
+        loss_df = df[df['tag'] == 'Loss'][::2]
+        loss_df.to_csv(fold + 'loss_train.csv')
 
-    loss_df = df[df['tag'] == 'Gen loss'][1::2]
-    loss_df.to_csv(fold + 'loss_val.csv')
+        loss_df = df[df['tag'] == 'Loss'][1::2]
+        loss_df.to_csv(fold + 'loss_val.csv')
+
