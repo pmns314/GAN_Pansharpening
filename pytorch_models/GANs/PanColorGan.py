@@ -294,6 +294,7 @@ class PanColorGan(GanInterface, ABC):
                 gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
+                ms_lr.to(self.device)
                 # Downsample MS_LR
                 # ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
@@ -302,17 +303,21 @@ class PanColorGan(GanInterface, ABC):
                 # pan = torch.mean(gt, 1, keepdim=True)
 
                 generated = self.generate_output(pan, ms, evaluation=True)
-                dloss = self.loss_discriminator(ms, pan, gt, generated)
-                disc_loss += dloss.item()
+                #dloss = self.loss_discriminator(ms, pan, gt, generated)
+                #disc_loss += dloss.item()
 
                 # generated = self.generate_output(ms_lr_gray, ms_lr_up)
-                gloss = self.loss_generator(ms, pan, gt, generated)
-                gen_loss += gloss.item()
+                #gloss = self.loss_generator(ms, pan, gt, generated)
+                #gen_loss += gloss.item()
                 # Compute indexes
+
+                # Downgrade Output and compare with MS_LR
+                generated_dg = nn.functional.interpolate(generated, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+
                 if evaluate_indexes:
                     batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
-                    voutputs = torch.permute(generated, (0, 2, 3, 1)).detach().cpu().numpy()
-                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                    voutputs = torch.permute(generated_dg, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gt_all = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
                     num_elem_batch = voutputs.shape[0]
                     for k in range(num_elem_batch):
                         gt = gt_all[k, :, :, :]

@@ -280,11 +280,11 @@ class PSGAN(GanInterface, ABC):
 
                 generated = self.generate_output(pan, multi_spectral)
 
-                dloss = self.loss_discriminator(ms, gt, generated)
-                disc_loss += dloss.item()
-
-                gloss = self.loss_generator(ms, gt, generated)
-                gen_loss += gloss.item()
+                # dloss = self.loss_discriminator(ms, gt, generated)
+                # disc_loss += dloss.item()
+                #
+                # gloss = self.loss_generator(ms, gt, generated)
+                # gen_loss += gloss.item()
 
                 # Compute indexes
                 if evaluate_indexes:

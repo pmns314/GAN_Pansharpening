@@ -74,15 +74,18 @@ def create_model(network_type: str, channels: int, device: str = "cpu", evaluati
 if __name__ == '__main__':
     from tbparse import SummaryReader
     import os
+    import pandas as pd
     base_path = "pytorch_models/trained_models/kfold/"
     for net in os.listdir(base_path):
         print(net)
         fold = f"pytorch_models/trained_models/kfold/{net}/"
+        fold = f"pytorch_models/trained_models/kfold/apnn_vk_2_3_val_0/"
 
         log_dir = fold + "log"
         reader = SummaryReader(log_dir)
         df = reader.scalars
-
+        print(df)
+        #
         q2n_df = df[df['tag'] == "Q2n/Val"]
         q2n_df.to_csv(fold + 'Q2n.csv')
         Q_avg_df = df[df['tag'] == "Q/Val"]
@@ -92,9 +95,20 @@ if __name__ == '__main__':
         ERGAS_df = df[df['tag'] == "ERGAS/Val"]
         ERGAS_df.to_csv(fold + 'ERGAS.csv')
 
-        loss_df = df[df['tag'] == 'Loss'][::2]
-        loss_df.to_csv(fold + 'loss_train.csv')
+        if fold.split("/")[-2][:4] == "apnn":
+            loss_df = df[df['tag'] == 'Loss'][::2]
+            #loss_df = pd.concat([loss_df[:200:2], loss_df[203:446:6], loss_df[447:600:4], loss_df[602::2]])
+            loss_df.to_csv(fold + 'loss_train.csv')
 
-        loss_df = df[df['tag'] == 'Loss'][1::2]
-        loss_df.to_csv(fold + 'loss_val.csv')
+            loss_df = df[df['tag'] == 'Loss'][1::2]
+            #loss_df = pd.concat([loss_df[1:200:2], loss_df[206:446:6], loss_df[449:600:4], loss_df[601::2]])
+
+            loss_df.to_csv(fold + 'loss_val.csv')
+        else:
+            loss_df = df[df['tag'] == 'Gen loss'][::2]
+            loss_df.to_csv(fold + 'loss_train.csv')
+
+            loss_df = df[df['tag'] == 'Gen loss'][1::2]
+            loss_df.to_csv(fold + 'loss_val.csv')
+        exit(0)
 

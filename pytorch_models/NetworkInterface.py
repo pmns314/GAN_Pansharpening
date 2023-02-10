@@ -184,7 +184,7 @@ class NetworkInterface(ABC, nn.Module):
                     writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
                     writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
                     writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
-                losses = list(val_losses.values())
+                losses = list(train_losses.values())
             else:
                 # Otherwise keeps track only of train losses
                 for item in train_losses.items():

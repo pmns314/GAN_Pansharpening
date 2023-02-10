@@ -75,7 +75,7 @@ def gen_image(model_type, model_name, index_test, show_image=False, model_file="
             # io.imsave(f"{result_folder}/{satellite}/gt_{index_test}.tif", gt, check_contrast=False)
             pass
 
-        filename = f"{result_folder}/{satellite}/{model_type}/{model_name}_test_{index_test}.{data_out_format}"
+        filename = f"{result_folder}/{satellite}/{model_name}_test_{index_test}.{data_out_format}"
         if os.path.exists(filename):
             os.remove(filename)
 
@@ -145,16 +145,15 @@ if __name__ == '__main__':
     index_test = 3
     satellite = "W3"
     model_type = "PSGAN"
-    model_name = "psgan_1_2_w2"
+    model_name = "psgan_v3.5.1"
     gen_image(model_type, model_name, index_test, True, "model.pth")
     exit(0)
     for index_test in [1, 2, 3]:
-        for model_name in os.listdir(f"{model_path}/{satellite}/{model_type}"):
+        for model_name in os.listdir(f"{model_path}/kfold/"):
             if model_name == "test":
                 continue
             try:
                 gen_image(model_type, model_name, index_test)
-            except RuntimeError as e:
-                print(e)
-                print(model_name)
+            except Exception as e:
+                pass
 

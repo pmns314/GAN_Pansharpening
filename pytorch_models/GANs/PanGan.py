@@ -281,24 +281,30 @@ class PanGan(GanInterface, ABC):
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
                 gt = gt.to(self.device)
+                ms_lr = ms_lr.to(self.device)
 
                 if len(pan.shape) != len(ms.shape):
                     pan = torch.unsqueeze(pan, 0)
                 generated_HRMS = self.generate_output(pan, ms)
 
-                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
-                loss_d_spat_batch += d_spat_loss.item()
-
-                d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
-                loss_d_spec_batch += d_spec_loss.item()
-
-                gloss = self.generator_loss(pan, ms, generated_HRMS)
-                loss_g_batch += gloss.item()
+                # d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                # loss_d_spat_batch += d_spat_loss.item()
+                #
+                # d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
+                # loss_d_spec_batch += d_spec_loss.item()
+                #
+                # #gloss = self.generator_loss(pan, ms, generated_HRMS)
+                # loss_g_batch += gloss.item()
                 # Compute indexes
+
+                # Downgrade Output and compare with MS_LR
+                generated_dg = nn.functional.interpolate(generated_HRMS, scale_factor=1 / 4, mode='bicubic',
+                                                         align_corners=False)
+
                 if evaluate_indexes:
                     batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
-                    voutputs = torch.permute(generated_HRMS, (0, 2, 3, 1)).detach().cpu().numpy()
-                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                    voutputs = torch.permute(generated_dg, (0, 2, 3, 1)).detach().cpu().numpy()
+                    gt_all = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
                     num_elem_batch = voutputs.shape[0]
                     for k in range(num_elem_batch):
                         gt = gt_all[k, :, :, :]
