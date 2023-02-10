@@ -160,7 +160,7 @@ if __name__ == '__main__':
     cnt = 0
     prefix = "train" if source_dataset != "Test" else "test"
     train_dataset = f"train_{index_image}_64.h5"
-    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W3/{train_dataset}")
+    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
 
     x = 1
     if x == 1:
@@ -195,7 +195,7 @@ if __name__ == '__main__':
         else:
             val_data_all = ConcatDataset([val_data1, val_data2, val_data3])
 
-        val_data_all = DatasetPytorch(f"{dataset_path}/{data_resolution}/Test/W3/{val_dataset}")
+        val_data_all = DatasetPytorch(f"{dataset_path}/{data_resolution}/Test/{satellite}/{val_dataset}")
         val_dataloader = DataLoader(val_data_all, batch_size=64, shuffle=False)
         cnt += 1
 
