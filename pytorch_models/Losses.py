@@ -4,7 +4,6 @@ import torch
 from torchmetrics import UniversalImageQualityIndex as q
 from torchmetrics.functional import error_relative_global_dimensionless_synthesis as ergas
 from torchmetrics.functional import spectral_angle_mapper as sam
-from torchmetrics.functional import structural_similarity_index_measure as ssim
 
 
 class CharbonnierLoss(torch.nn.Module):
@@ -31,19 +30,26 @@ class FrobeniusLoss(torch.nn.Module):
         norm = torch.norm(tensor, p="fro")
         return torch.mean(torch.square(norm))
 
+
 from pytorch_msssim import ssim as mssim
+
+
 class SSIMLoss(torch.nn.Module):
     def __init__(self):
         super(SSIMLoss, self).__init__()
         self.mae = torch.nn.L1Loss()
 
-    def reset():
+    def reset(self):
         pass
+
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
 
-        return (1 - mssim(y_pred, y_true, size_average=True)) + self.mae(y_pred, y_true)
+        a = (1 - mssim(y_pred, y_true, size_average=True))
+        b = self.mae(y_pred, y_true)
+
+        return [a, b]
 
 
 class SAMLoss(torch.nn.Module):

@@ -1,6 +1,7 @@
 from abc import ABC
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn
 
@@ -202,6 +203,19 @@ class PanColorGan(GanInterface, ABC):
 
         loss_adv = self.adv_loss(pred_fake, pred_real, True)
         loss_rec = self.rec_loss(generated, gt)
+
+        a, b = loss_rec
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        global output_path
+        df.loc[0] = [self.tot_epochs, a]
+        df.to_csv(f"{output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        df.loc[0] = [self.tot_epochs, b]
+        df.to_csv(f"{output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+
+        loss_rec = a + b
 
         loss_g = loss_adv * self.weight_gan + loss_rec * self.lambda_factor
         return loss_g

@@ -1,6 +1,7 @@
 from abc import ABC
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
@@ -170,6 +171,18 @@ class PSGAN(GanInterface, ABC):
         # From Formula
         gen_loss_GAN = self.adv_loss(pred_fake, pred_true, True)  # Inganna il discriminatore
         gen_loss_L1 = self.rec_loss(gt, generated)
+        a, b = gen_loss_L1
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        global output_path
+        df.loc[0] = [self.tot_epochs, a]
+        df.to_csv(f"{output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        df.loc[0] = [self.tot_epochs, b]
+        df.to_csv(f"{output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+
+        gen_loss_L1 = a + b
 
         gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
@@ -232,6 +245,8 @@ class PSGAN(GanInterface, ABC):
             # Compute prediction and loss
             generated = self.generate_output(pan, multi_spectral, evaluation=False)
             loss_g = self.loss_generator(ms, gt, generated)
+
+
 
             # Backpropagation
             loss_g.backward()

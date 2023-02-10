@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 import numpy as np
+import pandas as pd
 import torch
 
 from pytorch_models.NetworkInterface import NetworkInterface
@@ -68,6 +69,18 @@ class CnnInterface(NetworkInterface):
             pred = self.generate_output(pan, multi_spectral, evaluation=False)
             loss = self.loss_fn(pred, gt)
 
+            a, b = loss
+            df = pd.DataFrame(columns=["Epochs", "Value"])
+            global output_path
+            df.loc[0] = [self.tot_epochs, a]
+            df.to_csv(f"{output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                      mode='a', sep=";")
+            df = pd.DataFrame(columns=["Epochs", "Value"])
+            df.loc[0] = [self.tot_epochs, b]
+            df.to_csv(f"{output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                      mode='a', sep=";")
+
+            loss = a + b
             # Backpropagation
             self.opt.zero_grad()
             loss.backward()
@@ -116,8 +129,8 @@ class CnnInterface(NetworkInterface):
 
                 # Compute prediction and loss
                 voutputs = self.generate_output(pan, multi_spectral)
-                vloss = self.loss_fn(voutputs, gt)
-                running_vloss += vloss.item()
+                # vloss = self.loss_fn(voutputs, gt)
+                # running_vloss += vloss.item()
 
                 # Compute indexes
                 if evaluate_indexes:
