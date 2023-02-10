@@ -203,10 +203,12 @@ if __name__ == '__main__':
     val_data_all = DatasetPytorch(f"{dataset_path}/{data_resolution}/Test/{satellite}/{val_dataset}")
     val_dataloader = DataLoader(val_data_all, batch_size=64, shuffle=False)
     # Model Creation
+
     model = create_model(type_model, 8, device, **vars(args))
     model.to(device)
 
     output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
+    model.output_path = output_path
 
     # Checkpoint path definition
     chk_path = f"{output_path}/checkpoints"

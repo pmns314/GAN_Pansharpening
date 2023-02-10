@@ -37,6 +37,7 @@ class NetworkInterface(ABC, nn.Module):
         self.patience = 50//self.step
         self.waiting = 0
         self.to(device)
+        self.output_path = ""
 
     @property
     def name(self):

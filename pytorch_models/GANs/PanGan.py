@@ -164,13 +164,12 @@ class PanGan(GanInterface, ABC):
         L_rec_spatial = self.rec_loss(details_original, details_generated)
         a, b = L_rec_spatial
         df = pd.DataFrame(columns=["Epochs", "Value"])
-        global output_path
-        df.loc[0] = [self.tot_epochs, a]
-        df.to_csv(f"{output_path}/q_loss_spat.csv", index=False, header=True if self.tot_epochs == 1 else False,
+        df.loc[0] = [self.tot_epochs, a.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/q_loss_spat.csv", index=False, header=True if self.tot_epochs == 1 else False,
                   mode='a', sep=";")
         df = pd.DataFrame(columns=["Epochs", "Value"])
-        df.loc[0] = [self.tot_epochs, b]
-        df.to_csv(f"{output_path}/mae_loss_spat.csv", index=False, header=True if self.tot_epochs == 1 else False,
+        df.loc[0] = [self.tot_epochs, b.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/mae_loss_spat.csv", index=False, header=True if self.tot_epochs == 1 else False,
                   mode='a', sep=";")
 
         L_rec_spatial = a + b
@@ -178,13 +177,12 @@ class PanGan(GanInterface, ABC):
         L_rec_spectral = self.rec_loss(generated, ms)
         a, b = L_rec_spectral
         df = pd.DataFrame(columns=["Epochs", "Value"])
-        global output_path
-        df.loc[0] = [self.tot_epochs, a]
-        df.to_csv(f"{output_path}/q_loss_spec.csv", index=False, header=True if self.tot_epochs == 1 else False,
+        df.loc[0] = [self.tot_epochs, a.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/q_loss_spec.csv", index=False, header=True if self.tot_epochs == 1 else False,
                   mode='a', sep=";")
         df = pd.DataFrame(columns=["Epochs", "Value"])
-        df.loc[0] = [self.tot_epochs, b]
-        df.to_csv(f"{output_path}/mae_loss_spec.csv", index=False, header=True if self.tot_epochs == 1 else False,
+        df.loc[0] = [self.tot_epochs, b.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/mae_loss_spec.csv", index=False, header=True if self.tot_epochs == 1 else False,
                   mode='a', sep=";")
 
         L_rec_spectral = a + b

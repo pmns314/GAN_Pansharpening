@@ -71,13 +71,12 @@ class CnnInterface(NetworkInterface):
 
             a, b = loss
             df = pd.DataFrame(columns=["Epochs", "Value"])
-            global output_path
-            df.loc[0] = [self.tot_epochs, a]
-            df.to_csv(f"{output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+            df.loc[0] = [self.tot_epochs, a.detach().cpu().numpy()]
+            df.to_csv(f"{self.output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
                       mode='a', sep=";")
             df = pd.DataFrame(columns=["Epochs", "Value"])
-            df.loc[0] = [self.tot_epochs, b]
-            df.to_csv(f"{output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+            df.loc[0] = [self.tot_epochs, b.detach().cpu().numpy()]
+            df.to_csv(f"{self.output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
                       mode='a', sep=";")
 
             loss = a + b
