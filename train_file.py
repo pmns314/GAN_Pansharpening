@@ -160,7 +160,7 @@ if __name__ == '__main__':
     cnt = 0
     prefix = "train" if source_dataset != "Test" else "test"
     train_dataset = f"train_{index_image}_64.h5"
-    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/W3/{train_dataset}")
+    train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/W3/{train_dataset}")
 
     x = 1
     if x == 1:
