@@ -189,4 +189,3 @@ def view_image(data, calculate_limits=True):
         xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
     plt.figure()
     plt.imshow((xx[:, :, ::-1]))
-

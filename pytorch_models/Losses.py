@@ -11,7 +11,6 @@ Classes:
 """
 
 from enum import Enum
-
 import torch
 from pytorch_msssim import ssim as mssim
 from torchmetrics import UniversalImageQualityIndex as q

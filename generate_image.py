@@ -4,6 +4,7 @@ import argparse
 from scipy.io import savemat
 from skimage import io as io
 from torch.utils.data import DataLoader
+
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
 from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
@@ -138,5 +139,3 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     gen_image(model_type, model_name, satellite, index_test, True, "model.pth")
-
-
