@@ -6,12 +6,14 @@ from pytorch_models.GANs.PSGAN import PSGAN
 
 
 class FUPSGAN(PSGAN):
+    """ Feature Upsampling PSGAN implementation"""
     def __init__(self, channels, device='cpu', name="FUPSGAN"):
         super().__init__(channels, device=device, name=name)
         self.use_ms_lr = True
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
+        """ Constructor of the class """
         def __init__(self, channels, pad_mode, name="Gen"):
             super().__init__()
             self._model_name = name

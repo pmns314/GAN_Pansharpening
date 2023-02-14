@@ -1,6 +1,19 @@
+""" Loss Functions Module
+
+Classes:
+    CharbonnierLoss
+    FrobeniusLoss
+    SSIMLoss
+    SAMLoss
+    ERGASLoss
+    QLoss
+
+"""
+
 from enum import Enum
 
 import torch
+from pytorch_msssim import ssim as mssim
 from torchmetrics import UniversalImageQualityIndex as q
 from torchmetrics.functional import error_relative_global_dimensionless_synthesis as ergas
 from torchmetrics.functional import spectral_angle_mapper as sam
@@ -9,6 +22,9 @@ from torchmetrics.functional import spectral_angle_mapper as sam
 class CharbonnierLoss(torch.nn.Module):
     def __init__(self):
         super(CharbonnierLoss, self).__init__()
+
+    def reset(self):
+        pass
 
     def forward(self, y_true, y_pred):
         epsilon = 1e-6
@@ -25,13 +41,13 @@ class FrobeniusLoss(torch.nn.Module):
     def __init__(self):
         super(FrobeniusLoss, self).__init__()
 
+    def reset(self):
+        pass
+
     def forward(self, y_true, y_pred):
         tensor = y_pred - y_true
         norm = torch.norm(tensor, p="fro")
         return torch.mean(torch.square(norm))
-
-
-from pytorch_msssim import ssim as mssim
 
 
 class SSIMLoss(torch.nn.Module):
@@ -56,6 +72,9 @@ class SAMLoss(torch.nn.Module):
     def __init__(self):
         super(SAMLoss, self).__init__()
 
+    def reset(self):
+        pass
+
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0
         y_true = y_true * 2048.0
@@ -66,6 +85,9 @@ class SAMLoss(torch.nn.Module):
 class ERGASLoss(torch.nn.Module):
     def __init__(self):
         super(ERGASLoss, self).__init__()
+
+    def reset(self):
+        pass
 
     def forward(self, y_true, y_pred):
         y_pred = y_pred * 2048.0

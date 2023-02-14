@@ -34,10 +34,11 @@ class NetworkInterface(ABC, nn.Module):
         self.best_q = self.best_q_avg = .0001
         self.best_sam = self.best_ergas = 1000
         self.step = 10
-        self.patience = 50//self.step
+        self.patience = 50 // self.step
         self.waiting = 0
         self.to(device)
         self.output_path = ""
+        self.downgrade = False
 
     @property
     def name(self):
@@ -57,7 +58,7 @@ class NetworkInterface(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def validation_step(self, dataloader, evaluate_indexes=False):
+    def validation_step(self, dataloader):
         """ Defines the operations to be carried out during the validation step
 
         Parameters
@@ -126,7 +127,7 @@ class NetworkInterface(ABC, nn.Module):
     def train_model(self, epochs,
                     output_path, chk_path,
                     train_dataloader, val_dataloader,
-                    tests=None, save_checkpoints=True, rr_test=None):
+                    tests=None, save_checkpoints=True):
         """
         Method for fitting the model.
 
@@ -154,6 +155,8 @@ class NetworkInterface(ABC, nn.Module):
             Data loader of Validation Data
         tests : dict, optional
             Dictionary of test data
+        save_checkpoints : bool, optional
+            if True, saves the checkpoints at certain given epochs
         """
 
         # TensorBoard
@@ -170,21 +173,13 @@ class NetworkInterface(ABC, nn.Module):
             train_losses = self.train_step(train_dataloader)
             if val_dataloader is not None:
                 # Compute Losses on Validation Set if exists
-                if epoch == 0 or (epoch + 1) % self.step == 0:
-                    val_losses, indexes = self.validation_step(val_dataloader, True)
-                    print(indexes)
-                else:
-                    val_losses, _ = self.validation_step(val_dataloader, False)
-                    indexes = None
+                val_losses = self.validation_step(val_dataloader)
+
                 for k in train_losses.keys():
                     print(f'\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n')
                     writer.add_scalars(k, {"train": train_losses[k], "validation": val_losses[k]},
                                        self.tot_epochs)
-                if indexes is not None:
-                    writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
-                    writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
-                    writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
-                    writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
+
                 losses = list(train_losses.values())
             else:
                 # Otherwise keeps track only of train losses
@@ -208,20 +203,15 @@ class NetworkInterface(ABC, nn.Module):
                 if losses[i] < self.best_losses[i]:
                     self.best_losses[i] = losses[i]
 
-            # if rr_test is not None and (epoch == 0 or (epoch + 1) % self.step == 0):
-            #     gen = self.generate_output(pan=rr_test['pan'].to(self.device),
-            #                                ms=rr_test['ms'].to(self.device) if self.use_ms_lr is False else
-            #                                rr_test['ms_lr'].to(self.device),
-            #                                evaluation=True)
-            #
-            #     gen = adjust_image(gen, rr_test['ms_lr'])
-            #     gt = adjust_image(rr_test['gt'])
-            #
-            #     indexes = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-            #                                                 dim_cut,
-            #                                                 th_values)
+            # Every self.step epochs, calculate indexes
+            if epoch == 0 or (epoch + 1) % self.step == 0:
+                indexes = self._calculate_indexes(val_dataloader)
 
-            if indexes is not None:
+                writer.add_scalar(f"Q2n/Val", indexes[0], self.tot_epochs)
+                writer.add_scalar(f"Q/Val", indexes[1], self.tot_epochs)
+                writer.add_scalar(f"ERGAS/Val", indexes[2], self.tot_epochs)
+                writer.add_scalar(f"SAM/Val", indexes[3], self.tot_epochs)
+
                 Q2n, Q_avg, ERGAS, SAM = indexes
 
                 # Increment Calculation
@@ -276,8 +266,9 @@ class NetworkInterface(ABC, nn.Module):
 
             if self.waiting == self.patience:
                 print(f"Stopping at epoch : {self.tot_epochs}")
-                # break
+                break
 
+        # Always save last epoch's checkpoint
         self.save_model(f"{chk_path}/checkpoint_{self.tot_epochs}.pth")
         # Update number of trained epochs
         last_tot = self.tot_epochs
@@ -288,22 +279,6 @@ class NetworkInterface(ABC, nn.Module):
         writer.flush()
         print(f"Training Completed at epoch {self.tot_epochs}.\n"
               f"Best Epoch:{self.best_epoch} Saved in {output_path} folder")
-
-        FR_test = tests[-1]
-        gen = self.generate_output(pan=FR_test['pan'].to(self.device),
-                                   ms=FR_test['ms'].to(self.device) if self.use_ms_lr is False else
-                                   FR_test['ms_lr'].to(self.device),
-                                   evaluation=True)
-        gen = adjust_image(gen, FR_test['ms_lr'])
-        gt = adjust_image(FR_test['gt'])
-
-        Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
-                                                    dim_cut,
-                                                    th_values)
-
-        print(f"Best Model Results:\n"
-              f"\t Q2n: {Q2n :.4f}  Q_avg:{Q_avg:.4f}"
-              f" ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")
 
     def test_model(self, dataloader):
         """
@@ -318,3 +293,62 @@ class NetworkInterface(ABC, nn.Module):
         print(f"Evaluation on Test Set: \n ")
         for k in results.keys():
             print(f"\t {k}: {results[k]:>8f} \n")
+
+    def _calculate_indexes(self, dataloader):
+        """ Calculate evaluation indexes
+        Parameters
+        ----------
+            dataloader : torch.utils.data.DataLoader
+                Data Loader of validation data
+
+        """
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+
+                if self.use_ms_lr is False:
+                    multi_spectral = ms.to(self.device)
+                else:
+                    multi_spectral = ms_lr.to(self.device)
+
+                # Compute prediction and loss
+                voutputs = self.generate_output(pan, multi_spectral)
+
+                if self.downgrade is True:
+                    # Downgrade Output and compare with MS_LR
+                    voutputs = nn.functional.interpolate(voutputs, scale_factor=1 / 4, mode='bicubic',
+                                                         align_corners=False)
+                    gt = ms_lr.to(self.device)
+
+                batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
+                voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
+                gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                num_elem_batch = voutputs.shape[0]
+                for k in range(num_elem_batch):
+                    gt = gt_all[k, :, :, :]
+                    gen = voutputs[k, :, :, :]
+                    indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                    batch_q2n += indexes[0]
+                    batch_q += indexes[1]
+                    batch_ergas += indexes[2]
+                    batch_sam += indexes[3]
+                running_q += batch_q / num_elem_batch
+                running_q2n += batch_q2n / num_elem_batch
+                running_sam += batch_sam / num_elem_batch
+                running_ergas += batch_ergas / num_elem_batch
+
+        q2n_tot = running_q2n / len(dataloader)
+        q_tot = running_q / len(dataloader)
+        ergas_tot = running_ergas / len(dataloader)
+        sam_tot = running_sam / len(dataloader)
+
+        return [q2n_tot, q_tot, ergas_tot, sam_tot]

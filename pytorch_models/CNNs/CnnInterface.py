@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 
 from pytorch_models.NetworkInterface import NetworkInterface
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 
 
 class CnnInterface(NetworkInterface):
@@ -89,13 +88,11 @@ class CnnInterface(NetworkInterface):
             torch.cuda.empty_cache()
 
             loss_batch += loss
-        try:
-            self.loss_fn.reset()
-        except:
-            pass
+
+        self.loss_fn.reset()
         return {"Loss": loss_batch / len(dataloader)}
 
-    def validation_step(self, dataloader, evaluate_indexes=False):
+    def validation_step(self, dataloader):
         """ Defines the operations to be carried out during the validation step
 
         Parameters
@@ -107,11 +104,6 @@ class CnnInterface(NetworkInterface):
         self.eval()
         running_vloss = 0.0
 
-        running_q2n = 0.0
-        running_q = 0.0
-        running_sam = 0.0
-        running_ergas = 0.0
-        i = 0
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
@@ -128,38 +120,14 @@ class CnnInterface(NetworkInterface):
 
                 # Compute prediction and loss
                 voutputs = self.generate_output(pan, multi_spectral)
-                # vloss = self.loss_fn(voutputs, gt)
-                # running_vloss += vloss.item()
-
-                # Compute indexes
-                if evaluate_indexes:
-                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
-                    voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
-                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
-                    num_elem_batch = voutputs.shape[0]
-                    for k in range(num_elem_batch):
-                        gt = gt_all[k, :, :, :]
-                        gen = voutputs[k, :, :, :]
-                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
-                        batch_q2n += indexes[0]
-                        batch_q += indexes[1]
-                        batch_ergas += indexes[2]
-                        batch_sam += indexes[3]
-                    running_q += batch_q / num_elem_batch
-                    running_q2n += batch_q2n / num_elem_batch
-                    running_sam += batch_sam / num_elem_batch
-                    running_ergas += batch_ergas / num_elem_batch
+                vloss = self.loss_fn(voutputs, gt)
+                running_vloss += vloss.item()
 
         avg_vloss = running_vloss / len(dataloader)
-        q2n_tot = running_q2n / len(dataloader)
-        q_tot = running_q / len(dataloader)
-        ergas_tot = running_ergas / len(dataloader)
-        sam_tot = running_sam / len(dataloader)
-        try:
-            self.loss_fn.reset()
-        except:
-            pass
-        return {"Loss": avg_vloss}, [q2n_tot, q_tot, ergas_tot, sam_tot]
+
+        self.loss_fn.reset()
+
+        return {"Loss": avg_vloss}
 
     def generate_output(self, pan, ms, evaluation=True):
         """

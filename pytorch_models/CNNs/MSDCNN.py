@@ -7,6 +7,7 @@ from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
 class MSDCNN(CnnInterface, ABC):
+    """ Implementation of the MSDCNN network"""
     class MSResB(nn.Module):
         def __init__(self, in_channels, out_channels):
             super(MSDCNN.MSResB, self).__init__()
@@ -40,6 +41,18 @@ class MSDCNN(CnnInterface, ABC):
             return out
 
     def __init__(self, channels, device="cpu", name="MSDCNN"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'MSDCNN'
+        """
         super(MSDCNN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
@@ -65,6 +78,15 @@ class MSDCNN(CnnInterface, ABC):
         self.relu = nn.ReLU()
 
     def forward(self, pan, ms):
+        """ Forwards the input data through the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image
+        ms : tensor
+            the multi spectral image
+        """
         inputs = torch.cat([ms, pan], 1)
         deep_f = self.deep_features(inputs)
         shallow_f = self.shallow_features(inputs)
@@ -73,5 +95,6 @@ class MSDCNN(CnnInterface, ABC):
         return out
 
     def compile(self, loss_fn=None, optimizer=None):
+        """ Define loss function and optimizer """
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

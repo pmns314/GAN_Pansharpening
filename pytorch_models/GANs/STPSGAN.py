@@ -5,11 +5,13 @@ from pytorch_models.GANs.PSGAN import PSGAN
 
 
 class STPSGAN(PSGAN):
-
+    """ Stacked-PSGAN Implementation"""
     def __init__(self, channels, device='cpu', name="STPSGAN"):
+        """ Constructor of the class"""
         super().__init__(channels, device, name)
 
     class Generator(nn.Module):
+        """ Generator of STPSGAN """
         def __init__(self, channels, pad_mode, name="Gen"):
             super().__init__()
             self._model_name = name

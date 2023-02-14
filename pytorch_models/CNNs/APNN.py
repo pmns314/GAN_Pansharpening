@@ -53,5 +53,6 @@ class APNN(CnnInterface, ABC):
         return out
 
     def compile(self, loss_fn=None, optimizer=None):
+        """ Define loss function and optimizer """
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.L1Loss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

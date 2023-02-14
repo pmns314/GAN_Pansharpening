@@ -7,7 +7,20 @@ from pytorch_models.CNNs.CnnInterface import CnnInterface
 
 
 class PNN(CnnInterface, ABC):
+    """ Implementation of the PNN network"""
     def __init__(self, channels, device="cpu", name="PNN"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'PNN'
+        """
         super(PNN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
@@ -17,6 +30,15 @@ class PNN(CnnInterface, ABC):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, pan, ms):
+        """ Forwards the input data through the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image
+        ms : tensor
+            the multi spectral image
+        """
         inputs = torch.cat([ms, pan], 1)
         rs = self.conv1(inputs)
         rs = self.relu(rs)
@@ -26,5 +48,6 @@ class PNN(CnnInterface, ABC):
         return out
 
     def compile(self, loss_fn=None, optimizer=None):
+        """ Define loss function and optimizer """
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.L1Loss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

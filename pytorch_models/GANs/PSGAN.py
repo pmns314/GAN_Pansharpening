@@ -6,13 +6,15 @@ import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
 
-
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import MinmaxLoss
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+
 
 class PSGAN(GanInterface, ABC):
+    """ PSGAN Implementation"""
+
     def __init__(self, channels, device='cpu', name="PSGAN", pad_mode="replicate"):
+        """ Constructor of the class """
         super().__init__(device, name)
         self.channels = channels
         self.alpha = 1
@@ -25,6 +27,8 @@ class PSGAN(GanInterface, ABC):
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
+        """ PSGAN Generator"""
+
         def __init__(self, channels, pad_mode="replicate", name="Gen"):
             super().__init__()
             self._model_name = name
@@ -127,6 +131,8 @@ class PSGAN(GanInterface, ABC):
             return out
 
     class Discriminator(nn.Module):
+        """ PSGAN Discriminator"""
+
         def __init__(self, channels, pad_mode="replicate", name="Disc"):
             super().__init__()
             self._model_name = name
@@ -160,6 +166,16 @@ class PSGAN(GanInterface, ABC):
             return out
 
     def loss_generator(self, ms, gt, generated):
+        """ Calculate loss of generator
+        Parameters
+        ----------
+            ms : torch.Tensor
+                multi spectral image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
 
         pred_fake = self.discriminator(torch.cat([ms, generated], 1))
 
@@ -188,6 +204,17 @@ class PSGAN(GanInterface, ABC):
         return gen_loss
 
     def loss_discriminator(self, ms, gt, generated):
+        """ Calculate loss of discriminator
+
+        Parameters
+        ----------
+            ms : torch.Tensor
+                multi spectral image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
         pred_fake = self.discriminator(torch.cat([ms, generated], 1).detach())
         pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
@@ -195,6 +222,13 @@ class PSGAN(GanInterface, ABC):
 
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
+        """ Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        """
         self.train(True)
 
         loss_g_batch = 0
@@ -245,8 +279,6 @@ class PSGAN(GanInterface, ABC):
             generated = self.generate_output(pan, multi_spectral, evaluation=False)
             loss_g = self.loss_generator(ms, gt, generated)
 
-
-
             # Backpropagation
             loss_g.backward()
             self.gen_opt.step()
@@ -256,26 +288,27 @@ class PSGAN(GanInterface, ABC):
 
             loss_g_batch += loss
 
-        try:
-            self.rec_loss.reset()
-        except:
-            pass
+        self.rec_loss.reset()
+
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Disc loss": loss_d_batch / len(dataloader)
                 }
 
-    def validation_step(self, dataloader, evaluate_indexes=False):
+    def validation_step(self, dataloader):
+        """ Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        """
         self.eval()
         self.discriminator.eval()
         self.generator.eval()
 
         gen_loss = 0.0
         disc_loss = 0.0
-        running_q2n = 0.0
-        running_q = 0.0
-        running_sam = 0.0
-        running_ergas = 0.0
-        i = 0
+
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
@@ -294,44 +327,27 @@ class PSGAN(GanInterface, ABC):
 
                 generated = self.generate_output(pan, multi_spectral)
 
-                # dloss = self.loss_discriminator(ms, gt, generated)
-                # disc_loss += dloss.item()
-                #
-                # gloss = self.loss_generator(ms, gt, generated)
-                # gen_loss += gloss.item()
+                dloss = self.loss_discriminator(ms, gt, generated)
+                disc_loss += dloss.item()
 
-                # Compute indexes
-                if evaluate_indexes:
-                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
-                    voutputs = torch.permute(generated, (0, 2, 3, 1)).detach().cpu().numpy()
-                    gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
-                    num_elem_batch = voutputs.shape[0]
-                    for k in range(num_elem_batch):
-                        gt = gt_all[k, :, :, :]
-                        gen = voutputs[k, :, :, :]
-                        indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
-                        batch_q2n += indexes[0]
-                        batch_q += indexes[1]
-                        batch_ergas += indexes[2]
-                        batch_sam += indexes[3]
-                    running_q += batch_q / num_elem_batch
-                    running_q2n += batch_q2n / num_elem_batch
-                    running_sam += batch_sam / num_elem_batch
-                    running_ergas += batch_ergas / num_elem_batch
+                gloss = self.loss_generator(ms, gt, generated)
+                gen_loss += gloss.item()
 
-        q2n_tot = running_q2n / len(dataloader)
-        q_tot = running_q / len(dataloader)
-        ergas_tot = running_ergas / len(dataloader)
-        sam_tot = running_sam / len(dataloader)
-        try:
             self.loss_fn.reset()
-        except:
-            pass
+
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
-                }, [q2n_tot, q_tot, ergas_tot, sam_tot]
+                }
 
     def save_model(self, path):
+        """ Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        """
         torch.save({
             'gen_state_dict': self.generator.state_dict(),
             'disc_state_dict': self.discriminator.state_dict(),
@@ -345,6 +361,17 @@ class PSGAN(GanInterface, ABC):
         }, f"{path}")
 
     def load_model(self, path, weights_only=False):
+        """ Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        """
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
@@ -361,16 +388,21 @@ class PSGAN(GanInterface, ABC):
             pass
 
     def set_optimizers_lr(self, lr):
+        """ Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        """
         for g in self.gen_opt.param_groups:
             g['lr'] = lr
         for g in self.disc_opt.param_groups:
             g['lr'] = lr
 
     def define_losses(self, rec_loss=None, adv_loss=None):
+        """ Set adversarial and reconstruction losses """
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
         self.adv_loss = adv_loss if adv_loss is not None else MinmaxLoss()
         self.discriminator.apply_activation = self.adv_loss.apply_activation
 
-
-if __name__ == '__main__':
-    print("ff")

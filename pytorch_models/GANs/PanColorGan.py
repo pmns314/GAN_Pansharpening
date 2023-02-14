@@ -1,18 +1,18 @@
 from abc import ABC
 
 import numpy as np
-import pandas as pd
 import torch
 from torch import nn
 
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import RaganLoss
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
-from constants import *
 
 
 class PanColorGan(GanInterface, ABC):
+    """ PanColorGan Implementation class"""
+
     def __init__(self, channels, device="cpu", name="PanColorGan", padding_mode="replicate"):
+        """ Constructor of the class"""
         super().__init__(device, name)
         self.best_losses = [np.inf, np.inf]
         self.generator = PanColorGan.Generator(channels, padding_mode)
@@ -23,9 +23,12 @@ class PanColorGan(GanInterface, ABC):
         self.weight_gan = 1
         self.gen_opt = torch.optim.Adam(self.generator.parameters())
         self.disc_opt = torch.optim.Adam(self.discriminator.parameters())
+        self.downgrade = True
 
     # ------------------------- Specific GAN Methods -----------------------------------
     class ConvBlock(nn.Module):
+        """ Convolutional Block class"""
+
         def __init__(self, in_channels, out_channels, kernel, padding_mode="replicate", padding=0, stride=1,
                      use_dropout=False):
             super().__init__()
@@ -46,6 +49,7 @@ class PanColorGan(GanInterface, ABC):
             return out
 
     class Generator(nn.Module):
+        """Generator of PanColorGan network"""
 
         class UpConvBlock(nn.Module):
             def __init__(self, in_channels, out_channels, kernel, padding=0, stride=1, out_padding=0):
@@ -156,6 +160,8 @@ class PanColorGan(GanInterface, ABC):
             return out
 
     class Discriminator(nn.Module):
+        """ Discriminator of PanColorGan network"""
+
         def __init__(self, channels):
             super().__init__()
             in_channels = channels * 2 + 1
@@ -181,6 +187,18 @@ class PanColorGan(GanInterface, ABC):
             return out
 
     def loss_discriminator(self, ms, pan, gt, generated):
+        """ Calculates loss for discriminator
+        Parameters
+        ----------
+            ms : torch.tensor
+                multi spectral image
+            pan : torch.Tensor
+                panchromatic image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
 
@@ -190,7 +208,18 @@ class PanColorGan(GanInterface, ABC):
         return self.adv_loss(pred_fake, pred_real)
 
     def loss_generator(self, ms, pan, gt, generated):
-
+        """ Calculates loss for generator
+        Parameters
+        ----------
+            ms : torch.tensor
+                multi spectral image
+            pan : torch.Tensor
+                panchromatic image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
         fake_ab = torch.cat([ms, pan, generated], 1)
         real_ab = torch.cat([ms, pan, gt], 1)
 
@@ -204,23 +233,18 @@ class PanColorGan(GanInterface, ABC):
         loss_adv = self.adv_loss(pred_fake, pred_real, True)
         loss_rec = self.rec_loss(generated, gt)
 
-        a, b = loss_rec
-        df = pd.DataFrame(columns=["Epochs", "Value"])
-        df.loc[0] = [self.tot_epochs, a.detach().cpu().numpy()]
-        df.to_csv(f"{self.output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
-                  mode='a', sep=";")
-        df = pd.DataFrame(columns=["Epochs", "Value"])
-        df.loc[0] = [self.tot_epochs, b.detach().cpu().numpy()]
-        df.to_csv(f"{self.output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
-                  mode='a', sep=";")
-
-        loss_rec = a + b
-
         loss_g = loss_adv * self.weight_gan + loss_rec * self.lambda_factor
         return loss_g
 
     # ------------------------- Concrete Interface Methods -----------------------------
     def train_step(self, dataloader):
+        """ Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        """
         self.train(True)
 
         loss_g_batch = 0
@@ -281,85 +305,62 @@ class PanColorGan(GanInterface, ABC):
 
             loss_g_batch += loss
 
-        try:
-            self.rec_loss.reset()
-        except:
-            pass
+        self.rec_loss.reset()
+
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Disc loss": loss_d_batch / len(dataloader)
                 }
 
-    def validation_step(self, dataloader, evaluate_indexes=False):
+    def validation_step(self, dataloader):
+        """ Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        """
         self.eval()
         self.discriminator.eval()
         self.generator.eval()
 
         gen_loss = 0.0
         disc_loss = 0.0
-        running_q2n = 0.0
-        running_q = 0.0
-        running_sam = 0.0
-        running_ergas = 0.0
+
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
 
-                gt = gt.to(self.device)
-                pan = pan.to(self.device)
-                ms = ms.to(self.device)
-                ms_lr.to(self.device)
+                gt = ms_lr.to(self.device)
+
                 # Downsample MS_LR
-                # ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+                ms_lr = nn.functional.interpolate(gt, scale_factor=1 / 4, mode='bicubic', align_corners=False)
                 # Upsample MS_LR_LR
-                # ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
+                ms = nn.functional.interpolate(ms_lr, scale_factor=4, mode='bicubic', align_corners=False)
                 # Convert MS_LR to Grayscale
-                # pan = torch.mean(gt, 1, keepdim=True)
+                pan = torch.mean(gt, 1, keepdim=True)
 
                 generated = self.generate_output(pan, ms, evaluation=True)
-                #dloss = self.loss_discriminator(ms, pan, gt, generated)
-                #disc_loss += dloss.item()
+                dloss = self.loss_discriminator(ms, pan, gt, generated)
+                disc_loss += dloss.item()
 
-                # generated = self.generate_output(ms_lr_gray, ms_lr_up)
-                #gloss = self.loss_generator(ms, pan, gt, generated)
-                #gen_loss += gloss.item()
-                # Compute indexes
+                gloss = self.loss_generator(ms, pan, gt, generated)
+                gen_loss += gloss.item()
 
-                # Downgrade Output and compare with MS_LR
-                generated_dg = nn.functional.interpolate(generated, scale_factor=1 / 4, mode='bicubic', align_corners=False)
+        self.loss_fn.reset()
 
-                if evaluate_indexes:
-                    batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
-                    voutputs = torch.permute(generated_dg, (0, 2, 3, 1)).detach().cpu().numpy()
-                    gt_all = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
-                    num_elem_batch = voutputs.shape[0]
-                    for k in range(num_elem_batch):
-                        gt = gt_all[k, :, :, :]
-                        gen = voutputs[k, :, :, :]
-                        indexes = indexes_evaluation(gt, gen, ratio, L, 8, 0, dim_cut,
-                                                     th_values)
-                        batch_q2n += indexes[0]
-                        batch_q += indexes[1]
-                        batch_ergas += indexes[2]
-                        batch_sam += indexes[3]
-                    running_q += batch_q / num_elem_batch
-                    running_q2n += batch_q2n / num_elem_batch
-                    running_sam += batch_sam / num_elem_batch
-                    running_ergas += batch_ergas / num_elem_batch
-
-            q2n_tot = running_q2n / len(dataloader)
-            q_tot = running_q / len(dataloader)
-            ergas_tot = running_ergas / len(dataloader)
-            sam_tot = running_sam / len(dataloader)
-
-        try:
-            self.loss_fn.reset()
-        except:
-            pass
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
-                }, [q2n_tot, q_tot, ergas_tot, sam_tot]
+                }
 
     def save_model(self, path):
+        """ Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        """
         torch.save({
             'gen_state_dict': self.generator.state_dict(),
             'disc_state_dict': self.discriminator.state_dict(),
@@ -373,6 +374,17 @@ class PanColorGan(GanInterface, ABC):
         }, f"{path}")
 
     def load_model(self, path, weights_only=False):
+        """ Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        """
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
@@ -389,12 +401,20 @@ class PanColorGan(GanInterface, ABC):
             pass
 
     def set_optimizers_lr(self, lr):
+        """ Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        """
         for g in self.gen_opt.param_groups:
             g['lr'] = lr
         for g in self.disc_opt.param_groups:
             g['lr'] = lr
 
     def define_losses(self, rec_loss=None, adv_loss=None):
+        """ Set adversarial and reconstruction losses """
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
         self.adv_loss = adv_loss if adv_loss is not None else RaganLoss()
         self.discriminator.apply_activation = self.adv_loss.apply_activation
