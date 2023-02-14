@@ -9,7 +9,7 @@ from utils import create_patches, augment_data
 
 if __name__ == '__main__':
     input_folder = f"..\\data\\RR"
-    base_output_folder = f"../datasets/RR3"
+    base_output_folder = f"../datasets/RR"
     dim_patch = 64
     overlap = 16
     ratio = 4
