@@ -4,20 +4,11 @@ import torch
 from torch import nn
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
-
-
-def charbonnier_loss(y_true, y_pred):
-    epsilon = 1e-6
-    x = y_true - y_pred
-
-    # loss = sqrt(x**2 + eps**2)
-    loss = torch.sqrt(torch.square(x) + epsilon)
-    # Mean over batch
-    loss = torch.mean(torch.mean(loss, [1, 2, 3]))
-    return loss
+from pytorch_models.Losses import CharbonnierLoss
 
 
 class BDPN(CnnInterface, ABC):
+    """ Implementation of the BDPN network"""
     class ResBlock(nn.Module):
         def __init__(self, channel):
             super(BDPN.ResBlock, self).__init__()
@@ -36,9 +27,24 @@ class BDPN(CnnInterface, ABC):
             return rs
 
     def __init__(self, channels, device="cpu", internal_channels=64, name="BDPN"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'BDPN'
+        internal_channels : int
+            number of internal channels. default is 64
+        """
         super(BDPN, self).__init__(device, name)
         self._model_name = name
         self.channels = channels
+        self.use_ms_lr = True
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=internal_channels, kernel_size=(3, 3), stride=(1, 1),
                                padding=(1, 1), bias=True)
         backbone1 = []
@@ -63,6 +69,15 @@ class BDPN(CnnInterface, ABC):
         self.prelu = nn.PReLU(num_parameters=1, init=0.2)
 
     def forward(self, pan, ms):
+        """ Forwards the input data through the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image
+        ms : tensor
+            the multi spectral image
+        """
         # ========A): pan feature (extraction)===========
         # --------pan feature (stage 1:)------------
         pan_feature = self.conv1(pan)  # Nx64x64x64
@@ -95,14 +110,7 @@ class BDPN(CnnInterface, ABC):
 
         return output
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms_lr = kwargs['ms_lr']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms_lr)
-        return self(pan, ms_lr)
-
     def compile(self, loss_fn=None, optimizer=None):
-        self.loss_fn = loss_fn if loss_fn is not None else charbonnier_loss
+        """ Define loss function and optimizer """
+        self.loss_fn = loss_fn if loss_fn is not None else CharbonnierLoss()
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

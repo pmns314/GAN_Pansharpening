@@ -1,8 +1,5 @@
-import os
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 
 from pytorch_models.CNNs.CnnInterface import CnnInterface
 
@@ -29,7 +26,22 @@ class Resblock(nn.Module):
 
 
 class PanNet(CnnInterface):
+    """ Implementation of the PanNet network"""
     def __init__(self, channels, internal_channels=32, device="cpu", name="PanNet"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'PanNet'
+        internal_channels : int
+            number of internal channels. default is 32
+        """
         super(PanNet, self).__init__(device, name)
 
         # ConvTranspose2d: output = (input - 1)*stride + outpading - 2*padding + kernelsize
@@ -56,7 +68,15 @@ class PanNet(CnnInterface):
         )
 
     def forward(self, pan, ms):
+        """ Forwards the input data through the network
 
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image
+        ms : tensor
+            the multi spectral image
+        """
         output_deconv = self.deconv(ms)
         input = torch.cat([output_deconv, pan], 1)  # Bsx9x64x64
         rs = self.relu(self.conv1(input))  # Bsx32x64x64
@@ -66,14 +86,7 @@ class PanNet(CnnInterface):
         output = self.conv3(rs)  # Bsx8x64x64
         return output
 
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.eval()
-            with torch.no_grad():
-                return self(pan, ms)
-        return self(pan, ms)
-
     def compile(self, loss_fn=None, optimizer=None):
+        """ Define loss function and optimizer """
         self.loss_fn = loss_fn if loss_fn is not None else torch.nn.MSELoss(reduction='mean')
         self.opt = optimizer if optimizer is not None else torch.optim.Adam(self.parameters())

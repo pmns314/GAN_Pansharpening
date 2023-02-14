@@ -1,16 +1,33 @@
 from abc import ABC
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn, optim
 from torch.nn import LeakyReLU
 
-from constants import EPS
 from pytorch_models.GANs.GanInterface import GanInterface
+from pytorch_models.adversarial_losses import MinmaxLoss
 
 
 class PSGAN(GanInterface, ABC):
+    """ PSGAN Implementation"""
+
     def __init__(self, channels, device='cpu', name="PSGAN", pad_mode="replicate"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'PSGAN'
+        pad_mode : str, optional
+            padding mode. Default to "replicate"
+        """
         super().__init__(device, name)
         self.channels = channels
         self.alpha = 1
@@ -23,6 +40,8 @@ class PSGAN(GanInterface, ABC):
 
     # ------------------------------- Specific GAN methods -----------------------------
     class Generator(nn.Module):
+        """ PSGAN Generator"""
+
         def __init__(self, channels, pad_mode="replicate", name="Gen"):
             super().__init__()
             self._model_name = name
@@ -40,7 +59,7 @@ class PSGAN(GanInterface, ABC):
                                        padding_mode=pad_mode, bias=True)
 
             # BxCxHxW  ---> Bx32xHxW
-            self.ms_enc_1 = nn.Conv2d(in_channels=8, out_channels=32, kernel_size=(3, 3), padding='same',
+            self.ms_enc_1 = nn.Conv2d(in_channels=channels, out_channels=32, kernel_size=(3, 3), padding='same',
                                       padding_mode=pad_mode, bias=True)
             # Bx32xHxW  ---> Bx32xHxW
             self.ms_enc_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding='same',
@@ -125,6 +144,8 @@ class PSGAN(GanInterface, ABC):
             return out
 
     class Discriminator(nn.Module):
+        """ PSGAN Discriminator"""
+
         def __init__(self, channels, pad_mode="replicate", name="Disc"):
             super().__init__()
             self._model_name = name
@@ -148,57 +169,79 @@ class PSGAN(GanInterface, ABC):
             self.out_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(3, 3), stride=(1, 1),
                                       padding='same', padding_mode=pad_mode, bias=True)
             self.sigmoid = nn.Sigmoid()
+            self.apply_activation = True
 
-        def forward(self, generated, target):
-            inputs = torch.cat([generated, target], 1)  # B x 2*C x H x W
+        def forward(self, inputs):
             out = self.backbone(inputs)
             out = self.out_conv(out)
-            out = self.sigmoid(out)
+            if self.apply_activation:
+                out = self.sigmoid(out)
             return out
 
-    def loss_generator(self, **kwargs):
-        ms = kwargs['ms']
-        pan = kwargs['pan']
-        gt = kwargs['gt']
-        outputs = self.generate_output(pan, ms=ms, evaluation=False)
-        predict_fake = self.discriminator(ms, outputs)
-        # From Code
-        # gen_loss_GAN = tf.reduce_mean(-tf.math.log(predict_fake + EPS))
-        # gen_loss_L1 = tf.reduce_mean(tf.math.abs(gt - outputs))
-        # gen_loss = gen_loss_GAN * self.alpha + gen_loss_L1 * self.beta
+    def loss_generator(self, ms, gt, generated):
+        """ Calculate loss of generator
+        Parameters
+        ----------
+            ms : torch.Tensor
+                multi spectral image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
+
+        pred_fake = self.discriminator(torch.cat([ms, generated], 1))
+
+        if self.adv_loss.use_real_data:
+            pred_true = self.discriminator(torch.cat([ms, gt], 1).detach())
+        else:
+            pred_true = None
 
         # From Formula
-        gen_loss_GAN = torch.mean(-torch.log(predict_fake + EPS))  # Inganna il discriminatore
-        gen_loss_L1 = torch.mean(torch.abs(gt - outputs))  # Avvicina la risposta del generatore alla ground truth
+        gen_loss_GAN = self.adv_loss(pred_fake, pred_true, True)  # Inganna il discriminatore
+        gen_loss_L1 = self.rec_loss(gt, generated)
+        a, b = gen_loss_L1
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        df.loc[0] = [self.tot_epochs, a.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/q_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+        df = pd.DataFrame(columns=["Epochs", "Value"])
+        df.loc[0] = [self.tot_epochs, b.detach().cpu().numpy()]
+        df.to_csv(f"{self.output_path}/mae_loss.csv", index=False, header=True if self.tot_epochs == 1 else False,
+                  mode='a', sep=";")
+
+        gen_loss_L1 = a + b
+
         gen_loss = self.alpha * gen_loss_GAN + self.beta * gen_loss_L1
 
         return gen_loss
 
-    def loss_discriminator(self, ms, gt, output):
+    def loss_discriminator(self, ms, gt, generated):
+        """ Calculate loss of discriminator
 
-        predict_fake = self.discriminator(ms, output)
-        predict_real = self.discriminator(ms, gt)
+        Parameters
+        ----------
+            ms : torch.Tensor
+                multi spectral image
+            gt : torch.Tensor
+                target image
+            generated : torch.Tensor
+                fused image
+        """
+        pred_fake = self.discriminator(torch.cat([ms, generated], 1).detach())
+        pred_real = self.discriminator(torch.cat([ms, gt], 1))
 
-        # From Formula
-        # mean[ 1 - log(fake) + log(real) ]
-        # return torch.mean(
-        #     1 - torch.log(predict_fake + EPS) + torch.log(predict_real + EPS)
-        # )
-
-        # From Code
-        # return tf.reduce_mean(
-        #     -(
-        #             tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)
-        #     )
-        # )
-        return torch.mean(
-            -(
-                    torch.log(predict_real + EPS) + torch.log(1 - predict_fake + EPS)
-            )
-        )
+        return self.adv_loss(pred_fake, pred_real)
 
     # -------------------------------- Interface Methods ------------------------------
     def train_step(self, dataloader):
+        """ Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        """
         self.train(True)
 
         loss_g_batch = 0
@@ -209,24 +252,28 @@ class PSGAN(GanInterface, ABC):
             gt = gt.to(self.device)
             pan = pan.to(self.device)
             ms = ms.to(self.device)
-            ms_lr = ms_lr.to(self.device)
+            if self.use_ms_lr is False:
+                multi_spectral = ms
+            else:
+                multi_spectral = ms_lr.to(self.device)
+
             if len(pan.shape) != len(ms.shape):
                 pan = torch.unsqueeze(pan, 0)
 
             # Generate Data for Discriminators Training
             with torch.no_grad():
-                generated_HRMS = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+                generated_HRMS = self.generate_output(pan, multi_spectral)
 
             # ------------------- Training Discriminator ----------------------------
             self.discriminator.train(True)
             self.generator.train(False)
             self.discriminator.zero_grad()
+            self.disc_opt.zero_grad()
 
             # Compute prediction and loss
             loss_d = self.loss_discriminator(ms, gt, generated_HRMS)
 
             # Backpropagation
-            self.disc_opt.zero_grad()
             loss_d.backward()
             self.disc_opt.step()
 
@@ -239,12 +286,13 @@ class PSGAN(GanInterface, ABC):
             self.discriminator.train(False)
             self.generator.train(True)
             self.generator.zero_grad()
+            self.gen_opt.zero_grad()
 
             # Compute prediction and loss
-            loss_g = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
+            generated = self.generate_output(pan, multi_spectral, evaluation=False)
+            loss_g = self.loss_generator(ms, gt, generated)
 
             # Backpropagation
-            self.gen_opt.zero_grad()
             loss_g.backward()
             self.gen_opt.step()
 
@@ -253,18 +301,27 @@ class PSGAN(GanInterface, ABC):
 
             loss_g_batch += loss
 
+        self.rec_loss.reset()
+
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Disc loss": loss_d_batch / len(dataloader)
                 }
 
     def validation_step(self, dataloader):
+        """ Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        """
         self.eval()
         self.discriminator.eval()
         self.generator.eval()
 
         gen_loss = 0.0
         disc_loss = 0.0
-        i = 0
+
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 pan, ms, ms_lr, gt = data
@@ -272,23 +329,38 @@ class PSGAN(GanInterface, ABC):
                 gt = gt.to(self.device)
                 pan = pan.to(self.device)
                 ms = ms.to(self.device)
-                ms_lr = ms_lr.to(self.device)
+
+                if self.use_ms_lr is False:
+                    multi_spectral = ms
+                else:
+                    multi_spectral = ms_lr.to(self.device)
+
                 if len(pan.shape) == 3:
                     pan = torch.unsqueeze(pan, 0)
 
-                generated = self.generate_output(pan, ms=ms, ms_lr=ms_lr)
+                generated = self.generate_output(pan, multi_spectral)
 
                 dloss = self.loss_discriminator(ms, gt, generated)
                 disc_loss += dloss.item()
 
-                gloss = self.loss_generator(ms=ms, pan=pan, gt=gt, ms_lr=ms_lr)
+                gloss = self.loss_generator(ms, gt, generated)
                 gen_loss += gloss.item()
+
+            self.loss_fn.reset()
 
         return {"Gen loss": gen_loss / len(dataloader),
                 "Disc loss": disc_loss / len(dataloader)
                 }
 
     def save_model(self, path):
+        """ Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        """
         torch.save({
             'gen_state_dict': self.generator.state_dict(),
             'disc_state_dict': self.discriminator.state_dict(),
@@ -297,10 +369,22 @@ class PSGAN(GanInterface, ABC):
             'gen_best_loss': self.best_losses[0],
             'disc_best_loss': self.best_losses[1],
             'best_epoch': self.best_epoch,
-            'tot_epochs': self.tot_epochs
+            'tot_epochs': self.tot_epochs,
+            'metrics': [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
         }, f"{path}")
 
     def load_model(self, path, weights_only=False):
+        """ Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        """
         trained_model = torch.load(f"{path}", map_location=torch.device(self.device))
         self.generator.load_state_dict(trained_model['gen_state_dict'])
         self.discriminator.load_state_dict(trained_model['disc_state_dict'])
@@ -311,21 +395,26 @@ class PSGAN(GanInterface, ABC):
         self.best_losses = [trained_model['gen_best_loss'], trained_model['disc_best_loss']]
         self.best_epoch = trained_model['best_epoch']
         self.tot_epochs = trained_model['tot_epochs']
-
-    def generate_output(self, pan, evaluation=True, **kwargs):
-        ms = kwargs['ms']
-        if evaluation:
-            self.generator.eval()
-            with torch.no_grad():
-                return self.generator(pan, ms)
-        return self.generator(pan, ms)
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model['metrics']
+        except KeyError:
+            pass
 
     def set_optimizers_lr(self, lr):
+        """ Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        """
         for g in self.gen_opt.param_groups:
             g['lr'] = lr
         for g in self.disc_opt.param_groups:
             g['lr'] = lr
 
-
-if __name__ == '__main__':
-    print("ff")
+    def define_losses(self, rec_loss=None, adv_loss=None):
+        """ Set adversarial and reconstruction losses """
+        self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
+        self.adv_loss = adv_loss if adv_loss is not None else MinmaxLoss()
+        self.discriminator.apply_activation = self.adv_loss.apply_activation

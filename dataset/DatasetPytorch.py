@@ -44,16 +44,3 @@ class DatasetPytorch(Dataset):
         self.file.close()
 
 
-if __name__ == '__main__':
-    satellite = "W3"
-
-    train_data = DatasetPytorch("../datasets/FR/W3/train_1_64.h5")
-    train_dataloader = DataLoader(train_data, batch_size=32,
-                                  shuffle=True)
-
-    print(len(train_data))
-
-    pan, ms, ms_lr, gt = (train_dataloader.dataset[0])
-
-    print(ms.shape)
-

@@ -1,49 +1,105 @@
 import argparse
 import shutil
 
-import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from pytorch_models.GANS import GANS
-from pytorch_models.CNNS import CNNS
-from utils import recompose
+from pytorch_models import *
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from utils import adjust_image
 
 
-def create_model(name: str, channels, device="cpu", **kwargs):
-    name = name.strip().upper()
+def create_test_dict(data_path: str, filename: str):
+    """ Creates the dictionary of data for testing the network during the training
+
+    Parameters
+    ---------
+    data_path : str
+        path of the dataset to user for testing
+    filename : str
+        name of the .csv file used to store the results
+    """
+    test_dict = {}
+    test_dataloader1 = DataLoader(DatasetPytorch(data_path), batch_size=64, shuffle=False)
+    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
+    if len(pan.shape) == 3:
+        pan = torch.unsqueeze(pan, 0)
+    test_dict['pan'] = pan
+    test_dict['ms'] = ms
+    test_dict['ms_lr'] = ms_lr
+    test_dict['gt'] = gt
+    test_dict['filename'] = filename
+    return test_dict
+
+
+def create_model(network_type: str, channels: int, device: str = "cpu", evaluation=False, **kwargs):
+    """ Creates the model network
+
+    Parameters
+    ----------
+    network_type : str
+        type of the network. It must match one of the available networks (case-insensitive) otherwise raises KeyError
+    channels : int
+        number of channels of the data the network will handle
+    device : str
+        the device onto which train the network (either cpu or a cuda visible device)
+    evaluation : bool
+        True if the networks must be defined for evaluation False otherwise.
+        If True, definition doesn't need loss and optimizer
+    """
+    network_type = network_type.strip().upper()
     try:
-        return GANS[name].value(channels, device)
-    except KeyError:
-        pass
+        model = GANS[network_type].value(channels, device)
 
-    try:
-        model = CNNS[name].value(channels, device)
-        loss_fn = kwargs['loss_fn'] if "loss_fn" in kwargs else None
-        optimizer = kwargs['optimizer'] if "optimizer" in kwargs else None
-        model.compile(loss_fn, optimizer)
+        if not evaluation:
+            # Adversarial Loss Definition
+            adv_loss = None if kwargs['adv_loss_fn'] is None else kwargs['adv_loss_fn'].strip().upper()
+            if adv_loss is not None:
+                adv_loss = AdvLosses[adv_loss].value()
+
+            # Reconstruction Loss Definition
+            rec_loss = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
+            if rec_loss is not None:
+                print(rec_loss)
+                rec_loss = Losses[rec_loss].value()
+
+            model.define_losses(rec_loss=rec_loss, adv_loss=adv_loss)
         return model
     except KeyError:
         pass
 
-    raise KeyError("Model not defined!")
+    try:
+        model = CNNS[network_type].value(channels, device)
 
+        if not evaluation:
+            # Reconstruction Loss Definition
+            loss_fn = None if kwargs['loss_fn'] is None else kwargs['loss_fn'].strip().upper()
+            if loss_fn is not None:
+                loss_fn = Losses[loss_fn].value()
 
-def create_test_dict(path, filename):
-    test_dict = {}
-    test_dataloader1 = DataLoader(DatasetPytorch(path), batch_size=64, shuffle=False)
-    pan, ms, ms_lr, gt = next(enumerate(test_dataloader1))[1]
-    if len(pan.shape) == 3:
-        pan = torch.unsqueeze(pan, 0)
-    gt = torch.permute(gt, (0, 2, 3, 1))
-    test_dict['pan'] = pan
-    test_dict['ms'] = ms
-    test_dict['ms_lr'] = ms_lr
-    test_dict['gt'] = recompose(torch.squeeze(gt).detach().numpy())
-    test_dict['filename'] = filename
-    return test_dict
+            # Optimizer definition
+            optimizer = None if kwargs['optimizer'] is None else kwargs['optimizer'].strip().upper()
+            if optimizer is not None:
+                optimizer = Optimizers[optimizer].value(model.parameters(), lr=kwargs['lr'])
+
+            model.compile(loss_fn, optimizer)
+        else:
+            model.compile()
+
+        return model
+    except KeyError:
+        pass
+
+    raise KeyError(f"Model not defined!\n\n"
+                   f"Use one of the followings:\n"
+                   f"GANS: \t{[e.name for e in GANS]}\n"
+                   f"CNN: \t{[e.name for e in CNNS]}\n"
+                   f"Losses: \t{[e.name for e in Losses]}\n"
+                   f"Adversarial Losses: \t{[e.name for e in AdvLosses]}\n"
+                   f"Optimizers: \t{[e.name for e in Optimizers]}\n"
+                   )
 
 
 if __name__ == '__main__':
@@ -55,8 +111,11 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-t', '--type_model',
-                        default='psgan',
-                        help='Provide type of the model. Defaults to PSGAN',
+                        default='apnn',
+                        help=f'Provide type of the model. Select one of the followings.\n'
+                             f'\tGANs Choices: {[e.name for e in GANS]}\n'
+                             f'\tCNNs Choices: {[e.name for e in CNNS]}\n'
+                             f'Defaults to APNN',
                         type=str
                         )
     parser.add_argument('-d', '--dataset_path',
@@ -70,7 +129,7 @@ if __name__ == '__main__':
                         type=str
                         )
     parser.add_argument('-e', '--epochs',
-                        default=2,
+                        default=1000,
                         help='Provide number of epochs. Defaults to 1000',
                         type=int
                         )
@@ -106,6 +165,32 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Boolean indicating if avoid using the validation set'
                         )
+    parser.add_argument('--source_dataset',
+                        help='Source dataset for Training. Choose from Train, Train&Val, Train&Val&Test and Test',
+                        type=str,
+                        default="Train"
+                        )
+    parser.add_argument('--index_image',
+                        help='Index of training image',
+                        type=int,
+                        nargs='+',
+                        default=[1]
+                        )
+    parser.add_argument('-adv', '--adv_loss_fn',
+                        help=f'Provide type of adversarial loss. Select one of the followings.\n'
+                             f'\t {[e.name for e in AdvLosses]} If unset, uses default',
+                        type=str
+                        )
+    parser.add_argument('-loss', '--loss_fn',
+                        help=f'Provide type of reconstruction loss. Select one of the followings.\n'
+                             f'\t {[e.name for e in Losses]} . If unset, uses default',
+                        type=str
+                        )
+    parser.add_argument('-opt', '--optimizer',
+                        help=f'Provide type of reconstruction loss. Select one of the followings.\n'
+                             f'\t ... . If unset, uses default',
+                        type=str
+                        )
 
     args = parser.parse_args()
 
@@ -120,14 +205,8 @@ if __name__ == '__main__':
     use_rr = args.rr
     no_val = args.no_val
     base_path = args.base_path
-
-    data_resolution = "RR" if use_rr else "FR"
-
-    train_dataset = f"train_1_64.h5"
-    val_dataset = f"val_1_64.h5"
-    test_dataset1 = f"test_1_64.h5"
-    test_dataset2 = f"test_2_64.h5"
-    test_dataset_FR = f"test_2_512.h5"
+    source_dataset = args.source_dataset.strip()
+    index_image = args.index_image
 
     # Device Definition
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -139,21 +218,47 @@ if __name__ == '__main__':
         total_memory = torch.cuda.mem_get_info()[1]
         torch.cuda.set_per_process_memory_fraction(8192 / (total_memory // 1024 ** 2))
 
+    # dataset_settings = list(zip(source_dataset, index_images, patch_size))
+    data_resolution = "RR" if use_rr else "FR"
+
     # Data Loading
-    train_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{train_dataset}"),
-                                  batch_size=64, shuffle=True)
+    cnt = 0
+    channels = 4
+    prefix = "train" if source_dataset != "Test" else "test"
+
+    data = []
+    for i in index_image:
+        train_dataset = f"{prefix}_{i}_64.h5"
+        train_data1 = DatasetPytorch(f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{train_dataset}")
+        channels = train_data1.channels
+        data.append(train_data1)
+    train_data = ConcatDataset(*data)
+    train_dataloader = DataLoader(train_data, batch_size=64, shuffle=True)
+    cnt += 1
+
+    if prefix == "test":
+        no_val = True
 
     if no_val:
+        val_dataset = None
         val_dataloader = None
     else:
-        val_dataloader = DataLoader(DatasetPytorch(f"{dataset_path}/{data_resolution}/{satellite}/{val_dataset}"),
-                                    batch_size=64, shuffle=False)
+        data = []
+        for i in index_image:
+            val_dataset = f"val_{i}_64.h5"
+            val_data1 = DatasetPytorch(
+                f"{dataset_path}/{data_resolution}/{source_dataset}/{satellite}/{val_dataset}")
+            data.append(val_data1)
+        val_data = ConcatDataset(*data)
+        val_dataloader = DataLoader(train_data, batch_size=64, shuffle=False)
+        cnt += 1
 
     # Model Creation
-    model = create_model(type_model, train_dataloader.dataset.channels, device)
+    model = create_model(type_model, channels, device, **vars(args))
     model.to(device)
 
     output_path = f"{output_base_path}/{satellite}/{model.name}/{file_name}"
+    model.output_path = output_path
 
     # Checkpoint path definition
     chk_path = f"{output_path}/checkpoints"
@@ -163,8 +268,10 @@ if __name__ == '__main__':
         latest_checkpoint = max([int((e.split("_")[1]).split(".")[0]) for e in os.listdir(chk_path)])
         model.load_model(f"{output_path}/model.pth")
         best_losses = model.best_losses
+        best_q = model.best_q
         model.load_model(f"{chk_path}/checkpoint_{latest_checkpoint}.pth")
         model.best_losses = best_losses
+        model.best_q = best_q
     else:
         if base_path is not None:
             print(f"Using weights from {base_path}")
@@ -177,34 +284,41 @@ if __name__ == '__main__':
 
     model.set_optimizers_lr(lr)
 
-    # Setting up index evaluation
-    tests = [create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset1}",
-                              f"{output_path}/test_0.csv"),
-             create_test_dict(f"{dataset_path}/{data_resolution}/{satellite}/{test_dataset2}",
-                              f"{output_path}/test_1.csv"),
-             create_test_dict(f"{dataset_path}/FR/{satellite}/{test_dataset_FR}",
-                              f"{output_path}/test_FR.csv")]
+    test_dict = [create_test_dict(f"{dataset_path}/RR/Test/{satellite}/test_{index_image}_128.h5",
+                                  f"{output_path}/test_{index_image}_RR.csv"),
+                 create_test_dict(f"{dataset_path}/FR/Test/{satellite}/test_{index_image}_512.h5",
+                                  f"{output_path}/test_{index_image}_FR.csv")]
 
     # Model Training
     model.train_model(epochs,
                       output_path, chk_path,
-                      train_dataloader, val_dataloader,
-                      tests)
+                      train_dataloader, val_dataloader, test_dict)
 
     # Report
     with open(f"{output_path}/report.txt", "w") as f:
         f.write(f"Network Type : {type_model}\n")
         f.write(f"Datasets Used: \n")
-        f.write(f"\t Training: {train_dataset}\n")
-        if not no_val:
-            f.write(f"\t Validation: {val_dataset}\n")
-        f.write(f"\t Test From Training: {test_dataset1}\n")
-        f.write(f"\t External Test: {test_dataset2}\n")
-
+        f.write(f"\tSatellite: {satellite} \n")
         if use_rr:
-            f.write(f"\nTrained at Reduced Resolution."
-                    f"\n\tDataset for testing at Full Resolution: {test_dataset_FR}\n")
+            f.write(f"\nTrained at Reduced Resolution.\n")
         f.write(f"Number of Trained Epochs: {model.tot_epochs}\n")
         f.write(f"Best Epoch: {model.best_epoch}\n")
         f.write(f"Best Loss: {model.best_losses[0]}\n")
         f.write(f"Learning Rate: {lr}\n")
+
+    # Testing results
+    FR_test = test_dict[-1]
+    gen = model.generate_output(pan=FR_test['pan'].to(model.device),
+                                ms=FR_test['ms'].to(model.device) if model.use_ms_lr is False else
+                                FR_test['ms_lr'].to(model.device),
+                                evaluation=True)
+    gen = adjust_image(gen, FR_test['ms_lr'])
+    gt = adjust_image(FR_test['gt'])
+
+    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                dim_cut,
+                                                th_values)
+
+    print(f"Best Model Results:\n"
+          f"\t Q2n: {Q2n :.4f}  Q_avg:{Q_avg:.4f}"
+          f" ERGAS:{ERGAS:.4f} SAM:{SAM:.4f}")

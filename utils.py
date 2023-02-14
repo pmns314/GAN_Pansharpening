@@ -1,24 +1,25 @@
-import copy
 from math import sqrt
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
-
-
-def calc_padding_conv2dtranspose(input_size, kernel, stride, output_size):
-    return (-output_size + (input_size - 1) * stride + kernel) / 2
-
-
-def calc_padding_conv2d(input_size, kernel, stride, output_size):
-    return (((output_size - 1) * stride) + kernel - input_size) / 2
-
-
-if __name__ == '__main__':
-    print(calc_padding_conv2d(64, 3, 2, 32))
 
 
 def create_patches(img, dim_patch, stride):
+    """ Divides the given image in patches
+
+    Parameters
+    ----------
+
+    img : ndarray
+        the image to divide in patches
+    dim_patch : int
+        dimension of the single patch
+    stride : int
+        number of pixel stride between adjacent patches.
+        If no overlapping is desired, set it to the same value of dim_patch
+
+    """
     dim_im_row, dim_im_col = img.shape[:2]
     channels = img.shape[2]
 
@@ -43,6 +44,14 @@ def create_patches(img, dim_patch, stride):
 
 
 def augment_data(original):
+    """ Augment the input data with a horizontal and vertical flip respectively.
+    The number of output patches is three times the input
+
+    Parameters
+    ----------
+    original:ndarray
+        the data to augment. Must be at least three-dimensional
+    """
     flip_ud = np.flip(original, 1)
     flip_lr = np.flip(original, 2)
     # flip_ud_lr = np.flip(original, (1, 2))
@@ -51,16 +60,26 @@ def augment_data(original):
 
 
 def recompose(img):
+    """ Composes image from patches.
+    Patches are placed from the top-left to the bottom-right
+
+    Parameters
+    ----------
+    img : ndarray
+        array of patches to compose the output from
+
+    """
     if len(img.shape) == 3:
         return img
     n_patch = img.shape[0]
     dim_patch = img.shape[1]
+    channels = img.shape[3]
     original_height = int(sqrt(n_patch) * dim_patch)
     num_patch_per_row = original_height // dim_patch
-    out = np.zeros((original_height, original_height, 8), dtype='float32')
+    out = np.zeros((original_height, original_height, channels), dtype='float32')
 
     start_row = stop_row = 0
-    start_col = stop_col = 0
+    stop_col = 0
     for i in range(n_patch):
         if i % num_patch_per_row == 0:
             start_col = 0
@@ -73,79 +92,60 @@ def recompose(img):
     return out
 
 
-def norm_min_max_channels(data, channels):
-    for im in range(data.shape[0]):
-        for i in range(channels):
-            x = data[im, :, :, i]
-            ma = np.max(x)
-            mi = np.min(x)
-            x = (x - mi) / (ma - mi)
-            data[im, :, :, i] = x
-    return data
+def adjust_image(img, ms_lr=None):
+    """  Transforms the input torch tensor into a numpy image
 
+    Parameters
+    ----------
+    img : torch.Tensor
+        tensor of patches. Must be four-dimensional
+    ms_lr: torch.Tensor, optional
+        if set, it equalizes img with respect to this data
 
-def norm_min_max(data):
-    data = copy.deepcopy(data)
-    for im in range(data.shape[0]):
-        x = data[:, :, :]
-        ma = np.max(x)
-        mi = np.min(x)
-        x = (x - mi) / (ma - mi)
-        data[:, :, :] = x
-    return data
+    """
+    img = torch.permute(img, (0, 2, 3, 1)).detach().cpu().numpy()
+    img = recompose(img)
+    img = np.squeeze(img)
+    if ms_lr is None:
+        return img * 2048.0
 
-
-def norm_linalg(data):
-    return data / np.linalg.norm(data, keepdims=True)
-
-
-def norm_mean(data):
-    data = copy.deepcopy(data)
-    if len(data.shape) == 4:
-        # Keras
-        means = np.mean(data, (0, 1, 2))
-        stds = np.std(data, (0, 1, 2))
-        data = (data - means) / stds
-    else:
-        # Pytorch
-        for l in range(data.shape[0]):
-            x = data[l, :, :]
-            x = (x - torch.mean(x, 0)) / torch.std(x, 0)
-            data[l, :, :] = x
-    return data
-
-
-def inv_norm_mean(original, data):
-    m = original.mean()
-    std = original.std()
-    return (data * std) + m
+    np.clip(img, 0, 1, out=img)
+    img = img * 2048.0
+    ms_lr = torch.permute(ms_lr, (0, 2, 3, 1)).detach().cpu().numpy()
+    ms_lr = recompose(ms_lr)
+    ms_lr = np.squeeze(ms_lr) * 2048.0
+    mgen = np.mean(img, (0, 1)) + 1e-12
+    mgt = np.mean(ms_lr, (0, 1))
+    img = (img - mgen) + mgt
+    return np.round(img)
 
 
 def norm_max_val(data):
+    """ Normalizes the data according to the maximum value possible ( 2**11 )
+    Parameters
+    ----------
+    data : ndarray
+        data to normalize
+    """
+
     return data / 2048
 
-
-import cv2
-
-# [N,M,~] = size(ImageToView);
-# NM = N*M;
-# for i=1:3
-#     b = reshape(double(uint16(ImageToView(:,:,i))),NM,1);
-#     [hb,levelb] = hist(b,max(b)-min(b));
-#     chb = cumsum(hb);
-#     t(1)=ceil(levelb(find(chb>NM*tol(i,1), 1 )));
-#     t(2)=ceil(levelb(find(chb<NM*tol(i,2), 1, 'last' )));
-#     b(b<t(1))=t(1);
-#     b(b>t(2))=t(2);
-#     b = (b-t(1))/(t(2)-t(1));
-#     ImageToView(:,:,i) = reshape(b,N,M);
-# end
 
 tol1 = [104, 103, 33]
 tol2 = [215, 664, 941]
 
 
 def linear_strech(data, calculate_limits=True):
+    """ Performs a linear stretching of the image.
+    Parameters
+    ----------
+        data : ndarray
+            data to stretch
+        calculate_limits: bool, optional
+            if True, calculates new limit values for the stretching of each band.
+            Otherwise, uses current limits
+
+    """
     global tol1
     global tol2
     N, M = data.shape[:2]
@@ -171,6 +171,22 @@ def linear_strech(data, calculate_limits=True):
 
 
 def view_image(data, calculate_limits=True):
-    xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+    """ Display image as RGB after performing linear stretching on the extracted bands,
+    If input has 8 channels, bands [0,2,4] are selected for display. Otherwise, bands [0,1,2] are taken
+
+    Parameters
+    ----------
+
+    data : ndarray
+        data to display
+    calculate_limits : bool, optional
+        if True, calculates new limits for linear stretching
+    """
+    channels = data.shape[2]
+    if channels == 8:
+        xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+    else:
+        xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
     plt.figure()
     plt.imshow((xx[:, :, ::-1]))
+
