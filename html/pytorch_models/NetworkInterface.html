@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>pytorch_models.NetworkInterface API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>pytorch_models.NetworkInterface</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">from abc import ABC, abstractmethod
+
+import pandas as pd
+import torch
+from torch import nn
+from torch.utils.tensorboard import SummaryWriter
+
+from constants import *
+from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
+from utils import adjust_image
+
+
+class NetworkInterface(ABC, nn.Module):
+    &#34;&#34;&#34; Common Interface for all the networks of the framework &#34;&#34;&#34;
+
+    def __init__(self, device, name):
+        &#34;&#34;&#34; Constructor of the class
+
+        Parameters
+        ----------
+        device : str
+            the device onto which train the network (either cpu or a cuda visible device)
+        name : str
+            the name of the network
+        &#34;&#34;&#34;
+
+        super().__init__()
+        self._model_name = name
+        self.best_losses: list = NotImplemented  # Must be defined by subclasses
+        self.best_epoch = 0
+        self.tot_epochs = 0
+        self.device = device
+        self.use_ms_lr = False
+        self.best_q = self.best_q_avg = .0001
+        self.best_sam = self.best_ergas = 1000
+        self.step = 10
+        self.patience = 50 // self.step
+        self.waiting = 0
+        self.to(device)
+        self.output_path = &#34;&#34;
+        self.downgrade = False
+
+    @property
+    def name(self):
+        &#34;&#34;&#34; Returns the name of the network&#34;&#34;&#34;
+        return self._model_name
+
+    # ------------------ Abstract Methods -------------------------
+    @abstractmethod
+    def train_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def validation_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def save_model(self, path):
+        &#34;&#34;&#34; Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def load_model(self, path, weights_only=False):
+        &#34;&#34;&#34; Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def generate_output(self, pan, ms, evaluation=True):
+        &#34;&#34;&#34;
+        Generates the output image of the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image fed to the network
+        ms : tensor
+            the multi spectral image fed to the network
+        evaluation: bool, optional
+            True if the network must be switched into evaluation mode, False otherwise (default is True)
+
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def set_optimizers_lr(self, lr):
+        &#34;&#34;&#34; Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        &#34;&#34;&#34;
+        pass
+
+    # ------------------------- Concrete Methods ------------------------------
+    def train_model(self, epochs,
+                    output_path, chk_path,
+                    train_dataloader, val_dataloader,
+                    tests=None, save_checkpoints=True):
+        &#34;&#34;&#34;
+        Method for fitting the model.
+
+        For each epoch, the following operations are carried out:
+            1. Compute the Losses of Training Step ( and the validation step, if any).
+            2. Update the Tensorboard Log.
+            3. Update the Best losses of the network.
+
+            4. If checkpoint epoch:
+                1. Save model as checkpoint.
+                2. Evaluate Network for each of the provided tests saving results in csv file.
+        Finally, it evaluates the best model and prints the output.
+
+        Parameters
+        ----------
+        epochs : int
+            number of training epochs
+        output_path : str
+            model saving path
+        chk_path : str
+            checkpoints saving path
+        train_dataloader : torch.utils.data.DataLoader
+            Data loader of the Training Data
+        val_dataloader : torch.utils.data.DataLoader
+            Data loader of Validation Data
+        tests : dict, optional
+            Dictionary of test data
+        save_checkpoints : bool, optional
+            if True, saves the checkpoints at certain given epochs
+        &#34;&#34;&#34;
+
+        # TensorBoard
+        writer = SummaryWriter(output_path + &#34;/log&#34;)
+        indexes = None
+        # Training
+        print(f&#34;Training started for {output_path} at epoch {self.tot_epochs + 1}&#34;)
+        ending_epoch = self.tot_epochs + epochs
+        for epoch in range(epochs):
+            self.tot_epochs += 1
+            print(f&#39;\nEpoch {self.tot_epochs}/{ending_epoch}&#39;)
+
+            # Compute Losses on Train Set
+            train_losses = self.train_step(train_dataloader)
+            if val_dataloader is not None:
+                # Compute Losses on Validation Set if exists
+                val_losses = self.validation_step(val_dataloader)
+
+                for k in train_losses.keys():
+                    print(f&#39;\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n&#39;)
+                    writer.add_scalars(k, {&#34;train&#34;: train_losses[k], &#34;validation&#34;: val_losses[k]},
+                                       self.tot_epochs)
+
+                losses = list(train_losses.values())
+            else:
+                # Otherwise keeps track only of train losses
+                for item in train_losses.items():
+                    key, value = item
+                    print(f&#39;\t {key}: {value :.3f}&#39;, end=&#34;\t&#34;)
+                    writer.add_scalar(f&#34;{key}/Train&#34;, value, self.tot_epochs)
+                losses = list(train_losses.values())
+
+            # Updates the best losses
+            # Saves the model if the loss in position 0 improved.
+            # If CNN, that&#39;s the only loss; if GAN, that&#39;s the loss of the generator
+            # if losses[0] - self.best_losses[0] &gt; 0.0005:
+            #     self.best_losses[0] = losses[0]
+            #     self.best_epoch = self.tot_epochs
+            #     self.save_model(f&#34;{output_path}/model.pth&#34;)
+            #     print(f&#34;New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}&#34;)
+
+            # This is ignored for CNNs
+            for i in range(1, len(losses)):
+                if losses[i] &lt; self.best_losses[i]:
+                    self.best_losses[i] = losses[i]
+
+            # Every self.step epochs, calculate indexes
+            if epoch == 0 or (epoch + 1) % self.step == 0:
+                indexes = self._calculate_indexes(val_dataloader)
+
+                writer.add_scalar(f&#34;Q2n/Val&#34;, indexes[0], self.tot_epochs)
+                writer.add_scalar(f&#34;Q/Val&#34;, indexes[1], self.tot_epochs)
+                writer.add_scalar(f&#34;ERGAS/Val&#34;, indexes[2], self.tot_epochs)
+                writer.add_scalar(f&#34;SAM/Val&#34;, indexes[3], self.tot_epochs)
+
+                Q2n, Q_avg, ERGAS, SAM = indexes
+
+                # Increment Calculation
+                Q_incr = Q2n / self.best_q - 1
+                Q_avg_incr = Q_avg / self.best_q_avg - 1
+                SAM_incr = SAM / self.best_sam - 1
+                ERGAS_incr = ERGAS / self.best_ergas - 1
+
+                # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                tot_incr = Q_incr
+                if tot_incr &gt; 0.00001:
+                    self.best_losses[0] = losses[0]
+                    self.best_epoch = self.tot_epochs
+                    self.save_model(f&#34;{output_path}/model.pth&#34;)
+                    self.best_q = Q2n
+                    self.best_q_avg = Q_avg
+                    self.best_sam = SAM
+                    self.best_ergas = ERGAS
+                    print(f&#34;New Best Loss {self.best_losses[0]:.4f} at epoch {self.best_epoch}&#34;)
+                    print(f&#34;New Best Q {self.best_q:.4f} at epoch {self.best_epoch}&#34;)
+                    self.waiting = 0
+                else:
+                    self.waiting += 1
+            # -------------------------------
+            # Test Analysis
+            if epoch == 0 or (epoch + 1) % self.step == 0:
+                for t in tests:
+                    gen = self.generate_output(pan=t[&#39;pan&#39;].to(self.device),
+                                               ms=t[&#39;ms&#39;].to(self.device) if self.use_ms_lr is False else
+                                               t[&#39;ms_lr&#39;].to(self.device),
+                                               evaluation=True)
+
+                    gen = adjust_image(gen, t[&#39;ms_lr&#39;])
+                    gt = adjust_image(t[&#39;gt&#39;])
+
+                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                                dim_cut,
+                                                                th_values)
+
+                    # Saving RR Result
+                    df = pd.DataFrame(columns=[&#34;Epochs&#34;, &#34;Q2n&#34;, &#34;Q_avg&#34;, &#34;ERGAS&#34;, &#34;SAM&#34;])
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                    df.to_csv(t[&#39;filename&#39;], index=False, header=True if self.tot_epochs == 1 else False,
+                              mode=&#39;a&#39;, sep=&#34;;&#34;)
+
+            # -------------------------------
+
+            # Save Checkpoints
+            if save_checkpoints:
+                if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
+                    self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+
+            if self.waiting == self.patience:
+                print(f&#34;Stopping at epoch : {self.tot_epochs}&#34;)
+                break
+
+        # Always save last epoch&#39;s checkpoint
+        self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+        # Update number of trained epochs
+        last_tot = self.tot_epochs
+        self.load_model(f&#34;{output_path}/model.pth&#34;)
+        self.tot_epochs = last_tot
+        self.save_model(f&#34;{output_path}/model.pth&#34;)
+
+        writer.flush()
+        print(f&#34;Training Completed at epoch {self.tot_epochs}.\n&#34;
+              f&#34;Best Epoch:{self.best_epoch} Saved in {output_path} folder&#34;)
+
+    def test_model(self, dataloader):
+        &#34;&#34;&#34;
+        Tests the model calling the validation step on the input data
+
+        Parameters
+        ---------
+        dataloader : torch.utils.data.DataLoader
+            Data loader of Testing Data
+        &#34;&#34;&#34;
+        results: dict = self.validation_step(dataloader)
+        print(f&#34;Evaluation on Test Set: \n &#34;)
+        for k in results.keys():
+            print(f&#34;\t {k}: {results[k]:&gt;8f} \n&#34;)
+
+    def _calculate_indexes(self, dataloader):
+        &#34;&#34;&#34; Calculate evaluation indexes
+        Parameters
+        ----------
+            dataloader : torch.utils.data.DataLoader
+                Data Loader of validation data
+
+        &#34;&#34;&#34;
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+
+                if self.use_ms_lr is False:
+                    multi_spectral = ms.to(self.device)
+                else:
+                    multi_spectral = ms_lr.to(self.device)
+
+                # Compute prediction and loss
+                voutputs = self.generate_output(pan, multi_spectral)
+
+                if self.downgrade is True:
+                    # Downgrade Output and compare with MS_LR
+                    voutputs = nn.functional.interpolate(voutputs, scale_factor=1 / 4, mode=&#39;bicubic&#39;,
+                                                         align_corners=False)
+                    gt = ms_lr.to(self.device)
+
+                batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
+                voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
+                gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                num_elem_batch = voutputs.shape[0]
+                for k in range(num_elem_batch):
+                    gt = gt_all[k, :, :, :]
+                    gen = voutputs[k, :, :, :]
+                    indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                    batch_q2n += indexes[0]
+                    batch_q += indexes[1]
+                    batch_ergas += indexes[2]
+                    batch_sam += indexes[3]
+                running_q += batch_q / num_elem_batch
+                running_q2n += batch_q2n / num_elem_batch
+                running_sam += batch_sam / num_elem_batch
+                running_ergas += batch_ergas / num_elem_batch
+
+        q2n_tot = running_q2n / len(dataloader)
+        q_tot = running_q / len(dataloader)
+        ergas_tot = running_ergas / len(dataloader)
+        sam_tot = running_sam / len(dataloader)
+
+        return [q2n_tot, q_tot, ergas_tot, sam_tot]</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface"><code class="flex name class">
+<span>class <span class="ident">NetworkInterface</span></span>
+<span>(</span><span>device, name)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common Interface for all the networks of the framework </p>
+<p>Constructor of the class</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>the device onto which train the network (either cpu or a cuda visible device)</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code></dt>
+<dd>the name of the network</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class NetworkInterface(ABC, nn.Module):
+    &#34;&#34;&#34; Common Interface for all the networks of the framework &#34;&#34;&#34;
+
+    def __init__(self, device, name):
+        &#34;&#34;&#34; Constructor of the class
+
+        Parameters
+        ----------
+        device : str
+            the device onto which train the network (either cpu or a cuda visible device)
+        name : str
+            the name of the network
+        &#34;&#34;&#34;
+
+        super().__init__()
+        self._model_name = name
+        self.best_losses: list = NotImplemented  # Must be defined by subclasses
+        self.best_epoch = 0
+        self.tot_epochs = 0
+        self.device = device
+        self.use_ms_lr = False
+        self.best_q = self.best_q_avg = .0001
+        self.best_sam = self.best_ergas = 1000
+        self.step = 10
+        self.patience = 50 // self.step
+        self.waiting = 0
+        self.to(device)
+        self.output_path = &#34;&#34;
+        self.downgrade = False
+
+    @property
+    def name(self):
+        &#34;&#34;&#34; Returns the name of the network&#34;&#34;&#34;
+        return self._model_name
+
+    # ------------------ Abstract Methods -------------------------
+    @abstractmethod
+    def train_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def validation_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def save_model(self, path):
+        &#34;&#34;&#34; Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def load_model(self, path, weights_only=False):
+        &#34;&#34;&#34; Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def generate_output(self, pan, ms, evaluation=True):
+        &#34;&#34;&#34;
+        Generates the output image of the network
+
+        Parameters
+        ----------
+        pan : tensor
+            the panchromatic image fed to the network
+        ms : tensor
+            the multi spectral image fed to the network
+        evaluation: bool, optional
+            True if the network must be switched into evaluation mode, False otherwise (default is True)
+
+        &#34;&#34;&#34;
+        pass
+
+    @abstractmethod
+    def set_optimizers_lr(self, lr):
+        &#34;&#34;&#34; Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        &#34;&#34;&#34;
+        pass
+
+    # ------------------------- Concrete Methods ------------------------------
+    def train_model(self, epochs,
+                    output_path, chk_path,
+                    train_dataloader, val_dataloader,
+                    tests=None, save_checkpoints=True):
+        &#34;&#34;&#34;
+        Method for fitting the model.
+
+        For each epoch, the following operations are carried out:
+            1. Compute the Losses of Training Step ( and the validation step, if any).
+            2. Update the Tensorboard Log.
+            3. Update the Best losses of the network.
+
+            4. If checkpoint epoch:
+                1. Save model as checkpoint.
+                2. Evaluate Network for each of the provided tests saving results in csv file.
+        Finally, it evaluates the best model and prints the output.
+
+        Parameters
+        ----------
+        epochs : int
+            number of training epochs
+        output_path : str
+            model saving path
+        chk_path : str
+            checkpoints saving path
+        train_dataloader : torch.utils.data.DataLoader
+            Data loader of the Training Data
+        val_dataloader : torch.utils.data.DataLoader
+            Data loader of Validation Data
+        tests : dict, optional
+            Dictionary of test data
+        save_checkpoints : bool, optional
+            if True, saves the checkpoints at certain given epochs
+        &#34;&#34;&#34;
+
+        # TensorBoard
+        writer = SummaryWriter(output_path + &#34;/log&#34;)
+        indexes = None
+        # Training
+        print(f&#34;Training started for {output_path} at epoch {self.tot_epochs + 1}&#34;)
+        ending_epoch = self.tot_epochs + epochs
+        for epoch in range(epochs):
+            self.tot_epochs += 1
+            print(f&#39;\nEpoch {self.tot_epochs}/{ending_epoch}&#39;)
+
+            # Compute Losses on Train Set
+            train_losses = self.train_step(train_dataloader)
+            if val_dataloader is not None:
+                # Compute Losses on Validation Set if exists
+                val_losses = self.validation_step(val_dataloader)
+
+                for k in train_losses.keys():
+                    print(f&#39;\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n&#39;)
+                    writer.add_scalars(k, {&#34;train&#34;: train_losses[k], &#34;validation&#34;: val_losses[k]},
+                                       self.tot_epochs)
+
+                losses = list(train_losses.values())
+            else:
+                # Otherwise keeps track only of train losses
+                for item in train_losses.items():
+                    key, value = item
+                    print(f&#39;\t {key}: {value :.3f}&#39;, end=&#34;\t&#34;)
+                    writer.add_scalar(f&#34;{key}/Train&#34;, value, self.tot_epochs)
+                losses = list(train_losses.values())
+
+            # Updates the best losses
+            # Saves the model if the loss in position 0 improved.
+            # If CNN, that&#39;s the only loss; if GAN, that&#39;s the loss of the generator
+            # if losses[0] - self.best_losses[0] &gt; 0.0005:
+            #     self.best_losses[0] = losses[0]
+            #     self.best_epoch = self.tot_epochs
+            #     self.save_model(f&#34;{output_path}/model.pth&#34;)
+            #     print(f&#34;New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}&#34;)
+
+            # This is ignored for CNNs
+            for i in range(1, len(losses)):
+                if losses[i] &lt; self.best_losses[i]:
+                    self.best_losses[i] = losses[i]
+
+            # Every self.step epochs, calculate indexes
+            if epoch == 0 or (epoch + 1) % self.step == 0:
+                indexes = self._calculate_indexes(val_dataloader)
+
+                writer.add_scalar(f&#34;Q2n/Val&#34;, indexes[0], self.tot_epochs)
+                writer.add_scalar(f&#34;Q/Val&#34;, indexes[1], self.tot_epochs)
+                writer.add_scalar(f&#34;ERGAS/Val&#34;, indexes[2], self.tot_epochs)
+                writer.add_scalar(f&#34;SAM/Val&#34;, indexes[3], self.tot_epochs)
+
+                Q2n, Q_avg, ERGAS, SAM = indexes
+
+                # Increment Calculation
+                Q_incr = Q2n / self.best_q - 1
+                Q_avg_incr = Q_avg / self.best_q_avg - 1
+                SAM_incr = SAM / self.best_sam - 1
+                ERGAS_incr = ERGAS / self.best_ergas - 1
+
+                # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+                tot_incr = Q_incr
+                if tot_incr &gt; 0.00001:
+                    self.best_losses[0] = losses[0]
+                    self.best_epoch = self.tot_epochs
+                    self.save_model(f&#34;{output_path}/model.pth&#34;)
+                    self.best_q = Q2n
+                    self.best_q_avg = Q_avg
+                    self.best_sam = SAM
+                    self.best_ergas = ERGAS
+                    print(f&#34;New Best Loss {self.best_losses[0]:.4f} at epoch {self.best_epoch}&#34;)
+                    print(f&#34;New Best Q {self.best_q:.4f} at epoch {self.best_epoch}&#34;)
+                    self.waiting = 0
+                else:
+                    self.waiting += 1
+            # -------------------------------
+            # Test Analysis
+            if epoch == 0 or (epoch + 1) % self.step == 0:
+                for t in tests:
+                    gen = self.generate_output(pan=t[&#39;pan&#39;].to(self.device),
+                                               ms=t[&#39;ms&#39;].to(self.device) if self.use_ms_lr is False else
+                                               t[&#39;ms_lr&#39;].to(self.device),
+                                               evaluation=True)
+
+                    gen = adjust_image(gen, t[&#39;ms_lr&#39;])
+                    gt = adjust_image(t[&#39;gt&#39;])
+
+                    Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                                dim_cut,
+                                                                th_values)
+
+                    # Saving RR Result
+                    df = pd.DataFrame(columns=[&#34;Epochs&#34;, &#34;Q2n&#34;, &#34;Q_avg&#34;, &#34;ERGAS&#34;, &#34;SAM&#34;])
+                    df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                    df.to_csv(t[&#39;filename&#39;], index=False, header=True if self.tot_epochs == 1 else False,
+                              mode=&#39;a&#39;, sep=&#34;;&#34;)
+
+            # -------------------------------
+
+            # Save Checkpoints
+            if save_checkpoints:
+                if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
+                    self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+
+            if self.waiting == self.patience:
+                print(f&#34;Stopping at epoch : {self.tot_epochs}&#34;)
+                break
+
+        # Always save last epoch&#39;s checkpoint
+        self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+        # Update number of trained epochs
+        last_tot = self.tot_epochs
+        self.load_model(f&#34;{output_path}/model.pth&#34;)
+        self.tot_epochs = last_tot
+        self.save_model(f&#34;{output_path}/model.pth&#34;)
+
+        writer.flush()
+        print(f&#34;Training Completed at epoch {self.tot_epochs}.\n&#34;
+              f&#34;Best Epoch:{self.best_epoch} Saved in {output_path} folder&#34;)
+
+    def test_model(self, dataloader):
+        &#34;&#34;&#34;
+        Tests the model calling the validation step on the input data
+
+        Parameters
+        ---------
+        dataloader : torch.utils.data.DataLoader
+            Data loader of Testing Data
+        &#34;&#34;&#34;
+        results: dict = self.validation_step(dataloader)
+        print(f&#34;Evaluation on Test Set: \n &#34;)
+        for k in results.keys():
+            print(f&#34;\t {k}: {results[k]:&gt;8f} \n&#34;)
+
+    def _calculate_indexes(self, dataloader):
+        &#34;&#34;&#34; Calculate evaluation indexes
+        Parameters
+        ----------
+            dataloader : torch.utils.data.DataLoader
+                Data Loader of validation data
+
+        &#34;&#34;&#34;
+        running_q2n = 0.0
+        running_q = 0.0
+        running_sam = 0.0
+        running_ergas = 0.0
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                if len(pan.shape) == 3:
+                    pan = torch.unsqueeze(pan, 0)
+                gt = gt.to(self.device)
+                pan = pan.to(self.device)
+
+                if self.use_ms_lr is False:
+                    multi_spectral = ms.to(self.device)
+                else:
+                    multi_spectral = ms_lr.to(self.device)
+
+                # Compute prediction and loss
+                voutputs = self.generate_output(pan, multi_spectral)
+
+                if self.downgrade is True:
+                    # Downgrade Output and compare with MS_LR
+                    voutputs = nn.functional.interpolate(voutputs, scale_factor=1 / 4, mode=&#39;bicubic&#39;,
+                                                         align_corners=False)
+                    gt = ms_lr.to(self.device)
+
+                batch_q = batch_q2n = batch_ergas = batch_sam = 0.0
+                voutputs = torch.permute(voutputs, (0, 2, 3, 1)).detach().cpu().numpy()
+                gt_all = torch.permute(gt, (0, 2, 3, 1)).detach().cpu().numpy()
+                num_elem_batch = voutputs.shape[0]
+                for k in range(num_elem_batch):
+                    gt = gt_all[k, :, :, :]
+                    gen = voutputs[k, :, :, :]
+                    indexes = indexes_evaluation(gt, gen, 4, 11, 31, False, None, True)
+                    batch_q2n += indexes[0]
+                    batch_q += indexes[1]
+                    batch_ergas += indexes[2]
+                    batch_sam += indexes[3]
+                running_q += batch_q / num_elem_batch
+                running_q2n += batch_q2n / num_elem_batch
+                running_sam += batch_sam / num_elem_batch
+                running_ergas += batch_ergas / num_elem_batch
+
+        q2n_tot = running_q2n / len(dataloader)
+        q_tot = running_q / len(dataloader)
+        ergas_tot = running_ergas / len(dataloader)
+        sam_tot = running_sam / len(dataloader)
+
+        return [q2n_tot, q_tot, ergas_tot, sam_tot]</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>abc.ABC</li>
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="pytorch_models.CNNs.CnnInterface.CnnInterface" href="CNNs/CnnInterface.html#pytorch_models.CNNs.CnnInterface.CnnInterface">CnnInterface</a></li>
+<li><a title="pytorch_models.GANs.GanInterface.GanInterface" href="GANs/GanInterface.html#pytorch_models.GANs.GanInterface.GanInterface">GanInterface</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.name"><code class="name">var <span class="ident">name</span></code></dt>
+<dd>
+<div class="desc"><p>Returns the name of the network</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def name(self):
+    &#34;&#34;&#34; Returns the name of the network&#34;&#34;&#34;
+    return self._model_name</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, *input: Any) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the :class:<code>Module</code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def _forward_unimplemented(self, *input: Any) -&gt; None:
+    r&#34;&#34;&#34;Defines the computation performed at every call.
+
+    Should be overridden by all subclasses.
+
+    .. note::
+        Although the recipe for forward pass needs to be defined within
+        this function, one should call the :class:`Module` instance afterwards
+        instead of this since the former takes care of running the
+        registered hooks while the latter silently ignores them.
+    &#34;&#34;&#34;
+    raise NotImplementedError(f&#34;Module [{type(self).__name__}] is missing the required \&#34;forward\&#34; function&#34;)</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.generate_output"><code class="name flex">
+<span>def <span class="ident">generate_output</span></span>(<span>self, pan, ms, evaluation=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generates the output image of the network</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pan</code></strong> :&ensp;<code>tensor</code></dt>
+<dd>the panchromatic image fed to the network</dd>
+<dt><strong><code>ms</code></strong> :&ensp;<code>tensor</code></dt>
+<dd>the multi spectral image fed to the network</dd>
+<dt><strong><code>evaluation</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>True if the network must be switched into evaluation mode, False otherwise (default is True)</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def generate_output(self, pan, ms, evaluation=True):
+    &#34;&#34;&#34;
+    Generates the output image of the network
+
+    Parameters
+    ----------
+    pan : tensor
+        the panchromatic image fed to the network
+    ms : tensor
+        the multi spectral image fed to the network
+    evaluation: bool, optional
+        True if the network must be switched into evaluation mode, False otherwise (default is True)
+
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.load_model"><code class="name flex">
+<span>def <span class="ident">load_model</span></span>(<span>self, path, weights_only=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Loads the network model</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>str</code></dt>
+<dd>the path of the model</dd>
+<dt><strong><code>weights_only</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>True if only the weights of the generator must be loaded, False otherwise (default is False)</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def load_model(self, path, weights_only=False):
+    &#34;&#34;&#34; Loads the network model
+
+    Parameters
+    ----------
+
+    path : str
+        the path of the model
+    weights_only : bool, optional
+        True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.save_model"><code class="name flex">
+<span>def <span class="ident">save_model</span></span>(<span>self, path)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Saves the model as a .pth file</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>str</code></dt>
+<dd>the path where the model has to be saved into</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def save_model(self, path):
+    &#34;&#34;&#34; Saves the model as a .pth file
+
+    Parameters
+    ----------
+
+    path : str
+        the path where the model has to be saved into
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.set_optimizers_lr"><code class="name flex">
+<span>def <span class="ident">set_optimizers_lr</span></span>(<span>self, lr)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Sets the learning rate of the optimizers</p>
+<h2 id="parameter">Parameter</h2>
+<p>lr : int
+the new learning rate of the optimizers</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def set_optimizers_lr(self, lr):
+    &#34;&#34;&#34; Sets the learning rate of the optimizers
+
+    Parameter
+    ---------
+    lr : int
+        the new learning rate of the optimizers
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.test_model"><code class="name flex">
+<span>def <span class="ident">test_model</span></span>(<span>self, dataloader)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Tests the model calling the validation step on the input data</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dataloader</code></strong> :&ensp;<code>torch.utils.data.DataLoader</code></dt>
+<dd>Data loader of Testing Data</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_model(self, dataloader):
+    &#34;&#34;&#34;
+    Tests the model calling the validation step on the input data
+
+    Parameters
+    ---------
+    dataloader : torch.utils.data.DataLoader
+        Data loader of Testing Data
+    &#34;&#34;&#34;
+    results: dict = self.validation_step(dataloader)
+    print(f&#34;Evaluation on Test Set: \n &#34;)
+    for k in results.keys():
+        print(f&#34;\t {k}: {results[k]:&gt;8f} \n&#34;)</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.train_model"><code class="name flex">
+<span>def <span class="ident">train_model</span></span>(<span>self, epochs, output_path, chk_path, train_dataloader, val_dataloader, tests=None, save_checkpoints=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Method for fitting the model.</p>
+<p>For each epoch, the following operations are carried out:
+1. Compute the Losses of Training Step ( and the validation step, if any).
+2. Update the Tensorboard Log.
+3. Update the Best losses of the network.</p>
+<pre><code>4. If checkpoint epoch:
+    1. Save model as checkpoint.
+    2. Evaluate Network for each of the provided tests saving results in csv file.
+</code></pre>
+<p>Finally, it evaluates the best model and prints the output.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>epochs</code></strong> :&ensp;<code>int</code></dt>
+<dd>number of training epochs</dd>
+<dt><strong><code>output_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>model saving path</dd>
+<dt><strong><code>chk_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>checkpoints saving path</dd>
+<dt><strong><code>train_dataloader</code></strong> :&ensp;<code>torch.utils.data.DataLoader</code></dt>
+<dd>Data loader of the Training Data</dd>
+<dt><strong><code>val_dataloader</code></strong> :&ensp;<code>torch.utils.data.DataLoader</code></dt>
+<dd>Data loader of Validation Data</dd>
+<dt><strong><code>tests</code></strong> :&ensp;<code>dict</code>, optional</dt>
+<dd>Dictionary of test data</dd>
+<dt><strong><code>save_checkpoints</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, saves the checkpoints at certain given epochs</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def train_model(self, epochs,
+                output_path, chk_path,
+                train_dataloader, val_dataloader,
+                tests=None, save_checkpoints=True):
+    &#34;&#34;&#34;
+    Method for fitting the model.
+
+    For each epoch, the following operations are carried out:
+        1. Compute the Losses of Training Step ( and the validation step, if any).
+        2. Update the Tensorboard Log.
+        3. Update the Best losses of the network.
+
+        4. If checkpoint epoch:
+            1. Save model as checkpoint.
+            2. Evaluate Network for each of the provided tests saving results in csv file.
+    Finally, it evaluates the best model and prints the output.
+
+    Parameters
+    ----------
+    epochs : int
+        number of training epochs
+    output_path : str
+        model saving path
+    chk_path : str
+        checkpoints saving path
+    train_dataloader : torch.utils.data.DataLoader
+        Data loader of the Training Data
+    val_dataloader : torch.utils.data.DataLoader
+        Data loader of Validation Data
+    tests : dict, optional
+        Dictionary of test data
+    save_checkpoints : bool, optional
+        if True, saves the checkpoints at certain given epochs
+    &#34;&#34;&#34;
+
+    # TensorBoard
+    writer = SummaryWriter(output_path + &#34;/log&#34;)
+    indexes = None
+    # Training
+    print(f&#34;Training started for {output_path} at epoch {self.tot_epochs + 1}&#34;)
+    ending_epoch = self.tot_epochs + epochs
+    for epoch in range(epochs):
+        self.tot_epochs += 1
+        print(f&#39;\nEpoch {self.tot_epochs}/{ending_epoch}&#39;)
+
+        # Compute Losses on Train Set
+        train_losses = self.train_step(train_dataloader)
+        if val_dataloader is not None:
+            # Compute Losses on Validation Set if exists
+            val_losses = self.validation_step(val_dataloader)
+
+            for k in train_losses.keys():
+                print(f&#39;\t {k}: train {train_losses[k] :.3f}\t valid {val_losses[k]:.3f}\n&#39;)
+                writer.add_scalars(k, {&#34;train&#34;: train_losses[k], &#34;validation&#34;: val_losses[k]},
+                                   self.tot_epochs)
+
+            losses = list(train_losses.values())
+        else:
+            # Otherwise keeps track only of train losses
+            for item in train_losses.items():
+                key, value = item
+                print(f&#39;\t {key}: {value :.3f}&#39;, end=&#34;\t&#34;)
+                writer.add_scalar(f&#34;{key}/Train&#34;, value, self.tot_epochs)
+            losses = list(train_losses.values())
+
+        # Updates the best losses
+        # Saves the model if the loss in position 0 improved.
+        # If CNN, that&#39;s the only loss; if GAN, that&#39;s the loss of the generator
+        # if losses[0] - self.best_losses[0] &gt; 0.0005:
+        #     self.best_losses[0] = losses[0]
+        #     self.best_epoch = self.tot_epochs
+        #     self.save_model(f&#34;{output_path}/model.pth&#34;)
+        #     print(f&#34;New Best Loss {self.best_losses[0]:.3f} at epoch {self.best_epoch}&#34;)
+
+        # This is ignored for CNNs
+        for i in range(1, len(losses)):
+            if losses[i] &lt; self.best_losses[i]:
+                self.best_losses[i] = losses[i]
+
+        # Every self.step epochs, calculate indexes
+        if epoch == 0 or (epoch + 1) % self.step == 0:
+            indexes = self._calculate_indexes(val_dataloader)
+
+            writer.add_scalar(f&#34;Q2n/Val&#34;, indexes[0], self.tot_epochs)
+            writer.add_scalar(f&#34;Q/Val&#34;, indexes[1], self.tot_epochs)
+            writer.add_scalar(f&#34;ERGAS/Val&#34;, indexes[2], self.tot_epochs)
+            writer.add_scalar(f&#34;SAM/Val&#34;, indexes[3], self.tot_epochs)
+
+            Q2n, Q_avg, ERGAS, SAM = indexes
+
+            # Increment Calculation
+            Q_incr = Q2n / self.best_q - 1
+            Q_avg_incr = Q_avg / self.best_q_avg - 1
+            SAM_incr = SAM / self.best_sam - 1
+            ERGAS_incr = ERGAS / self.best_ergas - 1
+
+            # tot_incr = Q_incr + Q_avg_incr - SAM_incr - ERGAS_incr
+            tot_incr = Q_incr
+            if tot_incr &gt; 0.00001:
+                self.best_losses[0] = losses[0]
+                self.best_epoch = self.tot_epochs
+                self.save_model(f&#34;{output_path}/model.pth&#34;)
+                self.best_q = Q2n
+                self.best_q_avg = Q_avg
+                self.best_sam = SAM
+                self.best_ergas = ERGAS
+                print(f&#34;New Best Loss {self.best_losses[0]:.4f} at epoch {self.best_epoch}&#34;)
+                print(f&#34;New Best Q {self.best_q:.4f} at epoch {self.best_epoch}&#34;)
+                self.waiting = 0
+            else:
+                self.waiting += 1
+        # -------------------------------
+        # Test Analysis
+        if epoch == 0 or (epoch + 1) % self.step == 0:
+            for t in tests:
+                gen = self.generate_output(pan=t[&#39;pan&#39;].to(self.device),
+                                           ms=t[&#39;ms&#39;].to(self.device) if self.use_ms_lr is False else
+                                           t[&#39;ms_lr&#39;].to(self.device),
+                                           evaluation=True)
+
+                gen = adjust_image(gen, t[&#39;ms_lr&#39;])
+                gt = adjust_image(t[&#39;gt&#39;])
+
+                Q2n, Q_avg, ERGAS, SAM = indexes_evaluation(gen, gt, ratio, L, Qblocks_size, flag_cut_bounds,
+                                                            dim_cut,
+                                                            th_values)
+
+                # Saving RR Result
+                df = pd.DataFrame(columns=[&#34;Epochs&#34;, &#34;Q2n&#34;, &#34;Q_avg&#34;, &#34;ERGAS&#34;, &#34;SAM&#34;])
+                df.loc[0] = [self.tot_epochs, Q2n, Q_avg, ERGAS, SAM]
+                df.to_csv(t[&#39;filename&#39;], index=False, header=True if self.tot_epochs == 1 else False,
+                          mode=&#39;a&#39;, sep=&#34;;&#34;)
+
+        # -------------------------------
+
+        # Save Checkpoints
+        if save_checkpoints:
+            if self.tot_epochs in TO_SAVE or epoch == epochs - 1:
+                self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+
+        if self.waiting == self.patience:
+            print(f&#34;Stopping at epoch : {self.tot_epochs}&#34;)
+            break
+
+    # Always save last epoch&#39;s checkpoint
+    self.save_model(f&#34;{chk_path}/checkpoint_{self.tot_epochs}.pth&#34;)
+    # Update number of trained epochs
+    last_tot = self.tot_epochs
+    self.load_model(f&#34;{output_path}/model.pth&#34;)
+    self.tot_epochs = last_tot
+    self.save_model(f&#34;{output_path}/model.pth&#34;)
+
+    writer.flush()
+    print(f&#34;Training Completed at epoch {self.tot_epochs}.\n&#34;
+          f&#34;Best Epoch:{self.best_epoch} Saved in {output_path} folder&#34;)</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.train_step"><code class="name flex">
+<span>def <span class="ident">train_step</span></span>(<span>self, dataloader)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the operations to be carried out during the training step</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dataloader</code></strong> :&ensp;<code>torch.utils.data.DataLoader</code></dt>
+<dd>the dataloader that loads the training data</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def train_step(self, dataloader):
+    &#34;&#34;&#34; Defines the operations to be carried out during the training step
+
+    Parameters
+    ----------
+    dataloader : torch.utils.data.DataLoader
+        the dataloader that loads the training data
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.NetworkInterface.NetworkInterface.validation_step"><code class="name flex">
+<span>def <span class="ident">validation_step</span></span>(<span>self, dataloader)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the operations to be carried out during the validation step</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dataloader</code></strong> :&ensp;<code>torch.utils.data.DataLoader</code></dt>
+<dd>the dataloader that loads the validation data</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def validation_step(self, dataloader):
+    &#34;&#34;&#34; Defines the operations to be carried out during the validation step
+
+    Parameters
+    ----------
+    dataloader : torch.utils.data.DataLoader
+        the dataloader that loads the validation data
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="pytorch_models" href="index.html">pytorch_models</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="pytorch_models.NetworkInterface.NetworkInterface" href="#pytorch_models.NetworkInterface.NetworkInterface">NetworkInterface</a></code></h4>
+<ul class="two-column">
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.dump_patches" href="#pytorch_models.NetworkInterface.NetworkInterface.dump_patches">dump_patches</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.forward" href="#pytorch_models.NetworkInterface.NetworkInterface.forward">forward</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.generate_output" href="#pytorch_models.NetworkInterface.NetworkInterface.generate_output">generate_output</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.load_model" href="#pytorch_models.NetworkInterface.NetworkInterface.load_model">load_model</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.name" href="#pytorch_models.NetworkInterface.NetworkInterface.name">name</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.save_model" href="#pytorch_models.NetworkInterface.NetworkInterface.save_model">save_model</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.set_optimizers_lr" href="#pytorch_models.NetworkInterface.NetworkInterface.set_optimizers_lr">set_optimizers_lr</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.test_model" href="#pytorch_models.NetworkInterface.NetworkInterface.test_model">test_model</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.train_model" href="#pytorch_models.NetworkInterface.NetworkInterface.train_model">train_model</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.train_step" href="#pytorch_models.NetworkInterface.NetworkInterface.train_step">train_step</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.training" href="#pytorch_models.NetworkInterface.NetworkInterface.training">training</a></code></li>
+<li><code><a title="pytorch_models.NetworkInterface.NetworkInterface.validation_step" href="#pytorch_models.NetworkInterface.NetworkInterface.validation_step">validation_step</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

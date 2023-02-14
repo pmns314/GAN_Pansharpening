@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>pytorch_models.GANs.PanGan API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>pytorch_models.GANs.PanGan</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">from abc import ABC
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch import optim
+
+from pytorch_models.GANs.GanInterface import GanInterface
+from pytorch_models.adversarial_losses import LsganLoss
+
+kernel = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
+kernel = torch.from_numpy(kernel).unsqueeze(0).unsqueeze(0).float()
+
+
+def high_pass(img, device=&#39;cpu&#39;):
+    global kernel
+    img_hp = torch.nn.functional.conv2d(img, kernel.to(device), stride=(1, 1), padding=&#39;same&#39;)
+    return img_hp
+
+
+def init_weights(m):
+    &#34;&#34;&#34; Gaussian Initialisation of layer weights&#34;&#34;&#34;
+    if isinstance(m, nn.Conv2d):
+        torch.nn.init.trunc_normal_(m.weight, std=1e-3)
+        m.bias.data.fill_(0.0)
+
+
+class PanGan(GanInterface, ABC):
+    &#34;&#34;&#34; PanGan Implementation&#34;&#34;&#34;
+    def __init__(self, channels, device=&#34;cpu&#34;, name=&#34;PanGan&#34;):
+        &#34;&#34;&#34; Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is &#39;cpu&#39;
+        name : str, optional
+            the name of the network. Default is &#39;PanGan&#39;
+        &#34;&#34;&#34;
+
+        super(PanGan, self).__init__(name=name, device=device)
+
+        self.generator = PanGan.Generator(channels)
+        self.spatial_discriminator = PanGan.Discriminator(1)
+        self.spectral_discriminator = PanGan.Discriminator(channels)
+
+        # Discriminator
+        self.a = 0  # Label for Original
+        self.b = 1  # Label for Fake
+
+        # Generator
+        self.c = 1  # Label for Fake
+        self.d = 1  # Label for Fake
+
+        self.alpha = .002
+        self.beta = .001
+        self.mu = 5
+
+        self.best_losses = [np.inf, np.inf, np.inf]
+        self.mse = torch.nn.MSELoss(reduction=&#39;mean&#39;)
+        self.downgrade = True
+
+        self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001, weight_decay=.99)
+        self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
+        self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
+
+    # ------------------------- Specific GAN Methods -----------------------------------
+    class Generator(nn.Module):
+        &#34;&#34;&#34; Generator of PanGan network&#34;&#34;&#34;
+
+        def __init__(self, in_channels):
+            &#34;&#34;&#34; Constructor of the class&#34;&#34;&#34;
+            super(PanGan.Generator, self).__init__()
+
+            # BxC+1xHxW ---&gt; Bx64xHxW
+            self.block_1 = nn.Sequential(
+                nn.Conv2d(in_channels=in_channels + 1, out_channels=64, kernel_size=(9, 9), padding=&#34;same&#34;,
+                          stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
+                nn.ReLU()
+            )
+            self.block_1.apply(init_weights)
+
+            # Bx64+C+1xHxW ---&gt; Bx32xHxW
+            self.block_2 = nn.Sequential(
+                nn.Conv2d(in_channels=64 + in_channels + 1, out_channels=32, kernel_size=(5, 5), padding=&#34;same&#34;,
+                          stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
+                nn.ReLU()
+            )
+            self.block_2.apply(init_weights)
+
+            # Bx32+64+C+1  ---&gt; BxCxHxW
+            self.block_3 = nn.Sequential(
+                nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
+                          padding=&#34;same&#34;, stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.Tanh()
+            )
+            self.block_3.apply(init_weights)
+
+        def forward(self, pan, ms):
+            input_block_1 = torch.cat([ms, pan], 1)
+            output_block_1 = self.block_1(input_block_1)
+
+            input_block_2 = torch.cat([input_block_1, output_block_1], 1)
+            output_block_2 = self.block_2(input_block_2)
+
+            input_block_3 = torch.cat([input_block_1, output_block_1, output_block_2], 1)
+            output_block_3 = self.block_3(input_block_3)
+
+            return output_block_3
+
+    class Discriminator(nn.Module):
+        &#34;&#34;&#34; Discriminator of PanGan&#34;&#34;&#34;
+        class ConvBlock(nn.Module):
+            def __init__(self, in_channels, out_channels, stride=2, batch_normalization=True):
+                super(PanGan.Discriminator.ConvBlock, self).__init__()
+                self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
+                                       stride=(stride, stride), padding=(1, 1), bias=True, padding_mode=&#34;replicate&#34;)
+                nn.init.trunc_normal_(self.conv2.weight, std=1e-3)
+                nn.init.constant_(self.conv2.bias, 0.0)
+                self.lrelu = nn.LeakyReLU(negative_slope=.2)
+                self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=.9)
+                self.batch_normalization = batch_normalization
+
+            def forward(self, input_data):
+                rs = self.conv2(input_data)
+                if self.batch_normalization:
+                    rs = self.bn(rs)
+                rs = self.lrelu(rs)
+                return rs
+
+        def __init__(self, channels):
+            &#34;&#34;&#34; Constructor of the class&#34;&#34;&#34;
+            super(PanGan.Discriminator, self).__init__()
+            self.strides2_stack = nn.Sequential(
+                self.ConvBlock(channels, 16, stride=1, batch_normalization=False),
+                self.ConvBlock(16, 32),
+                self.ConvBlock(32, 64),
+                self.ConvBlock(64, 128),
+                self.ConvBlock(128, 256)
+            )
+            self.finale_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(4, 4), stride=(1, 1),
+                                         padding=(0, 0), bias=True, padding_mode=&#34;replicate&#34;)
+            nn.init.trunc_normal_(self.finale_conv.weight, std=1e-3)
+            nn.init.constant_(self.finale_conv.bias, 0.0)
+            self.bn = nn.BatchNorm2d(1, eps=1e-5, momentum=.9)
+            self.lrelu = nn.LeakyReLU(negative_slope=.2)
+
+        def forward(self, input_data):
+            rs = self.strides2_stack(input_data)
+            rs = self.finale_conv(rs)
+            if rs.shape[0] &gt; 1:
+                rs = self.bn(rs)
+            rs = self.lrelu(rs)
+            return rs
+
+    def discriminator_spatial_loss(self, pan, generated):
+        &#34;&#34;&#34; Calculates loss for spatial discriminator
+        Parameters
+        ----------
+            pan: torch.Tensor
+                panchromatic image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        averaged = torch.mean(generated, 1, keepdim=True)
+        pred_fake = self.spatial_discriminator(averaged)
+        pred_real = self.spatial_discriminator(pan)
+        return self.adv_loss(pred_fake, pred_real)
+
+    def discriminator_spectral_loss(self, ms, generated):
+        &#34;&#34;&#34; Calculates loss for spectral discriminator
+        Parameters
+        ----------
+            ms: torch.Tensor
+                multi spectral image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        pred_fake = self.spectral_discriminator(generated)
+        pred_real = self.spectral_discriminator(ms)
+        return self.adv_loss(pred_fake, pred_real)
+
+    def generator_loss(self, pan, ms, generated):
+        &#34;&#34;&#34; Calculates loss for generator
+        Parameters
+        ----------
+            pan: torch.Tensor
+                panchromatic image
+            ms: torch.Tensor
+                multi spectral image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        averaged = torch.mean(generated, 1, keepdim=True)
+        details_generated = high_pass(averaged, self.device)
+        details_original = high_pass(pan, self.device)
+
+        # Reconstruction Loss
+        L_rec_spatial = self.rec_loss(details_original, details_generated)
+        L_rec_spectral = self.rec_loss(generated, ms)
+
+        # Adversarial Loss
+        pred_fake_spec = self.spectral_discriminator(generated)
+        pred_fake_spat = self.spatial_discriminator(averaged)
+
+        if self.adv_loss.use_real_data:
+            pred_real_spat = self.spatial_discriminator(pan.detach())
+            pred_real_spec = self.spectral_discriminator(ms.detach())
+        else:
+            pred_real_spat = None
+            pred_real_spec = None
+
+        L_adv_spatial = self.adv_loss(pred_fake_spat, pred_real_spat, True)
+        L_adv_spectral = self.adv_loss(pred_fake_spec, pred_real_spec, True)
+
+        # Total Loss
+        L_spatial = self.mu * L_rec_spatial + self.mu * L_adv_spatial
+        L_spectral = 1 * L_rec_spectral + 1 * L_adv_spectral
+
+        # return L_adv1 + L_spectral_base
+        return L_spatial + L_spectral
+
+    # ------------------------- Concrete Interface Methods -----------------------------
+
+    def train_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        &#34;&#34;&#34;
+        self.train(True)
+
+        loss_g_batch = 0
+        loss_d_spec_batch = 0
+        loss_d_spat_batch = 0
+        for batch, data in enumerate(dataloader):
+            pan, ms, ms_lr, gt = data
+
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
+
+            if len(pan.shape) != len(ms.shape):
+                pan = torch.unsqueeze(pan, 0)
+
+            # Generate Data for Discriminators Training
+            with torch.no_grad():
+                generated_HRMS = self.generate_output(pan, ms)
+
+            # ------------------- Training Discriminators ----------------------------
+            self.spatial_discriminator.train(True)
+            self.spectral_discriminator.train(True)
+            self.generator.train(False)
+            self.spatial_discriminator.zero_grad()
+            self.spectral_discriminator.zero_grad()
+            self.optimizer_spatial_disc.zero_grad()
+            self.optimizer_spectral_disc.zero_grad()
+
+            # Spatial Discriminator
+            loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
+            loss_spatial.backward()
+            self.optimizer_spatial_disc.step()
+            loss = loss_spatial.item()
+            torch.cuda.empty_cache()
+            loss_d_spat_batch += loss
+
+            # Spectral Discriminator
+            loss_spectral = self.discriminator_spectral_loss(ms, generated_HRMS)
+            loss_spectral.backward()
+            self.optimizer_spectral_disc.step()
+            loss = loss_spectral.item()
+            torch.cuda.empty_cache()
+            loss_d_spec_batch += loss
+
+            # # ------------------- Training Generator ----------------------------
+            self.spatial_discriminator.train(False)
+            self.spectral_discriminator.train(False)
+            self.generator.train(True)
+            self.generator.zero_grad()
+            self.optimizer_gen.zero_grad()
+
+            # Compute prediction and loss
+            generated = self.generate_output(pan, ms, evaluation=False)
+            loss_generator = self.generator_loss(pan, ms, generated)
+
+            # Backpropagation
+            loss_generator.backward()
+            self.optimizer_gen.step()
+
+            loss = loss_generator.item()
+            torch.cuda.empty_cache()
+
+            loss_g_batch += loss
+
+        self.rec_loss.reset()
+
+        return {&#34;Gen loss&#34;: loss_g_batch / len(dataloader),
+                &#34;Spat Disc loss&#34;: loss_d_spat_batch / len(dataloader),
+                &#34;Spec Disc loss&#34;: loss_d_spec_batch / len(dataloader)
+                }
+
+    def validation_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        &#34;&#34;&#34;
+        self.eval()
+        self.spatial_discriminator.eval()
+        self.spectral_discriminator.eval()
+        self.generator.eval()
+
+        loss_g_batch = 0
+        loss_d_spec_batch = 0
+        loss_d_spat_batch = 0
+
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
+
+                if len(pan.shape) != len(ms.shape):
+                    pan = torch.unsqueeze(pan, 0)
+                generated_HRMS = self.generate_output(pan, ms)
+
+                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                loss_d_spat_batch += d_spat_loss.item()
+
+                d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
+                loss_d_spec_batch += d_spec_loss.item()
+
+                gloss = self.generator_loss(pan, ms, generated_HRMS)
+                loss_g_batch += gloss.item()
+
+        self.loss_fn.reset()
+
+        return {&#34;Gen loss&#34;: loss_g_batch / len(dataloader),
+                &#34;Spat Disc loss&#34;: loss_d_spat_batch / len(dataloader),
+                &#34;Spec Disc loss&#34;: loss_d_spec_batch / len(dataloader)
+                }
+
+    def save_model(self, path):
+        &#34;&#34;&#34; Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        &#34;&#34;&#34;
+        torch.save({&#39;gen_state_dict&#39;: self.generator.state_dict(),
+                    &#39;spat_disc_state_dict&#39;: self.spatial_discriminator.state_dict(),
+                    &#39;spec_disc_state_dict&#39;: self.spectral_discriminator.state_dict(),
+                    &#39;gen_optimizer_state_dict&#39;: self.optimizer_gen.state_dict(),
+                    &#39;spat_disc_optimizer_state_dict&#39;: self.optimizer_spatial_disc.state_dict(),
+                    &#39;spec_disc_optimizer_state_dict&#39;: self.optimizer_spectral_disc.state_dict(),
+                    &#39;gen_best_loss&#39;: self.best_losses[0],
+                    &#39;spat_disc_best_loss&#39;: self.best_losses[1],
+                    &#39;spec_disc_best_loss&#39;: self.best_losses[2],
+                    &#39;best_epoch&#39;: self.best_epoch,
+                    &#39;tot_epochs&#39;: self.tot_epochs,
+                    &#39;metrics&#39;: [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
+                    }, f&#34;{path}&#34;)
+
+    def load_model(self, path, weights_only=False):
+        &#34;&#34;&#34; Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        &#34;&#34;&#34;
+        trained_model = torch.load(f&#34;{path}&#34;, map_location=torch.device(self.device))
+        self.generator.load_state_dict(trained_model[&#39;gen_state_dict&#39;])
+        self.spatial_discriminator.load_state_dict(trained_model[&#39;spat_disc_state_dict&#39;])
+        self.spectral_discriminator.load_state_dict(trained_model[&#39;spec_disc_state_dict&#39;])
+        if weights_only:
+            return
+        self.optimizer_gen.load_state_dict(trained_model[&#39;gen_optimizer_state_dict&#39;])
+        self.optimizer_spatial_disc.load_state_dict(trained_model[&#39;spat_disc_optimizer_state_dict&#39;])
+        self.optimizer_spectral_disc.load_state_dict(trained_model[&#39;spec_disc_optimizer_state_dict&#39;])
+        self.tot_epochs = trained_model[&#39;tot_epochs&#39;]
+        self.best_epoch = trained_model[&#39;best_epoch&#39;]
+        self.best_losses = [trained_model[&#39;gen_best_loss&#39;],
+                            trained_model[&#39;spat_disc_best_loss&#39;],
+                            trained_model[&#39;spec_disc_best_loss&#39;]]
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model[&#39;metrics&#39;]
+        except KeyError:
+            pass
+
+    def set_optimizers_lr(self, lr):
+        &#34;&#34;&#34; Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        &#34;&#34;&#34;
+        for g in self.optimizer_gen.param_groups:
+            g[&#39;lr&#39;] = lr
+        for g in self.optimizer_spatial_disc.param_groups:
+            g[&#39;lr&#39;] = lr
+        for g in self.optimizer_spectral_disc.param_groups:
+            g[&#39;lr&#39;] = lr
+
+    def define_losses(self, rec_loss=None, adv_loss=None):
+        &#34;&#34;&#34; Set adversarial and reconstruction losses &#34;&#34;&#34;
+        self.rec_loss = rec_loss if rec_loss is not None else torch.nn.MSELoss(reduction=&#39;mean&#39;)
+        self.adv_loss = adv_loss if adv_loss is not None else LsganLoss()
+
+
+if __name__ == &#39;__main__&#39;:
+    from train_file import create_test_dict
+    from constants import DATASET_DIR
+
+    x = create_test_dict(f&#34;{DATASET_DIR}/FR/W3/test_1_256.h5&#34;, &#34;xx&#34;)
+    print(x.keys())</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="pytorch_models.GANs.PanGan.high_pass"><code class="name flex">
+<span>def <span class="ident">high_pass</span></span>(<span>img, device='cpu')</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def high_pass(img, device=&#39;cpu&#39;):
+    global kernel
+    img_hp = torch.nn.functional.conv2d(img, kernel.to(device), stride=(1, 1), padding=&#39;same&#39;)
+    return img_hp</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.init_weights"><code class="name flex">
+<span>def <span class="ident">init_weights</span></span>(<span>m)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Gaussian Initialisation of layer weights</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def init_weights(m):
+    &#34;&#34;&#34; Gaussian Initialisation of layer weights&#34;&#34;&#34;
+    if isinstance(m, nn.Conv2d):
+        torch.nn.init.trunc_normal_(m.weight, std=1e-3)
+        m.bias.data.fill_(0.0)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="pytorch_models.GANs.PanGan.PanGan"><code class="flex name class">
+<span>class <span class="ident">PanGan</span></span>
+<span>(</span><span>channels, device='cpu', name='PanGan')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PanGan Implementation</p>
+<p>Constructor of the class</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>channels</code></strong> :&ensp;<code>int</code></dt>
+<dd>number of channels accepted as input</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>the device onto which train the network (either cpu or a cuda visible device).
+Default is 'cpu'</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>the name of the network. Default is 'PanGan'</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanGan(GanInterface, ABC):
+    &#34;&#34;&#34; PanGan Implementation&#34;&#34;&#34;
+    def __init__(self, channels, device=&#34;cpu&#34;, name=&#34;PanGan&#34;):
+        &#34;&#34;&#34; Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is &#39;cpu&#39;
+        name : str, optional
+            the name of the network. Default is &#39;PanGan&#39;
+        &#34;&#34;&#34;
+
+        super(PanGan, self).__init__(name=name, device=device)
+
+        self.generator = PanGan.Generator(channels)
+        self.spatial_discriminator = PanGan.Discriminator(1)
+        self.spectral_discriminator = PanGan.Discriminator(channels)
+
+        # Discriminator
+        self.a = 0  # Label for Original
+        self.b = 1  # Label for Fake
+
+        # Generator
+        self.c = 1  # Label for Fake
+        self.d = 1  # Label for Fake
+
+        self.alpha = .002
+        self.beta = .001
+        self.mu = 5
+
+        self.best_losses = [np.inf, np.inf, np.inf]
+        self.mse = torch.nn.MSELoss(reduction=&#39;mean&#39;)
+        self.downgrade = True
+
+        self.optimizer_gen = optim.Adam(self.generator.parameters(), lr=.001, weight_decay=.99)
+        self.optimizer_spatial_disc = optim.Adam(self.spatial_discriminator.parameters(), lr=.001)
+        self.optimizer_spectral_disc = optim.Adam(self.spectral_discriminator.parameters(), lr=.001)
+
+    # ------------------------- Specific GAN Methods -----------------------------------
+    class Generator(nn.Module):
+        &#34;&#34;&#34; Generator of PanGan network&#34;&#34;&#34;
+
+        def __init__(self, in_channels):
+            &#34;&#34;&#34; Constructor of the class&#34;&#34;&#34;
+            super(PanGan.Generator, self).__init__()
+
+            # BxC+1xHxW ---&gt; Bx64xHxW
+            self.block_1 = nn.Sequential(
+                nn.Conv2d(in_channels=in_channels + 1, out_channels=64, kernel_size=(9, 9), padding=&#34;same&#34;,
+                          stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.BatchNorm2d(64, eps=1e-5, momentum=.9),
+                nn.ReLU()
+            )
+            self.block_1.apply(init_weights)
+
+            # Bx64+C+1xHxW ---&gt; Bx32xHxW
+            self.block_2 = nn.Sequential(
+                nn.Conv2d(in_channels=64 + in_channels + 1, out_channels=32, kernel_size=(5, 5), padding=&#34;same&#34;,
+                          stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.BatchNorm2d(32, eps=1e-5, momentum=.9),
+                nn.ReLU()
+            )
+            self.block_2.apply(init_weights)
+
+            # Bx32+64+C+1  ---&gt; BxCxHxW
+            self.block_3 = nn.Sequential(
+                nn.Conv2d(in_channels=32 + 64 + in_channels + 1, out_channels=in_channels, kernel_size=(5, 5),
+                          padding=&#34;same&#34;, stride=(1, 1), bias=True, padding_mode=&#34;replicate&#34;),
+                nn.Tanh()
+            )
+            self.block_3.apply(init_weights)
+
+        def forward(self, pan, ms):
+            input_block_1 = torch.cat([ms, pan], 1)
+            output_block_1 = self.block_1(input_block_1)
+
+            input_block_2 = torch.cat([input_block_1, output_block_1], 1)
+            output_block_2 = self.block_2(input_block_2)
+
+            input_block_3 = torch.cat([input_block_1, output_block_1, output_block_2], 1)
+            output_block_3 = self.block_3(input_block_3)
+
+            return output_block_3
+
+    class Discriminator(nn.Module):
+        &#34;&#34;&#34; Discriminator of PanGan&#34;&#34;&#34;
+        class ConvBlock(nn.Module):
+            def __init__(self, in_channels, out_channels, stride=2, batch_normalization=True):
+                super(PanGan.Discriminator.ConvBlock, self).__init__()
+                self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3),
+                                       stride=(stride, stride), padding=(1, 1), bias=True, padding_mode=&#34;replicate&#34;)
+                nn.init.trunc_normal_(self.conv2.weight, std=1e-3)
+                nn.init.constant_(self.conv2.bias, 0.0)
+                self.lrelu = nn.LeakyReLU(negative_slope=.2)
+                self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=.9)
+                self.batch_normalization = batch_normalization
+
+            def forward(self, input_data):
+                rs = self.conv2(input_data)
+                if self.batch_normalization:
+                    rs = self.bn(rs)
+                rs = self.lrelu(rs)
+                return rs
+
+        def __init__(self, channels):
+            &#34;&#34;&#34; Constructor of the class&#34;&#34;&#34;
+            super(PanGan.Discriminator, self).__init__()
+            self.strides2_stack = nn.Sequential(
+                self.ConvBlock(channels, 16, stride=1, batch_normalization=False),
+                self.ConvBlock(16, 32),
+                self.ConvBlock(32, 64),
+                self.ConvBlock(64, 128),
+                self.ConvBlock(128, 256)
+            )
+            self.finale_conv = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=(4, 4), stride=(1, 1),
+                                         padding=(0, 0), bias=True, padding_mode=&#34;replicate&#34;)
+            nn.init.trunc_normal_(self.finale_conv.weight, std=1e-3)
+            nn.init.constant_(self.finale_conv.bias, 0.0)
+            self.bn = nn.BatchNorm2d(1, eps=1e-5, momentum=.9)
+            self.lrelu = nn.LeakyReLU(negative_slope=.2)
+
+        def forward(self, input_data):
+            rs = self.strides2_stack(input_data)
+            rs = self.finale_conv(rs)
+            if rs.shape[0] &gt; 1:
+                rs = self.bn(rs)
+            rs = self.lrelu(rs)
+            return rs
+
+    def discriminator_spatial_loss(self, pan, generated):
+        &#34;&#34;&#34; Calculates loss for spatial discriminator
+        Parameters
+        ----------
+            pan: torch.Tensor
+                panchromatic image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        averaged = torch.mean(generated, 1, keepdim=True)
+        pred_fake = self.spatial_discriminator(averaged)
+        pred_real = self.spatial_discriminator(pan)
+        return self.adv_loss(pred_fake, pred_real)
+
+    def discriminator_spectral_loss(self, ms, generated):
+        &#34;&#34;&#34; Calculates loss for spectral discriminator
+        Parameters
+        ----------
+            ms: torch.Tensor
+                multi spectral image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        pred_fake = self.spectral_discriminator(generated)
+        pred_real = self.spectral_discriminator(ms)
+        return self.adv_loss(pred_fake, pred_real)
+
+    def generator_loss(self, pan, ms, generated):
+        &#34;&#34;&#34; Calculates loss for generator
+        Parameters
+        ----------
+            pan: torch.Tensor
+                panchromatic image
+            ms: torch.Tensor
+                multi spectral image
+            generated : torch.Tensor
+                fused image
+
+        &#34;&#34;&#34;
+        averaged = torch.mean(generated, 1, keepdim=True)
+        details_generated = high_pass(averaged, self.device)
+        details_original = high_pass(pan, self.device)
+
+        # Reconstruction Loss
+        L_rec_spatial = self.rec_loss(details_original, details_generated)
+        L_rec_spectral = self.rec_loss(generated, ms)
+
+        # Adversarial Loss
+        pred_fake_spec = self.spectral_discriminator(generated)
+        pred_fake_spat = self.spatial_discriminator(averaged)
+
+        if self.adv_loss.use_real_data:
+            pred_real_spat = self.spatial_discriminator(pan.detach())
+            pred_real_spec = self.spectral_discriminator(ms.detach())
+        else:
+            pred_real_spat = None
+            pred_real_spec = None
+
+        L_adv_spatial = self.adv_loss(pred_fake_spat, pred_real_spat, True)
+        L_adv_spectral = self.adv_loss(pred_fake_spec, pred_real_spec, True)
+
+        # Total Loss
+        L_spatial = self.mu * L_rec_spatial + self.mu * L_adv_spatial
+        L_spectral = 1 * L_rec_spectral + 1 * L_adv_spectral
+
+        # return L_adv1 + L_spectral_base
+        return L_spatial + L_spectral
+
+    # ------------------------- Concrete Interface Methods -----------------------------
+
+    def train_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the training step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the training data
+        &#34;&#34;&#34;
+        self.train(True)
+
+        loss_g_batch = 0
+        loss_d_spec_batch = 0
+        loss_d_spat_batch = 0
+        for batch, data in enumerate(dataloader):
+            pan, ms, ms_lr, gt = data
+
+            pan = pan.to(self.device)
+            ms = ms.to(self.device)
+
+            if len(pan.shape) != len(ms.shape):
+                pan = torch.unsqueeze(pan, 0)
+
+            # Generate Data for Discriminators Training
+            with torch.no_grad():
+                generated_HRMS = self.generate_output(pan, ms)
+
+            # ------------------- Training Discriminators ----------------------------
+            self.spatial_discriminator.train(True)
+            self.spectral_discriminator.train(True)
+            self.generator.train(False)
+            self.spatial_discriminator.zero_grad()
+            self.spectral_discriminator.zero_grad()
+            self.optimizer_spatial_disc.zero_grad()
+            self.optimizer_spectral_disc.zero_grad()
+
+            # Spatial Discriminator
+            loss_spatial = self.discriminator_spatial_loss(pan, generated_HRMS)
+            loss_spatial.backward()
+            self.optimizer_spatial_disc.step()
+            loss = loss_spatial.item()
+            torch.cuda.empty_cache()
+            loss_d_spat_batch += loss
+
+            # Spectral Discriminator
+            loss_spectral = self.discriminator_spectral_loss(ms, generated_HRMS)
+            loss_spectral.backward()
+            self.optimizer_spectral_disc.step()
+            loss = loss_spectral.item()
+            torch.cuda.empty_cache()
+            loss_d_spec_batch += loss
+
+            # # ------------------- Training Generator ----------------------------
+            self.spatial_discriminator.train(False)
+            self.spectral_discriminator.train(False)
+            self.generator.train(True)
+            self.generator.zero_grad()
+            self.optimizer_gen.zero_grad()
+
+            # Compute prediction and loss
+            generated = self.generate_output(pan, ms, evaluation=False)
+            loss_generator = self.generator_loss(pan, ms, generated)
+
+            # Backpropagation
+            loss_generator.backward()
+            self.optimizer_gen.step()
+
+            loss = loss_generator.item()
+            torch.cuda.empty_cache()
+
+            loss_g_batch += loss
+
+        self.rec_loss.reset()
+
+        return {&#34;Gen loss&#34;: loss_g_batch / len(dataloader),
+                &#34;Spat Disc loss&#34;: loss_d_spat_batch / len(dataloader),
+                &#34;Spec Disc loss&#34;: loss_d_spec_batch / len(dataloader)
+                }
+
+    def validation_step(self, dataloader):
+        &#34;&#34;&#34; Defines the operations to be carried out during the validation step
+
+        Parameters
+        ----------
+        dataloader : torch.utils.data.DataLoader
+            the dataloader that loads the validation data
+        &#34;&#34;&#34;
+        self.eval()
+        self.spatial_discriminator.eval()
+        self.spectral_discriminator.eval()
+        self.generator.eval()
+
+        loss_g_batch = 0
+        loss_d_spec_batch = 0
+        loss_d_spat_batch = 0
+
+        with torch.no_grad():
+            for i, data in enumerate(dataloader):
+                pan, ms, ms_lr, gt = data
+
+                pan = pan.to(self.device)
+                ms = ms.to(self.device)
+
+                if len(pan.shape) != len(ms.shape):
+                    pan = torch.unsqueeze(pan, 0)
+                generated_HRMS = self.generate_output(pan, ms)
+
+                d_spat_loss = self.discriminator_spatial_loss(pan, generated_HRMS)
+                loss_d_spat_batch += d_spat_loss.item()
+
+                d_spec_loss = self.discriminator_spectral_loss(ms, generated_HRMS)
+                loss_d_spec_batch += d_spec_loss.item()
+
+                gloss = self.generator_loss(pan, ms, generated_HRMS)
+                loss_g_batch += gloss.item()
+
+        self.loss_fn.reset()
+
+        return {&#34;Gen loss&#34;: loss_g_batch / len(dataloader),
+                &#34;Spat Disc loss&#34;: loss_d_spat_batch / len(dataloader),
+                &#34;Spec Disc loss&#34;: loss_d_spec_batch / len(dataloader)
+                }
+
+    def save_model(self, path):
+        &#34;&#34;&#34; Saves the model as a .pth file
+
+        Parameters
+        ----------
+
+        path : str
+            the path where the model has to be saved into
+        &#34;&#34;&#34;
+        torch.save({&#39;gen_state_dict&#39;: self.generator.state_dict(),
+                    &#39;spat_disc_state_dict&#39;: self.spatial_discriminator.state_dict(),
+                    &#39;spec_disc_state_dict&#39;: self.spectral_discriminator.state_dict(),
+                    &#39;gen_optimizer_state_dict&#39;: self.optimizer_gen.state_dict(),
+                    &#39;spat_disc_optimizer_state_dict&#39;: self.optimizer_spatial_disc.state_dict(),
+                    &#39;spec_disc_optimizer_state_dict&#39;: self.optimizer_spectral_disc.state_dict(),
+                    &#39;gen_best_loss&#39;: self.best_losses[0],
+                    &#39;spat_disc_best_loss&#39;: self.best_losses[1],
+                    &#39;spec_disc_best_loss&#39;: self.best_losses[2],
+                    &#39;best_epoch&#39;: self.best_epoch,
+                    &#39;tot_epochs&#39;: self.tot_epochs,
+                    &#39;metrics&#39;: [self.best_q, self.best_q_avg, self.best_sam, self.best_ergas]
+                    }, f&#34;{path}&#34;)
+
+    def load_model(self, path, weights_only=False):
+        &#34;&#34;&#34; Loads the network model
+
+        Parameters
+        ----------
+
+        path : str
+            the path of the model
+        weights_only : bool, optional
+            True if only the weights of the generator must be loaded, False otherwise (default is False)
+
+        &#34;&#34;&#34;
+        trained_model = torch.load(f&#34;{path}&#34;, map_location=torch.device(self.device))
+        self.generator.load_state_dict(trained_model[&#39;gen_state_dict&#39;])
+        self.spatial_discriminator.load_state_dict(trained_model[&#39;spat_disc_state_dict&#39;])
+        self.spectral_discriminator.load_state_dict(trained_model[&#39;spec_disc_state_dict&#39;])
+        if weights_only:
+            return
+        self.optimizer_gen.load_state_dict(trained_model[&#39;gen_optimizer_state_dict&#39;])
+        self.optimizer_spatial_disc.load_state_dict(trained_model[&#39;spat_disc_optimizer_state_dict&#39;])
+        self.optimizer_spectral_disc.load_state_dict(trained_model[&#39;spec_disc_optimizer_state_dict&#39;])
+        self.tot_epochs = trained_model[&#39;tot_epochs&#39;]
+        self.best_epoch = trained_model[&#39;best_epoch&#39;]
+        self.best_losses = [trained_model[&#39;gen_best_loss&#39;],
+                            trained_model[&#39;spat_disc_best_loss&#39;],
+                            trained_model[&#39;spec_disc_best_loss&#39;]]
+        try:
+            self.best_q, self.best_q_avg, self.best_sam, self.best_ergas = trained_model[&#39;metrics&#39;]
+        except KeyError:
+            pass
+
+    def set_optimizers_lr(self, lr):
+        &#34;&#34;&#34; Sets the learning rate of the optimizers
+
+        Parameter
+        ---------
+        lr : int
+            the new learning rate of the optimizers
+        &#34;&#34;&#34;
+        for g in self.optimizer_gen.param_groups:
+            g[&#39;lr&#39;] = lr
+        for g in self.optimizer_spatial_disc.param_groups:
+            g[&#39;lr&#39;] = lr
+        for g in self.optimizer_spectral_disc.param_groups:
+            g[&#39;lr&#39;] = lr
+
+    def define_losses(self, rec_loss=None, adv_loss=None):
+        &#34;&#34;&#34; Set adversarial and reconstruction losses &#34;&#34;&#34;
+        self.rec_loss = rec_loss if rec_loss is not None else torch.nn.MSELoss(reduction=&#39;mean&#39;)
+        self.adv_loss = adv_loss if adv_loss is not None else LsganLoss()</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="pytorch_models.GANs.GanInterface.GanInterface" href="GanInterface.html#pytorch_models.GANs.GanInterface.GanInterface">GanInterface</a></li>
+<li><a title="pytorch_models.NetworkInterface.NetworkInterface" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface">NetworkInterface</a></li>
+<li>abc.ABC</li>
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytorch_models.GANs.PanGan.PanGan.Discriminator"><code class="name">var <span class="ident">Discriminator</span></code></dt>
+<dd>
+<div class="desc"><p>Discriminator of PanGan</p></div>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.Generator"><code class="name">var <span class="ident">Generator</span></code></dt>
+<dd>
+<div class="desc"><p>Generator of PanGan network</p></div>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="pytorch_models.GANs.PanGan.PanGan.define_losses"><code class="name flex">
+<span>def <span class="ident">define_losses</span></span>(<span>self, rec_loss=None, adv_loss=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set adversarial and reconstruction losses</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def define_losses(self, rec_loss=None, adv_loss=None):
+    &#34;&#34;&#34; Set adversarial and reconstruction losses &#34;&#34;&#34;
+    self.rec_loss = rec_loss if rec_loss is not None else torch.nn.MSELoss(reduction=&#39;mean&#39;)
+    self.adv_loss = adv_loss if adv_loss is not None else LsganLoss()</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.discriminator_spatial_loss"><code class="name flex">
+<span>def <span class="ident">discriminator_spatial_loss</span></span>(<span>self, pan, generated)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates loss for spatial discriminator
+Parameters</p>
+<hr>
+<pre><code>pan: torch.Tensor
+    panchromatic image
+generated : torch.Tensor
+    fused image
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def discriminator_spatial_loss(self, pan, generated):
+    &#34;&#34;&#34; Calculates loss for spatial discriminator
+    Parameters
+    ----------
+        pan: torch.Tensor
+            panchromatic image
+        generated : torch.Tensor
+            fused image
+
+    &#34;&#34;&#34;
+    averaged = torch.mean(generated, 1, keepdim=True)
+    pred_fake = self.spatial_discriminator(averaged)
+    pred_real = self.spatial_discriminator(pan)
+    return self.adv_loss(pred_fake, pred_real)</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.discriminator_spectral_loss"><code class="name flex">
+<span>def <span class="ident">discriminator_spectral_loss</span></span>(<span>self, ms, generated)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates loss for spectral discriminator
+Parameters</p>
+<hr>
+<pre><code>ms: torch.Tensor
+    multi spectral image
+generated : torch.Tensor
+    fused image
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def discriminator_spectral_loss(self, ms, generated):
+    &#34;&#34;&#34; Calculates loss for spectral discriminator
+    Parameters
+    ----------
+        ms: torch.Tensor
+            multi spectral image
+        generated : torch.Tensor
+            fused image
+
+    &#34;&#34;&#34;
+    pred_fake = self.spectral_discriminator(generated)
+    pred_real = self.spectral_discriminator(ms)
+    return self.adv_loss(pred_fake, pred_real)</code></pre>
+</details>
+</dd>
+<dt id="pytorch_models.GANs.PanGan.PanGan.generator_loss"><code class="name flex">
+<span>def <span class="ident">generator_loss</span></span>(<span>self, pan, ms, generated)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates loss for generator
+Parameters</p>
+<hr>
+<pre><code>pan: torch.Tensor
+    panchromatic image
+ms: torch.Tensor
+    multi spectral image
+generated : torch.Tensor
+    fused image
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def generator_loss(self, pan, ms, generated):
+    &#34;&#34;&#34; Calculates loss for generator
+    Parameters
+    ----------
+        pan: torch.Tensor
+            panchromatic image
+        ms: torch.Tensor
+            multi spectral image
+        generated : torch.Tensor
+            fused image
+
+    &#34;&#34;&#34;
+    averaged = torch.mean(generated, 1, keepdim=True)
+    details_generated = high_pass(averaged, self.device)
+    details_original = high_pass(pan, self.device)
+
+    # Reconstruction Loss
+    L_rec_spatial = self.rec_loss(details_original, details_generated)
+    L_rec_spectral = self.rec_loss(generated, ms)
+
+    # Adversarial Loss
+    pred_fake_spec = self.spectral_discriminator(generated)
+    pred_fake_spat = self.spatial_discriminator(averaged)
+
+    if self.adv_loss.use_real_data:
+        pred_real_spat = self.spatial_discriminator(pan.detach())
+        pred_real_spec = self.spectral_discriminator(ms.detach())
+    else:
+        pred_real_spat = None
+        pred_real_spec = None
+
+    L_adv_spatial = self.adv_loss(pred_fake_spat, pred_real_spat, True)
+    L_adv_spectral = self.adv_loss(pred_fake_spec, pred_real_spec, True)
+
+    # Total Loss
+    L_spatial = self.mu * L_rec_spatial + self.mu * L_adv_spatial
+    L_spectral = 1 * L_rec_spectral + 1 * L_adv_spectral
+
+    # return L_adv1 + L_spectral_base
+    return L_spatial + L_spectral</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="pytorch_models.GANs.GanInterface.GanInterface" href="GanInterface.html#pytorch_models.GANs.GanInterface.GanInterface">GanInterface</a></b></code>:
+<ul class="hlist">
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.forward" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.forward">forward</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.generate_output" href="GanInterface.html#pytorch_models.GANs.GanInterface.GanInterface.generate_output">generate_output</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.load_model" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.load_model">load_model</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.name" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.name">name</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.save_model" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.save_model">save_model</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.set_optimizers_lr" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.set_optimizers_lr">set_optimizers_lr</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.test_model" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.test_model">test_model</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.train_model" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.train_model">train_model</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.train_step" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.train_step">train_step</a></code></li>
+<li><code><a title="pytorch_models.GANs.GanInterface.GanInterface.validation_step" href="../NetworkInterface.html#pytorch_models.NetworkInterface.NetworkInterface.validation_step">validation_step</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="pytorch_models.GANs" href="index.html">pytorch_models.GANs</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="pytorch_models.GANs.PanGan.high_pass" href="#pytorch_models.GANs.PanGan.high_pass">high_pass</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.init_weights" href="#pytorch_models.GANs.PanGan.init_weights">init_weights</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="pytorch_models.GANs.PanGan.PanGan" href="#pytorch_models.GANs.PanGan.PanGan">PanGan</a></code></h4>
+<ul class="">
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.Discriminator" href="#pytorch_models.GANs.PanGan.PanGan.Discriminator">Discriminator</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.Generator" href="#pytorch_models.GANs.PanGan.PanGan.Generator">Generator</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.define_losses" href="#pytorch_models.GANs.PanGan.PanGan.define_losses">define_losses</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.discriminator_spatial_loss" href="#pytorch_models.GANs.PanGan.PanGan.discriminator_spatial_loss">discriminator_spatial_loss</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.discriminator_spectral_loss" href="#pytorch_models.GANs.PanGan.PanGan.discriminator_spectral_loss">discriminator_spectral_loss</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.dump_patches" href="#pytorch_models.GANs.PanGan.PanGan.dump_patches">dump_patches</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.generator_loss" href="#pytorch_models.GANs.PanGan.PanGan.generator_loss">generator_loss</a></code></li>
+<li><code><a title="pytorch_models.GANs.PanGan.PanGan.training" href="#pytorch_models.GANs.PanGan.PanGan.training">training</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

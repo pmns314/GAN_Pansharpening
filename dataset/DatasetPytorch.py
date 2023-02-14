@@ -1,5 +1,5 @@
 import h5py
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 from utils import *
 
@@ -22,7 +22,6 @@ class DatasetPytorch(Dataset):
         ms = np.array(self.file["ms"][index], dtype=np.float32)
         ms_lr = np.array(self.file["ms_lr"][index], dtype=np.float32)
 
-
         # Normalization
         gt = norm_max_val(gt)
         pan = norm_max_val(pan)
@@ -42,5 +41,3 @@ class DatasetPytorch(Dataset):
 
     def close(self):
         self.file.close()
-
-
