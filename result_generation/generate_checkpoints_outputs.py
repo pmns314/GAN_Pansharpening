@@ -1,18 +1,18 @@
 """ Loads the model, generates the high resolution image and saves it a .mat file"""
 import argparse
 
+import torch
 from scipy.io import savemat
 from skimage import io as io
 from torch.utils.data import DataLoader
 
 from constants import *
 from dataset.DatasetPytorch import DatasetPytorch
-from util2 import *
 import numpy as np
 import matplotlib.pyplot as plt
 
+from train_file import create_model
 from utils import view_image, adjust_image
-
 
 def gen_image(show_image=False, model_file="model.pth"):
     model_path_file = f"{folder_path}/checkpoints/{model_file}"

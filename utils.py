@@ -79,7 +79,7 @@ def recompose(img):
     out = np.zeros((original_height, original_height, channels), dtype='float32')
 
     start_row = stop_row = 0
-    start_col = stop_col = 0
+    stop_col = 0
     for i in range(n_patch):
         if i % num_patch_per_row == 0:
             start_col = 0
@@ -189,3 +189,4 @@ def view_image(data, calculate_limits=True):
         xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
     plt.figure()
     plt.imshow((xx[:, :, ::-1]))
+
