@@ -12,7 +12,20 @@ class PanColorGan(GanInterface, ABC):
     """ PanColorGan Implementation class"""
 
     def __init__(self, channels, device="cpu", name="PanColorGan", padding_mode="replicate"):
-        """ Constructor of the class"""
+        """ Constructor of the class
+
+                Parameters
+                ----------
+                channels : int
+                    number of channels accepted as input
+                device : str, optional
+                    the device onto which train the network (either cpu or a cuda visible device).
+                    Default is 'cpu'
+                name : str, optional
+                    the name of the network. Default is 'PanColorGan'
+                padding_mode : str, optional
+                    padding mode. Default to "replicate"
+                """
         super().__init__(device, name)
         self.best_losses = [np.inf, np.inf]
         self.generator = PanColorGan.Generator(channels, padding_mode)

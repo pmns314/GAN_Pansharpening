@@ -1,14 +1,12 @@
 from abc import ABC
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 from torch import optim
 
 from pytorch_models.GANs.GanInterface import GanInterface
 from pytorch_models.adversarial_losses import LsganLoss
-from quality_indexes_toolbox.indexes_evaluation import indexes_evaluation
 
 kernel = np.array([[1., 1., 1.], [1., -8., 1.], [1., 1., 1.]])
 kernel = torch.from_numpy(kernel).unsqueeze(0).unsqueeze(0).float()
@@ -30,7 +28,18 @@ def init_weights(m):
 class PanGan(GanInterface, ABC):
     """ PanGan Implementation"""
     def __init__(self, channels, device="cpu", name="PanGan"):
-        """ Constructor of the class"""
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'PanGan'
+        """
 
         super(PanGan, self).__init__(name=name, device=device)
 
@@ -292,10 +301,8 @@ class PanGan(GanInterface, ABC):
 
             loss_g_batch += loss
 
-        try:
-            self.rec_loss.reset()
-        except:
-            pass
+        self.rec_loss.reset()
+
         return {"Gen loss": loss_g_batch / len(dataloader),
                 "Spat Disc loss": loss_d_spat_batch / len(dataloader),
                 "Spec Disc loss": loss_d_spec_batch / len(dataloader)

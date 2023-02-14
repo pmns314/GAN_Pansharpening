@@ -8,6 +8,18 @@ from pytorch_models.GANs.PSGAN import PSGAN
 class FUPSGAN(PSGAN):
     """ Feature Upsampling PSGAN implementation"""
     def __init__(self, channels, device='cpu', name="FUPSGAN"):
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'FUPSGAN'
+        """
         super().__init__(channels, device=device, name=name)
         self.use_ms_lr = True
 

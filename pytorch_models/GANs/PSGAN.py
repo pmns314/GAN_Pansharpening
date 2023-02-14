@@ -14,7 +14,20 @@ class PSGAN(GanInterface, ABC):
     """ PSGAN Implementation"""
 
     def __init__(self, channels, device='cpu', name="PSGAN", pad_mode="replicate"):
-        """ Constructor of the class """
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'PSGAN'
+        pad_mode : str, optional
+            padding mode. Default to "replicate"
+        """
         super().__init__(device, name)
         self.channels = channels
         self.alpha = 1
@@ -405,4 +418,3 @@ class PSGAN(GanInterface, ABC):
         self.rec_loss = rec_loss if rec_loss is not None else torch.nn.L1Loss(reduction='mean')
         self.adv_loss = adv_loss if adv_loss is not None else MinmaxLoss()
         self.discriminator.apply_activation = self.adv_loss.apply_activation
-

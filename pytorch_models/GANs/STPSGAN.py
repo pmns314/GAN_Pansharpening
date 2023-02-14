@@ -7,7 +7,18 @@ from pytorch_models.GANs.PSGAN import PSGAN
 class STPSGAN(PSGAN):
     """ Stacked-PSGAN Implementation"""
     def __init__(self, channels, device='cpu', name="STPSGAN"):
-        """ Constructor of the class"""
+        """ Constructor of the class
+
+        Parameters
+        ----------
+        channels : int
+            number of channels accepted as input
+        device : str, optional
+            the device onto which train the network (either cpu or a cuda visible device).
+            Default is 'cpu'
+        name : str, optional
+            the name of the network. Default is 'STPSGAN'
+        """
         super().__init__(channels, device, name)
 
     class Generator(nn.Module):
