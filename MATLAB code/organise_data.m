@@ -1,7 +1,6 @@
 
 clear, clc, close all
 
-addpath([pwd,'/Tools']);
 folder_path = '..\original_images\';
 base_output_path = "..\data\";
 ratio = 4;
