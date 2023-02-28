@@ -37,8 +37,8 @@ All rights reserved. This work should only be used for nonprofit purposes.
 
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-from interp23 import interp23
-from imresize import imresize
+from quality_indexes_toolbox.imresize import imresize
+from quality_indexes_toolbox.interp23 import interp23
 
 def D_s(I_F,I_MS,I_MS_LR,I_PAN,ratio,S,q):
 

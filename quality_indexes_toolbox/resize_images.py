@@ -5,6 +5,8 @@ All rights reserved. This work should only be used for nonprofit purposes.
 
 @author: Vivone Gemine (website: https://sites.google.com/site/vivonegemine/home )
 """
+from quality_indexes_toolbox.imresize import imresize
+from quality_indexes_toolbox.MTF import MTF
 
 """
  Description:
@@ -29,39 +31,38 @@ All rights reserved. This work should only be used for nonprofit purposes.
 """
 
 import numpy as np
-from imresize import imresize
-from MTF import MTF
 
-def resize_images(I_MS,I_PAN,ratio,sensor):
 
+def resize_images(I_MS, I_PAN, ratio, sensor):
     I_MS = I_MS.astype('float64')
     I_PAN = I_PAN.astype('float64')
-    
-    if (sensor == 'QB') or (sensor == 'IKONOS') or (sensor == 'GeoEye1') or (sensor == 'WV2') or (sensor == 'WV3') or (sensor == 'WV4'):
+
+    if (sensor == 'QB') or (sensor == 'IKONOS') or (sensor == 'GeoEye1') or (sensor == 'WV2') or (sensor == 'WV3') or (
+            sensor == 'WV4'):
         flag_resize_new = 2
     else:
         flag_resize_new = 1
 
     if (flag_resize_new == 1):
         """ Bicubic Interpolator MS"""
-        I_MS_LP = np.zeros((int(round(I_MS.shape[0]/ratio)),int(round(I_MS.shape[1]/ratio)),I_MS.shape[2]))
-        
+        I_MS_LP = np.zeros((int(round(I_MS.shape[0] / ratio)), int(round(I_MS.shape[1] / ratio)), I_MS.shape[2]))
+
         for idim in range(I_MS.shape[2]):
-            I_MS_LP[:,:,idim] = imresize(I_MS[:,:,idim], 1/ratio)
-        
+            I_MS_LP[:, :, idim] = imresize(I_MS[:, :, idim], 1 / ratio)
+
         I_MS_LR = I_MS_LP.astype('float64')
-        
+
         """ Bicubic Interpolator PAN"""
-        I_PAN_LR = imresize(I_PAN, 1/ratio)
-    
+        I_PAN_LR = imresize(I_PAN, 1 / ratio)
+
     elif (flag_resize_new == 2):
-        I_MS_LP = MTF(I_MS,sensor,ratio)
-            
+        I_MS_LP = MTF(I_MS, sensor, ratio)
+
         """ Decimation MS"""
-        I_MS_LP_D = I_MS_LP[int(ratio/2):-1:int(ratio),int(ratio/2):-1:int(ratio),:]
-        
+        I_MS_LP_D = I_MS_LP[int(ratio / 2):-1:int(ratio), int(ratio / 2):-1:int(ratio), :]
+
         I_MS_LR = I_MS_LP_D.astype('float64')
-        
-        I_PAN_LR = imresize(I_PAN, 1/ratio)
-    
+
+        I_PAN_LR = imresize(I_PAN, 1 / ratio)
+
     return I_MS_LR, I_PAN_LR

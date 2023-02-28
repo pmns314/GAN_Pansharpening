@@ -1,4 +1,4 @@
-%clear, clc, close all
+clear, clc, close all
 load("C:\Users\pmans\Documenti\Progetti_local\Pycharm\GAN-Pansharpening\data\FR\" + ...
      "W3\" + ...
      "W3_Muni_Urb.mat")
@@ -39,3 +39,4 @@ figure,
 [img_to_show, t]= linear_stretch(gen, 0, t);
 imshow(img_to_show(:,:,3:-1:1),'Border', 'tight')
 disp("end")
+showPan

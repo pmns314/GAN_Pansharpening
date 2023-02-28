@@ -3,6 +3,7 @@ from math import sqrt
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from numpy.matlib import repmat
 
 
 def create_patches(img, dim_patch, stride):
@@ -116,7 +117,7 @@ def adjust_image(img, ms_lr=None):
     ms_lr = np.squeeze(ms_lr) * 2048.0
     mgen = np.mean(img, (0, 1)) + 1e-12
     mgt = np.mean(ms_lr, (0, 1))
-    img = (img - mgen) + mgt
+    img = (img / mgen) * mgt
     return np.round(img)
 
 
@@ -170,7 +171,7 @@ def linear_strech(data, calculate_limits=True):
     return data
 
 
-def view_image(data, calculate_limits=True):
+def view_image(data, calculate_limits=True, pan=None, ms=None):
     """ Display image as RGB after performing linear stretching on the extracted bands,
     If input has 8 channels, bands [0,2,4] are selected for display. Otherwise, bands [0,1,2] are taken
 
@@ -183,9 +184,50 @@ def view_image(data, calculate_limits=True):
         if True, calculates new limits for linear stretching
     """
     channels = data.shape[2]
+    pan = np.reshape(pan, [*pan.shape, 1])
+    pan = linear_strech(np.repeat(pan, 3, axis=2), calculate_limits=True)
+    h, w = data.shape[:2]
     if channels == 8:
-        xx = linear_strech(data[:, :, (0, 2, 4)], calculate_limits)
+        ms = linear_strech(ms[:, :, (0, 2, 4)], calculate_limits=True)
+        gt = linear_strech(data[:, :h, (0, 2, 4)], calculate_limits=True)
+        gen = linear_strech(data[:, h:, (0, 2, 4)], calculate_limits=False)
+
     else:
-        xx = linear_strech(data[:, :, (0, 1, 2)], calculate_limits)
-    plt.figure()
-    plt.imshow((xx[:, :, ::-1]))
+        ms = linear_strech(ms[:, :, (0, 1, 2)], calculate_limits=True)
+        gt = linear_strech(data[:, :h, (0, 1, 2)], calculate_limits=True)
+        gen = linear_strech(data[:, h:, (0, 1, 2)], calculate_limits=False)
+
+
+    fig = plt.figure()
+
+    if w == 2 * h:
+        plt.subplot(221)
+        # c = 255 / (np.log(1 + np.max(pan)))
+        # log_transformed = c * np.log(1 + pan)
+        #
+        # # Specify the data type.
+        # pan = np.array(log_transformed, dtype=np.uint8)
+
+        plt.imshow((pan[:, :]), 'gray')
+        plt.axis('off')
+        plt.title("PAN")
+
+        plt.subplot(222)
+        plt.imshow((ms[:, :, ::-1]))
+        plt.axis('off')
+        plt.title("MS")
+
+        plt.subplot(223)
+        plt.imshow((gt[:, :, ::-1]))
+        plt.axis('off')
+        plt.title("GT")
+
+        plt.subplot(224)
+        plt.imshow((gen[:, :, ::-1]))
+        plt.axis('off')
+        plt.title("Pansharpened Image")
+    else:
+        ax = plt.imshow((xx[:, :, ::-1]))
+        plt.axis('off')
+
+    return fig
