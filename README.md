@@ -51,6 +51,7 @@ For information about parameters run:
 
     python train_file.py -h
 
+See the [documentation](docs/pytorch_models/index.html) for more details
 
 ---
 
