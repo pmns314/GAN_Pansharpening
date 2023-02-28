@@ -28,12 +28,18 @@ Alternatively
     ```
 
 2. From the _dataset_utilities_ package run:
-   > python _organise_data.py_
+    
 
-    Alternatively
-    > matlab -nosplash -r "organise_data; exit" -wait -sd .
+    python _organise_data.py_
+
+Alternatively
+
+    matlab -nosplash -r "organise_data; exit" -wait -sd .
 
 3. Run _generate_patch_dataset.py_ or _generate_patch_k_fold.py_ according to the desired protocol assessment
+
+
+---
 
 ### Train Network
 
@@ -45,9 +51,14 @@ For information about parameters run:
 
     python train_file.py -h
 
+
+---
+
 ### Generate Output
 
+#### Code
 Run
+
 
     python generate_image.py
 
@@ -55,6 +66,11 @@ For information about parameters, run:
 
     python generate_image.py -h
 
+
+#### GUI
+Run
+    
+    python GUI_result_generation.py
 ***
 
 ## How To Contribute
@@ -65,6 +81,9 @@ For information about parameters, run:
 * Inside _Losses.py_ add entry to the Enum **Losses** like
   > KEY = NewLossClass
   >- KEY must be a capital letter word
+
+
+---
 
 ### Add Adversarial Loss Function
 
@@ -77,6 +96,8 @@ For information about parameters, run:
   > KEY = NewAdversarialLossClass
   >  - KEY must be a capital letter word
 
+---
+
 ### Add CNN
 
 1. Inside _CNNs_ package create a new CNN class extending _CnnInterface_
@@ -87,6 +108,8 @@ For information about parameters, run:
 * add entry to the Enum ***CNNS*** like
   > KEY = NewCNNClass
   >  - KEY must be a capital letter word
+
+---
 
 ### Add GAN
 
